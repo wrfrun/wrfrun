@@ -1,0 +1,262 @@
+&time_control
+    run_days = 0
+    run_hours = 72
+    run_minutes = 0
+    run_seconds = 0
+    start_year = 2022, 2022, 2022
+    start_month = 5, 5, 5
+    start_day = 19, 19, 19
+    start_hour = 18, 18, 18
+    start_minute = 0, 0, 0
+    start_second = 0, 0, 0
+    end_year = 2022, 2022, 2022
+    end_month = 5, 5, 5
+    end_day = 22, 22, 22
+    end_hour = 18, 18, 18
+    end_minute = 0, 0, 0
+    end_second = 0, 0, 0
+    interval_seconds = 10800
+    input_from_file = .true., .true., .true.
+    fine_input_stream = 0, 0, 2
+    history_interval = 180, 180, 60
+    frames_per_outfile = 1000, 1000, 1000
+    history_outname = 'wrfout_d<domain>_<date>'
+    restart = .false.
+    restart_interval = 5000
+    override_restart_timers = .false.
+    io_form_history = 2
+    io_form_restart = 2
+    io_form_input = 2
+    io_form_boundary = 2
+    io_form_auxinput4 = 2
+    io_form_auxinput2 = 2
+    debug_level = 0
+    auxinput1_inname = './met_em.d<domain>.<date>'
+    auxinput4_inname = 'wrflowinp_d<domain>'
+    auxinput4_interval = 180, 180, 180
+    inputout_interval = 180
+    input_outname = 'wrfvar_d<domain>_<date>'
+    adjust_output_times = .true.
+/
+
+&domains
+    time_step = 120
+    time_step_fract_num = 0
+    time_step_fract_den = 1
+    max_dom = 2
+    time_step_dfi = 0
+    s_we = 1, 1, 1
+    e_we = 110, 151, 133
+    s_sn = 1, 1, 1
+    e_sn = 120, 181, 133
+    s_vert = 1, 1, 1
+    e_vert = 44, 44, 57
+    eta_levels = 1.0, 0.9975, 0.9925, 0.985, 0.9775, 0.97, 0.954, 0.934,
+                 0.909, 0.88, 0.8506, 0.8212, 0.7918, 0.7625, 0.7084, 0.6573,
+                 0.609, 0.5634, 0.5204, 0.4798, 0.4415, 0.4055, 0.3716,
+                 0.3397, 0.3097, 0.2815, 0.2551, 0.2303, 0.2071, 0.1854,
+                 0.1651, 0.1461, 0.1284, 0.1118, 0.0965, 0.0822, 0.0689,
+                 0.0566, 0.0452, 0.0346, 0.0249, 0.0159, 0.0076, 0.0
+    num_metgrid_levels = 38
+    num_metgrid_soil_levels = 3
+    p_top_requested = 5000
+    vert_refine_fact = 1
+    interp_theta = .false.
+    hypsometric_opt = 2
+    interp_type = 2
+    extrap_type = 2
+    t_extrap_type = 2
+    lowest_lev_from_sfc = .false.
+    force_sfc_in_vinterp = 1
+    use_surface = .true.
+    dx = 30000, 10000, 3333.333
+    dy = 30000, 10000, 3333.333
+    grid_id = 1, 2, 3
+    parent_id = 1, 1, 2
+    i_parent_start = 1, 35, 40
+    j_parent_start = 1, 34, 40
+    parent_grid_ratio = 1, 3, 3
+    parent_time_step_ratio = 1, 3, 4
+    feedback = 1
+    smooth_option = 2
+    nproc_x = -1
+    nproc_y = -1
+    numtiles = 6
+    use_adaptive_time_step = .false.
+    step_to_output_time = .true.
+    target_cfl = 1.1, 1.1, 1.1
+    max_step_increase_pct = 5, 51, 51
+    starting_time_step = 120, 40, 10
+    max_time_step = 240, 80, 20
+    min_time_step = 60, 20, 10
+    adaptation_domain = 1
+/
+
+&dfi_control
+    dfi_opt = 0
+    dfi_nfilter = 7
+    dfi_write_filtered_input = .true.
+    dfi_write_dfi_history = .false.
+    dfi_cutoff_seconds = 3600
+    dfi_time_dim = 9000
+    dfi_bckstop_year = 9991
+    dfi_bckstop_month = 9992
+    dfi_bckstop_day = 9993
+    dfi_bckstop_hour = 9994
+    dfi_bckstop_minute = 0
+    dfi_bckstop_second = 0
+    dfi_fwdstop_year = 8881
+    dfi_fwdstop_month = 8882
+    dfi_fwdstop_day = 8883
+    dfi_fwdstop_hour = 8884
+    dfi_fwdstop_minute = 30
+    dfi_fwdstop_second = 0
+/
+
+&physics
+    chem_opt = 0
+    mp_physics = 2, 2, 2
+    progn = 0, 0, 0
+    mp_zero_out = 2
+    mp_zero_out_thresh = 1e-08
+    do_radar_ref = 1
+    gsfcgce_hail = 0
+    gsfcgce_2ice = 0
+    no_mp_heating = 0
+    ra_lw_physics = 4, 4, 4
+    ra_sw_physics = 4, 4, 4
+    radt = 15, 15, 10
+    sf_sfclay_physics = 1, 1, 1
+    iz0tlnd = 1
+    sf_surface_physics = 2, 2, 2
+    sf_urban_physics = 1, 1, 1
+    bl_pbl_physics = 1, 1, 1
+    bl_mynn_tkeadvect = .true., .true., .true.
+    ysu_topdown_pblmix = 1
+    topo_wind = 1
+    bldt = 0, 0, 0
+    opt_thcnd = 2
+    grav_settling = 2, 2, 2
+    cu_physics = 1, 1, 0
+    ishallow = 0
+    cudt = 0, 0, 0
+    kfeta_trigger = 1
+    cu_rad_feedback = .true., .true., .true.
+    cugd_avedx = 1
+    isfflx = 1
+    ifsnow = 0
+    icloud = 3
+    surface_input_source = 1
+    num_land_cat = 21
+    num_soil_cat = 16
+    usemonalb = .true.
+    rdlai2d = .true.
+    sst_update = 1
+    num_soil_layers = 4
+    maxiens = 1
+    maxens = 3
+    maxens2 = 3
+    maxens3 = 16
+    ensdim = 144
+    slope_rad = 1
+    topo_shading = 1
+    shadlen = 25000.0
+    sf_ocean_physics = 0
+    oml_hml0 = 50
+    oml_gamma = 0.14
+    isftcflx = 0
+    fractional_seaice = 0
+/
+
+&fdda
+    obs_nudge_opt = 0, 0, 0
+    max_obs = 36000
+    fdda_start = 360.0, 360.0, 360.0
+    fdda_end = 99999.0, 99999.0, 99999.0
+    obs_nudge_wind = 1, 1, 1
+    obs_coef_wind = 0.0004, 0.0004, 0.0004
+    obs_nudge_temp = 1, 1, 1
+    obs_coef_temp = 0.0004, 0.0004, 0.0004
+    obs_nudge_mois = 1, 1, 1
+    obs_coef_mois = 2e-05, 2e-05, 2e-05
+    obs_rinxy = 240.0, 60.0, 180.0
+    obs_rinsig = 0.1
+    obs_twindo = 0.666667
+    obs_npfi = 10
+    obs_ionf = 2
+    obs_idynin = 0
+    obs_dtramp = 40.0
+    obs_ipf_errob = .true.
+    obs_ipf_nudob = .true.
+    obs_ipf_in4dob = .true.
+    grid_fdda = 0, 0
+    gfdda_inname = 'wrffdda_d<domain>'
+    gfdda_end_h = 72, 72
+    io_form_gfdda = 2
+    fgdt = 0, 0
+    if_no_pbl_nudging_uv = 0, 0
+    if_no_pbl_nudging_t = 1, 1
+    if_no_pbl_nudging_q = 1, 1
+    guv = 0.0004, 0.0004
+    gt = 0.0004, 0.0004
+    gq = 0.0004, 0.0004
+    if_ramping = 0
+    dtramp_min = 60
+/
+
+&dynamics
+    rk_ord = 3
+    w_damping = 1
+    diff_opt = 2
+    km_opt = 4
+    diff_6th_opt = 2, 2, 2
+    diff_6th_factor = 0.12, 0.12, 0.12
+    use_theta_m = 1
+    use_q_diabatic = 1
+    base_temp = 290.0
+    use_baseparam_fr_nml = .true.
+    damp_opt = 3
+    zdamp = 5000.0, 5000.0, 5000.0
+    dampcoef = 0.2, 0.2, 0.2
+    khdif = 0, 0, 0
+    kvdif = 0, 0, 0
+    non_hydrostatic = .true., .true., .true.
+    use_input_w = .true.
+    moist_adv_opt = 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+    moist_adv_dfi_opt = 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+    scalar_adv_opt = 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+    chem_adv_opt = 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+    tracer_adv_opt = 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+    tke_adv_opt = 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+    gwd_opt = 0
+/
+
+&bdy_control
+    spec_bdy_width = 5
+    spec_zone = 1
+    relax_zone = 4
+    specified = .true., .false., .false.
+    nested = .false., .true., .true.
+    constant_bc = .false.
+    have_bcs_moist = .false.
+    have_bcs_scalar = .false.
+/
+
+&tc
+    insert_bogus_storm = .false.
+    remove_storm = .false.
+    num_storm = 1
+    latc_loc = 25.0
+    lonc_loc = 127.0
+    vmax_meters_per_second = 60.0
+    rmax = 60000.0
+    vmax_ratio = 0.85
+/
+
+&grib2
+/
+
+&namelist_quilt
+    nio_tasks_per_group = 0
+    nio_groups = 1
+/

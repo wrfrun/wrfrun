@@ -1,0 +1,16 @@
+#!/bin/bash
+#PBS -q batch
+##PBS -q odasc
+#PBS -N py-wrfrun
+#PBS -o {STDOUT_LOG_PATH}
+#PBS -e {STDERR_LOG_PATH}
+#PBS -l nodes={NODE_NUM}:ppn={CORE_NUM}
+#PBS -l walltime=9999:00:00
+
+ulimit -s unlimited
+
+{ENV_SETTINGS}
+
+cd {WORK_PATH}
+
+{WORK_COMMAND}

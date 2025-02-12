@@ -1,0 +1,44 @@
+&share
+    wrf_core = 'ARW'
+    max_dom = 2
+    start_date = '2022-05-19_15:00:00', '2022-05-19_15:00:00', '2022-05-19_15:00:00'
+    end_date = '2022-05-22_18:00:00', '2022-05-22_18:00:00', '2022-05-22_18:00:00'
+    interval_seconds = 10800
+    io_form_geogrid = 2
+/
+
+&geogrid
+    parent_id = 1, 1, 2
+    parent_grid_ratio = 1, 3, 3
+    i_parent_start = 1, 35, 40
+    j_parent_start = 1, 34, 40
+    e_we = 110, 151, 133
+    e_sn = 120, 181, 133
+    geog_data_res = '10m', '2m', '30s'
+    dx = 30000
+    dy = 30000
+    map_proj = 'lambert'
+    ref_lat = 36.0
+    ref_lon = 123.0
+    truelat1 = 20.0
+    truelat2 = 50.0
+    stand_lon = 123.0
+    geog_data_path = '/home/liurw/Documents/geog_data'
+/
+
+&ungrib
+    out_format = 'WPS'
+    prefix = './outputs/FILE'
+/
+
+&metgrid
+    fg_name = './outputs/FILE', './outputs/SST_GOOS'
+    process_only_bdy = 0
+    io_form_metgrid = 2
+    opt_output_from_metgrid_path = './'
+/
+
+&mod_levs
+    press_pa = 201300, 200100, 100000, 92500, 85000, 70000, 60000, 50000,
+               40000, 30000, 25000, 20000, 15000, 10000, 7000, 5000
+/

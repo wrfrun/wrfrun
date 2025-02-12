@@ -1,0 +1,7 @@
+GRIB | Level| Level| Level| metgrid  |  metgrid | metgrid                                  |
+Code | Code |   1  |   2  | Name     |  Units   | Description                              |
+-----+------+------+------+----------+----------+------------------------------------------+
+  34 |  1   |   0  |      | SST      | K        | Sea-Surface Temperature                  |
+-----+------+------+------+----------+----------+------------------------------------------+
+
+# Vtable setting for GRIB file created by wrfrun.extension.sst

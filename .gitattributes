@@ -1,0 +1,3 @@
+.gitea/ export-ignore
+.github/ export-ignore
+images/ export-ignore

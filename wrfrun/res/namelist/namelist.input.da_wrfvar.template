@@ -1,0 +1,261 @@
+&wrfvar1
+    print_detail_grad = .false.
+/
+
+&wrfvar2
+    calc_w_increment = .false.
+    dt_cloud_model = .false.
+    write_mod_filtered_obs = .false.
+    wind_sd = .true.
+    wind_sd_buoy = .true.
+    wind_sd_synop = .true.
+    wind_sd_ships = .true.
+    wind_sd_metar = .true.
+    wind_sd_sound = .true.
+    wind_sd_pilot = .true.
+    wind_sd_airep = .true.
+    wind_sd_qscat = .true.
+    wind_sd_tamdar = .true.
+    wind_sd_geoamv = .true.
+    wind_sd_mtgirs = .true.
+    wind_sd_polaramv = .true.
+    wind_sd_profiler = .true.
+    wind_stats_sd = .false.
+    qc_rej_both = .false.
+/
+
+&wrfvar3
+    ob_format = 2
+    ob_format_gpsro = 1
+/
+
+&wrfvar4
+    use_synopobs = .true.
+    use_shipsobs = .true.
+    use_soundobs = .true.
+    use_qscatobs = .true.
+    use_metarobs = .true.
+    use_pilotobs = .true.
+    use_airepobs = .true.
+    use_tamdarobs = .true.
+    use_geoamvobs = .true.
+    use_polaramvobs = .true.
+    use_bogusobs = .true.
+    use_buoyobs = .true.
+    use_profilerobs = .true.
+    use_satemobs = .true.
+    use_gpspwobs = .true.
+    use_gpsrefobs = .true.
+    use_ssmiretrievalobs = .false.
+    use_airsretobs = .true.
+    use_radarobs = .false.
+    use_radar_rv = .false.
+    use_radar_rf = .false.
+    use_amsuaobs = .false.
+    use_amsubobs = .false.
+    use_eos_amsuaobs = .false.
+    use_iasiobs = .false.
+    use_mhsobs = .false.
+    use_seviriobs = .false.
+    use_airsobs = .false.
+    use_atmsobs = .false.
+    use_ssmisobs = .false.
+    use_hirs3obs = .false.
+    use_hirs4obs = .false.
+    use_msuobs = .false.
+    use_mwtsobs = .false.
+    use_mwhsobs = .false.
+    use_amsr2obs = .false.
+    use_obs_errfac = .false.
+/
+
+&wrfvar5
+    check_max_iv = .true.
+    max_error_t = 5.0
+    max_error_uv = 5.0
+    max_error_pw = 5.0
+    max_error_ref = 5.0
+    max_error_rh = 5.0
+    max_error_q = 5.0
+    max_error_p = 5.0
+    max_error_tb = 5.0
+    max_error_thickness = 5.0
+    max_error_rv = 5.0
+    max_error_rf = 5.0
+/
+
+&wrfvar6
+    max_ext_its = 1
+    ntmax = 150
+    eps = 0.0001, 0.0001, 0.0001, 0.0001, 0.0001
+    orthonorm_gradient = .true.
+/
+
+&wrfvar7
+    cv_options = 3
+    len_scaling1 = 1.0
+    len_scaling2 = 1.0
+    len_scaling3 = 1.0
+    len_scaling4 = 1.0
+    len_scaling5 = 1.0
+    var_scaling1 = 1.0
+    var_scaling2 = 1.0
+    var_scaling3 = 1.0
+    var_scaling4 = 1.0
+    var_scaling5 = 1.0
+/
+
+&wrfvar8
+/
+
+&wrfvar9
+    trace_use = .false.
+/
+
+&wrfvar10
+/
+
+&wrfvar11
+    check_rh = 0
+    sfc_assi_options = 1
+    calculate_cg_cost_fn = .true.
+/
+
+&wrfvar12
+/
+
+&wrfvar13
+/
+
+&wrfvar14
+    rtminit_nsensor = 22
+    rtminit_platform = 1, 1, 1, 1, 9, 10, 1, 1, 1, 10, 1, 1, 10, 12, 12,
+                       9, 17, 2, 1, 1, 1, 1
+    rtminit_satid = 15, 16, 18, 19, 2, 2, 15, 16, 17, 2, 18, 19, 2, 2, 3,
+                    2, 0, 16, 15, 16, 17, 18
+    rtminit_sensor = 3, 3, 3, 3, 3, 3, 4, 4, 4, 16, 15, 15, 15, 21, 21,
+                     11, 19, 10, 0, 0, 0, 0
+    thinning = .true.
+    thinning_mesh = 45.0, 45.0, 45.0, 45.0, 45.0, 45.0, 45.0, 45.0, 45.0,
+                    45.0, 45.0, 45.0, 45.0, 45.0, 45.0, 45.0, 45.0, 45.0
+    qc_rad = .true.
+    write_iv_rad_ascii = .false.
+    write_oa_rad_ascii = .true.
+    use_antcorr = .true., .true., .true., .true., .true., .true., .true.,
+                  .true., .true., .true., .true., .true., .true., .true.,
+                  .true., .true., .true., .true.
+    rtm_option = 1
+    only_sea_rad = .true.
+    use_varbc = .true.
+    varbc_factor = 1.0
+    freeze_varbc = .true.
+    varbc_nobsmin = 10
+    use_crtm_kmatrix = .true.
+    use_rttov_kmatrix = .true.
+    rttov_emis_atlas_ir = 1
+    rttov_emis_atlas_mw = 1
+/
+
+&wrfvar15
+    num_pseudo = 0
+    pseudo_x = 129.0
+    pseudo_y = 26.0
+    pseudo_z = 1.0
+    pseudo_val = -500.0
+    pseudo_err = 1.0
+/
+
+&wrfvar16
+/
+
+&wrfvar17
+/
+
+&wrfvar18
+    analysis_date = '2022-05-19_18:00:00.0000'
+/
+
+&wrfvar19
+    pseudo_var = 'p'
+/
+
+&wrfvar20
+/
+
+&wrfvar21
+    time_window_min = '2022-05-19_17:00:00.0000'
+/
+
+&wrfvar22
+    time_window_max = '2022-05-19_19:00:00.0000'
+/
+
+&wrfvar23
+/
+
+&time_control
+    start_year = 2022
+    start_month = 5
+    start_day = 19
+    start_hour = 18
+    start_minute = 0
+    end_year = 2022
+    end_month = 5
+    end_day = 19
+    end_hour = 18
+    end_minute = 0
+/
+
+&dfi_control
+/
+
+&domains
+    e_we = 110
+    e_sn = 120
+    e_vert = 44
+    dx = 30000
+    dy = 30000
+    nproc_x = -1
+    nproc_y = -1
+    numtiles = 6
+    interp_theta = .true.
+    hypsometric_opt = 2
+/
+
+&physics
+    mp_physics = 2
+    progn = 0
+    no_mp_heating = 0
+    ra_lw_physics = 4
+    ra_sw_physics = 4
+    radt = 15
+    sf_sfclay_physics = 1
+    sf_surface_physics = 2
+    bl_pbl_physics = 1
+    num_land_cat = 21
+    num_soil_layers = 4
+    cu_physics = 1
+    cudt = 0
+    isfflx = 1
+    mp_zero_out = 2
+/
+
+&fdda
+/
+
+&dynamics
+    km_opt = 4
+    damp_opt = 3
+    dampcoef = 0.2
+/
+
+&bdy_control
+/
+
+&grib2
+/
+
+&namelist_quilt
+    nio_tasks_per_group = 0
+    nio_groups = 1
+/
