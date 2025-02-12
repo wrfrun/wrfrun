@@ -19,7 +19,7 @@ dependencies = ["xarray", "netCDF4", "rich", "PyYAML", "pandas", "f90nml", "cdsa
 [project.urls]
 homepage = "https://github.com/Syize/wrfrun"
 repository = "https://github.com/Syize/wrfrun"
-documentation = "https://github.com/Syize/wrfrun"
+documentation = "https://github.com/Syize/wrfrun/wiki"
 "Bug Tracker" = "https://github.com/Syize/wrfrun/issues"
 
 [tool.poetry]
