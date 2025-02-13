@@ -3,7 +3,7 @@ from shutil import move
 
 from wrfrun.core import WRFRUNConfig, WRFRUNConstants, WRFRUNNamelist
 from wrfrun.utils import check_path, logger
-from .wps import get_metgrid_levels
+from .wps_utils import get_metgrid_levels
 
 
 def reconcile_namelist_metgrid(metgrid_path: str):

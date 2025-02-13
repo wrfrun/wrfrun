@@ -12,8 +12,7 @@ from .core import WRFRUNConfig, WRFRUNConstants, WRFRunServer, WRFRunServerHandl
 from .data import prepare_wps_input_data
 from .model.namelist import prepare_wps_namelist, prepare_wrf_namelist, prepare_wrfda_namelist
 from .model.plot import plot_domain_area
-from .model.wps import clear_wps_logs
-from .model.wrf import clear_wrf_logs
+from .model.utils import clear_wps_logs, clear_wrf_logs
 from .pbs import in_pbs, prepare_pbs_script
 from .utils import call_subprocess, check_path, logger, logger_add_file_handler
 from .workspace import prepare_workspace
