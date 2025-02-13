@@ -202,20 +202,8 @@ def real(metgrid_path: Union[str, None] = None):
 
     exec_real(get_core_num())
 
-    model_postprocess(WRF_WORK_PATH, output_save_path, startswith=["wrfbdy", "wrfinput", "wrflow"])
+    model_postprocess(WRF_WORK_PATH, output_save_path, startswith=("wrfbdy", "wrfinput", "wrflow"))
     model_postprocess(WRF_WORK_PATH, log_save_path, startswith="rsl.", outputs="namelist.input", copy_only=False)
-
-    # for _file in listdir(WRF_WORK_PATH):
-    #     if _file.startswith("rsl."):
-    #         move(f"{WRF_WORK_PATH}/{_file}", f"{log_save_path}/{_file}")
-    #     elif _file.startswith("wrfbdy"):
-    #         copyfile(f"{WRF_WORK_PATH}/{_file}", f"{output_save_path}/{_file}")
-    #     elif _file.startswith("wrfinput"):
-    #         copyfile(f"{WRF_WORK_PATH}/{_file}", f"{output_save_path}/{_file}")
-    #     elif _file.startswith("wrflow"):
-    #         copyfile(f"{WRF_WORK_PATH}/{_file}", f"{output_save_path}/{_file}")
-    #
-    # move(f"{WRF_WORK_PATH}/namelist.input", f"{log_save_path}/namelist.input")
 
     logger.info(f"All real output files have been copied to {output_save_path}")
 
@@ -269,18 +257,6 @@ def dfi(real_output_path: Union[str, None] = None, update_real_output=True):
     model_postprocess(WRF_WORK_PATH, log_save_path, startswith="rsl.", outputs="namelist.input", copy_only=False)
     model_postprocess(WRF_WORK_PATH, output_save_path, outputs="wrfinput_initialized_d01")
 
-    # for _file in listdir(WRF_WORK_PATH):
-    #     if _file.startswith("rsl."):
-    #         move(f"{WRF_WORK_PATH}/{_file}", f"{log_save_path}/{_file}")
-    #     elif _file == "wrfinput_initialized_d01":
-    #         move(f"{WRF_WORK_PATH}/{_file}", f"{output_save_path}/{_file}")
-    #         if update_real_output:
-    #             move(f"{real_output_path}/wrfinput_d01", f"{real_output_path}/wrfinput_d01_before_dfi")
-    #             copyfile(f"{output_save_path}/{_file}", f"{real_output_path}/wrfinput_d01")
-    #             logger.info(f"Replace real's output \"wrfinput_d01\" with output, old file has been renamed as \"wrfinput_d01_before_dfi\"")
-    #
-    # move(f"{WRF_WORK_PATH}/namelist.input", f"{log_save_path}/namelist.input")
-
     if update_real_output:
         move(f"{real_output_path}/wrfinput_d01", f"{real_output_path}/wrfinput_d01_before_dfi")
         copyfile(f"{output_save_path}/wrfinput_initialized_d01", f"{real_output_path}/wrfinput_d01")
@@ -332,14 +308,6 @@ def wrf(wrf_input_path: Union[str, None] = None):
 
     model_postprocess(WRF_WORK_PATH, log_save_path, startswith="rsl.", outputs="namelist.input", copy_only=False)
     model_postprocess(WRF_WORK_PATH, output_save_path, startswith="wrfout")
-
-    # for _file in listdir(WRF_WORK_PATH):
-    #     if _file.startswith("rsl."):
-    #         move(f"{WRF_WORK_PATH}/{_file}", f"{log_save_path}/{_file}")
-    #     elif _file.startswith("wrfout"):
-    #         copyfile(f"{WRF_WORK_PATH}/{_file}", f"{output_save_path}/{_file}")
-    #
-    # move(f"{WRF_WORK_PATH}/namelist.input", f"{log_save_path}/namelist.input")
 
     logger.info(f"All wrf output files have been copied to {output_save_path}")
 
@@ -393,12 +361,6 @@ def ndown(wrfout_file_path: str, wrfinput_file_path: str, update_namelist=True):
     exec_ndown(get_core_num())
 
     model_postprocess(WRF_WORK_PATH, log_save_path, startswith="rsl.", outputs="namelist.input", copy_only=False)
-
-    # for _file in listdir(WRF_WORK_PATH):
-    #     if _file.startswith("rsl."):
-    #         move(f"{WRF_WORK_PATH}/{_file}", f"{log_save_path}/{_file}")
-    #
-    # move(f"{WRF_WORK_PATH}/namelist.input", f"{log_save_path}/namelist.input")
 
     logger.info(f"Rename ndown output `wrfinput_d02` to `wrfinput_d01`")
     move(f"{WRF_WORK_PATH}/wrfinput_d02", f"{output_save_path}/wrfinput_d01")

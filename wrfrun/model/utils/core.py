@@ -1,7 +1,7 @@
 from os import listdir, makedirs
 from os.path import basename, exists
 from shutil import copyfile, move
-from typing import Tuple, Union, List
+from typing import Tuple, Union, List, Iterable
 
 from wrfrun.utils import logger
 
@@ -84,26 +84,35 @@ def model_postprocess(output_dir: str, save_path: str, startswith: Union[None, s
     save_file_list = []
 
     if startswith is not None:
+        _list = []
         for _file in file_list:
             if _file.startswith(startswith):
-                save_file_list.append(_file)
+                _list.append(_file)
+        save_file_list += _list
+                
+        logger.debug(f"Collect files match `startswith`: {_list}")
 
     if endswith is not None:
+        _list = []
         for _file in file_list:
             if _file.endswith(endswith):
-                save_file_list.append(_file)
+                _list.append(_file)
+        save_file_list += _list
+                
+        logger.debug(f"Collect files match `endswith`: {_list}")
 
     if outputs is not None:
-        if isinstance(outputs, str):
-            save_file_list.append(basename(outputs))
+        if isinstance(outputs, str) and outputs in file_list:
+            save_file_list.append(outputs)
         else:
-            outputs = [basename(x) for x in outputs]
+            outputs = [x for x in outputs if x in file_list]
             save_file_list += outputs
 
     if len(save_file_list) < 1:
         return
 
     save_file_list = list(set(save_file_list))
+    logger.debug(f"Files to be processed: {save_file_list}")
 
     for _file in save_file_list:
         if copy_only:
