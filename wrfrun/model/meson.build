@@ -4,14 +4,11 @@ py3.install_sources(
         'core.py',
         'geodata.py',
         'namelist.py',
-        'ndown.py',
         'plot.py',
         'run.py',
         'scheme.py',
-        'utils.py',
-        'wps.py',
-        'wrf.py',
-        'wrfda.py',
     ],
     subdir: 'wrfrun/model'
 )
+
+subdir('utils')

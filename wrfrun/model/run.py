@@ -8,10 +8,7 @@ from wrfrun.pbs import get_core_num
 from wrfrun.utils import check_path, logger
 from .core import exec_geogrid, exec_metgrid, exec_ndown, exec_real, exec_ungrib, exec_wrf
 from .namelist import generate_namelist_file, prepare_dfi_namelist
-from .ndown import process_after_ndown
-from .utils import model_preprocess, model_postprocess
-from .wps import get_wif_dir, get_wif_prefix
-from .wrf import reconcile_namelist_metgrid
+from .utils import model_preprocess, model_postprocess, process_after_ndown, get_wif_dir, get_wif_prefix, reconcile_namelist_metgrid
 
 
 def geogrid(geogrid_tbl_file: Union[str, None] = None):
@@ -48,8 +45,8 @@ def geogrid(geogrid_tbl_file: Union[str, None] = None):
 
     exec_geogrid(get_core_num())
 
-    model_postprocess(WPS_WORK_PATH, log_save_path, startswith="geogrid.log", copy_only=False)
-    model_postprocess(WPS_WORK_PATH, output_save_path, startswith="geo_em", outputs=["namelist.wps"])
+    model_postprocess(WPS_WORK_PATH, log_save_path, startswith="geogrid.log", copy_only=False, outputs="namelist.wps")
+    model_postprocess(WPS_WORK_PATH, output_save_path, startswith="geo_em")
 
     # for _file in listdir(WPS_WORK_PATH):
     #     if _file.startswith("geogrid.log"):
