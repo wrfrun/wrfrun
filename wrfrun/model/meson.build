@@ -8,6 +8,7 @@ py3.install_sources(
         'plot.py',
         'run.py',
         'scheme.py',
+        'utils.py',
         'wps.py',
         'wrf.py',
         'wrfda.py',
