@@ -16,10 +16,14 @@ The following are the main features that wrfrun wants to achieve. These features
 - Real-time parsing of WRF logs, feedback on simulation progress.
 - Support for adding more functionality through extensions.
 
-## Install
+## Installation
 
 Install using pip:
 
 ```bash
 pip install wrfrun
 ```
+
+## Documentation
+
+Please check [Wiki](https://github.com/Syize/wrfrun/wiki).
