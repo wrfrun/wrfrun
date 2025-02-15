@@ -14,7 +14,7 @@ def to_fstring(var: Union[int, float, bool, str], length: Union[int, Tuple[int, 
     :param var: Basic variable, can be one of the ``[int, float, bool, str]``.
     :type var: Union[int, float, bool, str]
     :param length: The length of the output string. 
-        If the type of ``var`` is ``float``, the length must contains two parameters ``(total length, decimal length)``.
+        If the type of ``var`` is ``float``, the length must contain two parameters ``(total length, decimal length)``.
     :type length: Union[int, Tuple[int, int]]
     :return: Converted string.
     :rtype: str

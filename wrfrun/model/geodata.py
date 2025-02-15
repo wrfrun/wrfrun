@@ -44,7 +44,7 @@ def _get_clip_area(index_area: tuple[int, int, int, int], row_num: int, col_num:
     Returns:
         tuple[int, int, int, int]: Clip area.
     """
-    # caluclate tile area
+    # calculate tile area
     tile_area = (
         col_num * tile_x + 1,
         col_num * tile_x + tile_x,

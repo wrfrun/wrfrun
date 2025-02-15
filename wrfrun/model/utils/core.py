@@ -57,7 +57,7 @@ def model_preprocess(exec_name: str, work_path: str):
             copyfile(_file, f"{work_path}/{filename}")
 
 
-def model_postprocess(output_dir: str, save_path: str, startswith: Union[None, str, Tuple[str]] = None, endswith: Union[None, str, Tuple[str]] = None,
+def model_postprocess(output_dir: str, save_path: str, startswith: Union[None, str, Tuple[str, ...]] = None, endswith: Union[None, str, Tuple[str, ...]] = None,
                       outputs: Union[None, str, List[str]] = None, copy_only=True):
     """
     Save the results and logs from the model.
