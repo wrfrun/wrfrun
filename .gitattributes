@@ -1,3 +1,5 @@
 .gitea/ export-ignore
 .github/ export-ignore
 images/ export-ignore
+.readthedocs.yaml export-ignore
+docs export-ignore
