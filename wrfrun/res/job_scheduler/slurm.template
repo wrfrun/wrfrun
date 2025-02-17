@@ -1,0 +1,6 @@
+#SBATCH -J wrfrun                   %Job's name
+#SBATCH -N{NODE_NUM}                %node num
+#SBATCH -n{CORE_NUM}                %core num
+#SBATCH --time=9999:00:00           %maximum run time
+#SBATCH --output={STDOUT_LOG_PATH}  %stdout output log path
+#SBATCH --error={STDERR_LOG_PATH}   %error output log path

@@ -4,6 +4,7 @@ from .extension import *
 from .geogrid import *
 from .namelist import *
 from .ungrib import *
+from .job_scheduler import *
 
 
 _RES_PATH = abspath(dirname(__file__))
