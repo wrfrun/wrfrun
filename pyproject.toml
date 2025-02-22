@@ -1,10 +1,10 @@
 [build-system]
 build-backend = "mesonpy"
-requires = ["meson-python", "numpy<2.0.0"]
+requires = ["meson-python"]
 
 [project]
 name = "wrfrun"
-version = "0.1.5"
+version = "0.1.6"
 readme = "README.md"
 license = { text = "GPL-3.0-or-later" }
 requires-python = '>=3.10'
@@ -14,7 +14,7 @@ maintainers = [
 ]
 keywords = [ "WRF", ]
 description = "wrfrun is a comprehensive toolkit for managing and using WRF"
-dependencies = ["xarray", "netCDF4", "rich", "PyYAML", "pandas", "f90nml", "cdsapi", "seafog", "matplotlib", "Cartopy", "wrf-python", "cfgrib"]
+dependencies = ["xarray", "netCDF4", "rich", "PyYAML", "pandas", "f90nml", "cdsapi", "matplotlib", "Cartopy", "wrf-python", "cfgrib"]
 
 [project.urls]
 homepage = "https://github.com/Syize/wrfrun"
