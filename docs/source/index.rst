@@ -36,5 +36,4 @@ These sections will explain basic concepts of ``wrfrun``. You can also find the 
    :maxdepth: 3
    :caption: User guide:
 
-   documentation/config_file
-   documentation/context
+   documentation/index

@@ -222,5 +222,63 @@ As you can see, the contents of the configuration file are divided into two main
 wrf
 ***
 
+The ``wrf`` block are divided into two main parts, too. Most of the first several options won't be passed to WRF actually. They are used to inform ``wrfrun`` essential information to run WRF. Here are options and their explanations.
+
+.. code-block:: yaml
+
+    # The absolute path to installation directories of WPS, WRF and WRFDA.
+    # wps_path and wrf_path is mandatory, wrfda_path is optional.
+    # If you don't use WRFDA, you can leave it empty.
+    wps_path: '/path/to/your/WPS/folder'
+    wrf_path: '/path/to/your/WRF/folder'
+    wrfda_path: '/path/to/your/WRFDA/folder'
+
+    # The absolute path to the directory contains geographical data.
+    # It will be used as "geog_data_path" in namelist.wps
+    geog_data_path: '/path/to/your/geog/data'
+
+    # The absolute path to the directory contains WPS input data.
+    wps_input_data_folder: './data/bg'
+
+    # The absolute path to the directory contains NEAR-GOOS data.
+    # If you don't use NEAR-GOOS SST data, leave it empty.
+    near_goos_data_folder: './data/sst'
+
+    # Your can give your custom namelist files here.
+    # The value in it will overwrite the default value in wrfrun's namelist template file.
+    user_wps_namelist: ''
+    user_real_namelist: ''
+    user_wrf_namelist: ''
+    user_wrfda_namelist: ''
+
+User custom namelist
+====================
+
+Although ``wrfrun`` attempts to simplify the process of configuring WRF, it is almost impossible to fully rewrite all namelist options into another more understandable format due to the large number of options in the WRF namelist, while researchers sometimes add their additional options. Therefore, ``wrfrun`` allows users to provide their custom namelist files, which can either include the complete WRF configurations or only the options that need to be changed. Before running WRF, ``wrfrun`` will read these files and update the corresponding options to apply the user's configurations.
+
+For example, the default option of ``io_form_geogrid`` in ``wrfrun`` is ``2``, which means the output format of ``geogrid.exe`` is ``NetCDF``. If you want to change the value of it to ``3`` (because ``wrfrun`` doesn't provide any function to change ``io_form_geogrid``'s value), you can write a custom namelist like this
+
+.. code-block::
+    :caption: custom_wps_namelist
+
+    &share
+        io_form_geogrid = 3
+    /
+
+It looks like a simplified version of WRF namelist, but it still works for ``wrfrun``. Change ``user_wps_namelist``'s value to ``custom_wps_namelist``'s path, for example, ``./namelist/custom_wps_namelist``, ``wrfrun`` will read it and overwrite the default value with your configurations.
+
+.. code-block:: yaml
+
+    user_wps_namelist: './namelist/custom_wps_namelist'
+
+You can use the function ``write_namelist`` to write namelist settings a to file to check it.
+
+.. code-block:: python
+
+    from wrfrun import WRFRun, write_namelist
+
+    with WRFRun("./config.yaml", init_workspace=False, start_server=False, pbs_mode=False) as server:
+        write_namelist("./test_namelist", "wps")
+
 wrfrun
 ******
