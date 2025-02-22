@@ -25,8 +25,7 @@ You can check the :doc:`usage/installation` and :doc:`usage/quick_start` page to
    :maxdepth: 3
    :caption: Get started:
 
-   usage/installation
-   usage/quick_start
+   usage/index
 
 User guide
 **********

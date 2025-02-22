@@ -9,6 +9,7 @@ dist/
 wrfrun.egg-info/
 .idea/
 data/
+docs/build
 
 **/*.1
 **/*.input_step1
