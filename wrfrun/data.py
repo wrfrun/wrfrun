@@ -4,7 +4,7 @@ from os.path import exists, dirname
 from typing import Union, List, Tuple
 
 from pandas import date_range
-from seafog import goos_sst_find_data
+# from seafog import goos_sst_find_data
 
 import cdsapi
 
@@ -315,9 +315,9 @@ def prepare_wps_input_data(area: Tuple[int, int, int, int]):
     download_data(start_date, end_date, hour_step, area, f"{bg_save_path}/pressure.grib",
                   data_format="grib", data_type="pressure", overwrite=True)
 
-    logger.info(f"Download NearGOOS data...")
-    download_data(start_date, end_date, hour_step, area,
-                  save_path=sst_save_path, data_type="goos", overwrite=True)
+    # logger.info(f"Download NearGOOS data...")
+    # download_data(start_date, end_date, hour_step, area,
+    #               save_path=sst_save_path, data_type="goos", overwrite=True)
 
 
 def download_data(
@@ -394,9 +394,10 @@ def download_data(
         )
         pressure_level = None
     elif data_type == "goos":
+        logger.warning(f"NEAR-GOOS SST data hasn't been supported yet")
         # download sst data
-        for _date in date_list:
-            _ = goos_sst_find_data(_date, save_path=save_path)
+        # for _date in date_list:
+        #     _ = goos_sst_find_data(_date, save_path=save_path)
 
         return ""
     else:

@@ -6,5 +6,4 @@ py3.install_sources(
     subdir: 'wrfrun/extension'
 )
 
-subdir('goos_sst')
 subdir('littler')
