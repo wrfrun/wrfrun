@@ -280,5 +280,202 @@ You can use the function ``write_namelist`` to write namelist settings a to file
     with WRFRun("./config.yaml", init_workspace=False, start_server=False, pbs_mode=False) as server:
         write_namelist("./test_namelist", "wps")
 
+WRF options
+===========
+
+Time and domain options
+-----------------------
+
+Values in the second part of the ``wrf`` block will be write to WRF namelist files. They are options about simulation time, simulation domain and physics scheme WRF will use. Let's see options about time and domain at first.
+
+.. code-block:: yaml
+
+    time:
+      # Start date and end date of the simulation in "%Y-%m-%d %H:%M:%S" format.
+      start_date: '2021-03-24 12:00:00'
+      end_date: '2021-03-26 00:00:00'
+      # Input data time interval. Unit: seconds
+      input_data_interval: 10800
+      # Output data time interval. Unit: minutes
+      output_data_interval: 180
+      # Integral time step of the simulation's domain1.
+      # Note that there are various reasons which could crash WRF,
+      # and in most cases you can deal with them by decrease the time step.
+      # Unit: seconds
+      time_step: 120
+      # Time ratio to the first domain for each domain.
+      # For example, if ratio of the domain2 is 3, and time step is 120s,
+      # Then the actually time step of the domain2 is 120 / 3 = 40s.
+      parent_time_step_ratio: [1, 3, 4]
+      # Time interval to write restart file. This help you restart WRF after it stop.
+      # By default (when its value is -1) it equals to output_data_interval. Unit: minutes.
+      restart_interval: -1
+
+    # Options of domain are the same as them in namelist.
+    domain:
+      # Total number of domains
+      domain_num: 3
+      # Resolution ratio to the domain1
+      parent_grid_ratio : [1, 3, 9]
+      # Index of the start point
+      i_parent_start : [1, 17, 72]
+      j_parent_start : [1, 17, 36]
+      # Number of point
+      e_we : [120, 250, 1198]
+      e_sn : [120, 220, 1297]
+      # Resolution of the domain1
+      dx : 9000
+      dy : 9000
+      # Projection
+      map_proj :
+        name: 'lambert'
+        # For lambert projection
+        truelat1 : 34.0
+        truelat2 : 40.0
+      # Central point of the first area
+      ref_lat : 37.0
+      ref_lon : 120.5
+      stand_lon : 120.5
+
+As you can see, options about map projection are placed under ``map_proj``, because there are various projections in WRF ARW: ``['lambert', 'polar', 'mercator', 'lat-lon']``, and some options are only used for specific projection. For example, ``truelat2`` is only used for ``lambert`` projection. The ``name``, which is mandatory, specifies the name of projection, and others fields under ``map_proj`` is optional. Let's say, you can configure ``lambert`` projection just like the template config showed above:
+
+.. code-block:: yaml
+
+    map_proj :
+      name: 'lambert'
+      # For lambert projection
+      truelat1 : 34.0
+      truelat2 : 40.0
+
+You can also configure ``lat-lon`` projection with options ``pole_lat`` and ``pole_lon``:
+
+.. code-block:: yaml
+
+    map_proj :
+      name: 'lat-lon'
+      # For lat-lon projection
+      pole_lat: 90
+      pole_lon: 0
+
+The only thing to note is to ensure the name of options match those in the namelist.
+
+Physics scheme options
+----------------------
+
+``wrfrun`` collects all available values and their corresponding names in physics scheme, and uses their names or simplified names instead of easily forgotten numbers to represent the corresponding option. You can find names used by ``wrfrun`` and their corresponding physics schemes in comment above each scheme option.
+
+.. code-block:: yaml
+
+    scheme:
+
+      # Here's the option of long wave scheme
+      # "off": off,
+      # "rrtm": RRTM,
+      # "cam": CAM,
+      # "rrtmg": RRTMG,
+      # "new-goddard": New Goddard,
+      # "flg": FLG,
+      # "rrtmg-k": RRTMG-K,
+      # "held-suarez": Held-Suarez,
+      # "gfdl": GFDL
+      long_wave_scheme:
+        name: 'rrtm'
+        # Option contains many other settings related to the scheme.
+        # Sometimes some options can only be used for specific scheme.
+        # You can check it in online namelist variables: https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/namelist_variables.html
+        # You can set option with its `wrf name` and its `wrf value`.
+        # For example, `ghg_input=1` works with rrtm scheme. If you want set `ghg_input=1` when using rrtm, set option: {"ghg_input": 1}
+        # However, sometimes some options work with various scheme, and some options themselves are schemes too.
+        # Use this carefully.
+        # You can set multiple keys in option.
+        option: {'icloud': 1}
+
+      # Here's the option of short wave scheme
+      # "off": off,
+      # "dudhia": Dudhia,
+      # "goddard": Goddard,
+      # "cam": CAM,
+      # "rrtmg": RRTMG,
+      # "new-goddard": New Goddard,
+      # "flg": FLG,
+      # "rrtmg-k": RRTMG-K,
+      # "gfdl": GFDL
+      short_wave_scheme:
+        name: 'rrtmg'
+        option: {}
+
+      # Here's the option of cumulus scheme
+      # "off": off,
+      # "kf": Kain-Fritsch (KF),
+      # "bmj": BMJ,
+      # "gf": Grell-Freitas,
+      # "old-sas": Old SAS,
+      # "grell-3": Grell-3,
+      # "tiedtke": Tiedtke,
+      # "zmf": Zhang-McFarlane,
+      # "kf-cup": KF-CuP,
+      # "mkf": Multi-scale KF,
+      # "kiaps-sas": KIAPS SAS,
+      # "nt": New Tiedtke,
+      # "gd": Grell-Devenyi,
+      # "nsas": NSAS,
+      # "old-kf": Old KF
+      cumulus_scheme:
+        name: 'kf'
+        option: {}
+
+      # Here's the option of PBL scheme
+      # "off": off,
+      # "ysu": YSU,
+      # "myj": MYJ,
+      # "qe": QNSE-EDMF,
+      # "mynn2": MYNN2,
+      # "acm2": ACM2,
+      # "boulac": BouLac,
+      # "uw": UW,
+      # "temf": TEMF,
+      # "shin-hong": Shin-Hong,
+      # "gbm": GBM,
+      # "eeps": EEPS,
+      # "keps": KEPS,
+      # "mrf": MRF
+      pbl_scheme:
+        name: 'ysu'
+        option: {'ysu_topdown_pblmix': 1}
+
+      # Here's the option of land surface model
+      # "off": off,
+      # "slab": 5-layer thermal diffusion (SLAB),
+      # "noah": Noah,
+      # "ruc": RUC,
+      # "noah-mp": Noah-MP,
+      # "clm4": Community Land Model Version 4 (CLM4),
+      # "px": Pleim-Xiu,
+      # "ssib": Simplified Simple Biosphere (SSiB)
+      land_surface_scheme:
+        name: 'noah'
+        option: {}
+
+      # Here's the option of surface layer scheme
+      # "off": off,
+      # "mm5": revised MM5 Monin-Obukhov,
+      # "mo": Monin-Obukhov (Janjic Eta Similarity),
+      # "qnse": QNSE,
+      # "mynn": MYNN,
+      # "px": Pleim-Xiu; use with Pleim-Xiu surface and ACM2 PBL,
+      # "temf": TEMF,
+      # "old-mm5": old MM5
+      surface_layer_scheme:
+        name: 'mo'
+        option: {}
+
+Each scheme option has two fields: ``name`` and ``option``. Like the ``map_proj`` mentioned above, ``name`` specifies the name of physics scheme and is mandatory. ``option`` is used to specify more options related to the scheme you use. For example, ``ysu_topdown_pblmix`` is only used when the PBL scheme is ``YSU``, if you want to turn ``ysu_topdown_pblmix`` on when using ``YSU`` PBL scheme, you can write like this:
+
+.. code-block:: yaml
+
+    pbl_scheme:
+      name: 'ysu'
+      option: {'ysu_topdown_pblmix': 1}
+
 wrfrun
 ******

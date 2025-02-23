@@ -305,7 +305,7 @@ If you want to use wrfrun to download data, you need to configure the `cdsapi to
 Running WPS
 ***********
 
-Running WPS can be accomplished by calling the ``geogrid``, ``ungrib`` and ``metgrid``.
+Running WPS can be accomplished by calling the ``geogrid``, ``ungrib`` and ``metgrid`` function.
 
 .. code-block:: Python
     :caption: main.py
@@ -322,6 +322,8 @@ After that, you can find all the logs and outputs of WPS in the directory ``outp
 
 Running WRF
 ***********
+
+Running WRF can be accomplished by calling the ``real`` and ``wrf`` function.
 
 .. code-block:: Python
     :caption: main.py
