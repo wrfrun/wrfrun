@@ -5,40 +5,70 @@ from os import chdir, getcwd, makedirs
 from os.path import exists
 from shutil import rmtree
 from time import time
-from typing import Optional
+from typing import Optional, List, Dict
 
 from rich.logging import RichHandler
 
-# init a logger
+
+def set_logger(logger_list: List[str], logger_level: Optional[Dict] = None):
+    """
+    This function will replace all handlers of each logger in ``logger_list`` with RichHandler.
+    If there are some custom handlers in logger, they will be replaced too.
+
+    :param logger_list: A list contains loggers.
+    :type logger_list: list
+    :param logger_level: You can specify the log level in ``logger_level``, with the name of logger is the key, and the level of logger is the value.
+                         Default if None, with which all loggers' level will be set to ``logging.WARNING``.
+    :type logger_level: list | None
+    :return:
+    :rtype:
+    """
+    formatter = logging.Formatter(
+        "%(name)s :: %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+    )
+    # use rich handler
+    handler = RichHandler()
+    handler.setFormatter(formatter)
+
+    for logger_name in logger_list:
+        if logger_name in logging.root.manager.loggerDict:
+            _logger = logging.getLogger(logger_name)
+            for _handler in _logger.handlers:
+                _logger.removeHandler(_handler)
+            _logger.addHandler(handler)
+
+            if logger_level is not None and logger_name in logger_level:
+                _logger.setLevel(logger_level[logger_name])
+            else:
+                _logger.setLevel(logging.WARNING)
+                
+                
+# init wrfrun logger
 logger = logging.getLogger("wrfrun")
-formatter = logging.Formatter(
-    "%(name)s :: %(message)s", datefmt="%m-%d %H:%M:%S")
-# use rich handler
-handler = RichHandler()
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-logger.setLevel(logging.DEBUG)
+set_logger(["wrfrun", ], {"wrfrun": logging.DEBUG})
 
-LOG_LEVEL = {
-    "cdsapi": logging.INFO,
-    "cfgrib": logging.ERROR,
-}
 
-# change useful logger handler
-for logger_name in ["cdsapi", "cfgrib"]:
-    _logger = logging.getLogger(logger_name)
-    for _handler in _logger.handlers:
-        _logger.removeHandler(_handler)
-    _logger.addHandler(handler)
+def unify_logger_format():
+    """
+    This function is only supposed to be used internally.
+    This function will replace all handlers of each logger with ``rich.logging.RichHandler``.
+    Use this carefully.
 
-    if logger_name in LOG_LEVEL:
-        _logger.setLevel(LOG_LEVEL[logger_name])
-    else:
-        _logger.setLevel(logging.WARNING)
+    :return:
+    :rtype:
+    """
+    set_logger(
+        ["cdsapi", "cfgrib", "datapi"],
+        {
+            "cdsapi": logging.INFO,
+            "cfgrib": logging.ERROR,
+            "datapi": logging.INFO
+        }
+    )
 
 
 def check_path(*args, force=False):
-    """Check and create all pathes in *args
+    """Check and create all the path in *args
 
     Returns:
 
@@ -224,4 +254,4 @@ def call_subprocess(command: list[str], work_path: Optional[str] = None, print_o
 
 
 __all__ = ["logger", "check_path", "logger_add_file_handler", "calculate_domain_shape", "rectify_domain_size", "check_domain_shape",
-           "check_subprocess_status", "call_subprocess"]
+           "check_subprocess_status", "call_subprocess", "set_logger", "unify_logger_format"]

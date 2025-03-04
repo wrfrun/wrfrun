@@ -15,6 +15,10 @@ CDS_CLIENT = cdsapi.Client()
 
 
 class ERA5CONFIG:
+    """
+    A class to store parameters we will use to download ERA5 data from cdsapi.
+    """
+
     # dataset name
     DATASET_ERA5_SINGLE_LEVEL = "reanalysis-era5-single-levels"
     DATASET_ERA5_PRESSURE_LEVEL = "reanalysis-era5-pressure-levels"
