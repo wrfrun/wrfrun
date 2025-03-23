@@ -2,14 +2,16 @@
 This file contains functions to read the config file of wrfrun
 """
 
-import yaml
 from copy import deepcopy
-from os.path import exists
+from os import makedirs
+from os.path import dirname, exists
 from shutil import copyfile
-from typing import Union, Tuple
+from typing import Tuple, Union
 
-from wrfrun.res import CONFIG_TEMPLATE
-from wrfrun.utils import logger
+import yaml
+
+from ..res import CONFIG_TEMPLATE
+from ..utils import logger
 
 
 class _Config:
@@ -29,7 +31,10 @@ class _Config:
                 logger.error(
                     f"Config file doesn't exist, copy template config to {config_path}")
                 logger.error(f"Please modify it.")
+
                 # copy the template file to config_path
+                if not exists(dirname(config_path)):
+                    makedirs(dirname(config_path))
                 copyfile(CONFIG_TEMPLATE, config_path)
                 raise FileNotFoundError(config_path)
         else:

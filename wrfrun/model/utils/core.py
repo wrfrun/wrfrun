@@ -1,7 +1,7 @@
 from os import listdir, makedirs
 from os.path import basename, exists
 from shutil import copyfile, move
-from typing import Tuple, Union, List, Iterable
+from typing import List, Tuple, Union, Optional
 
 from wrfrun.utils import logger
 
@@ -58,7 +58,7 @@ def model_preprocess(exec_name: str, work_path: str):
 
 
 def model_postprocess(output_dir: str, save_path: str, startswith: Union[None, str, Tuple[str, ...]] = None, endswith: Union[None, str, Tuple[str, ...]] = None,
-                      outputs: Union[None, str, List[str]] = None, copy_only=True):
+                      outputs: Union[None, str, List[str]] = None, copy_only=True, no_file_error=True, error_message=""):
     """
     Save the results and logs from the model.
 
@@ -74,6 +74,10 @@ def model_postprocess(output_dir: str, save_path: str, startswith: Union[None, s
     :type outputs: None | str | list[str]
     :param copy_only: If ``False``, move the file instead of copying it.
     :type copy_only: bool
+    :param no_file_error: If True, an error will be raised with the ``error_message``.
+    :type no_file_error: bool
+    :param error_message: A message which will be used to raise an error when there isn't any file be found to be processed.
+    :type error_message: str
     :return:
     :rtype:
     """
@@ -109,7 +113,12 @@ def model_postprocess(output_dir: str, save_path: str, startswith: Union[None, s
             save_file_list += outputs
 
     if len(save_file_list) < 1:
-        return
+        if no_file_error:
+            logger.error(error_message)
+            raise RuntimeError(error_message)
+
+        else:
+            return
 
     save_file_list = list(set(save_file_list))
     logger.debug(f"Files to be processed: {save_file_list}")

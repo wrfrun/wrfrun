@@ -8,8 +8,5 @@ py3.install_sources(
 )
 
 subdir('extension')
-subdir('geogrid')
-subdir('metgrid')
 subdir('namelist')
-subdir('ungrib')
 subdir('job_scheduler')

@@ -71,9 +71,9 @@ def prepare_workspace():
 
     if WRFRUNConstants.USE_WRFDA:
         # # link {wrfda_path}/bin/*.exe
-        file_list = [x for x in listdir(f"{wrfda_path}/bin") if x.endswith(".exe")]
+        file_list = ["da_wrfvar.exe", "da_update_bc.exe"]
         for file in file_list:
-            symlink(f"{wrfda_path}/bin/{file}", f"{WRFDA_WORK_PATH}/{file}")
+            symlink(f"{wrfda_path}/var/build/{file}", f"{WRFDA_WORK_PATH}/{file}")
 
         # # link {wrfda_path}/var/run/*
         file_list = listdir(f"{wrfda_path}/var/run")

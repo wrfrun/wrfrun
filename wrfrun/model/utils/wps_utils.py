@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from os import listdir
 from os.path import abspath, basename, dirname, exists
 from shutil import move
@@ -7,6 +8,57 @@ from xarray import open_dataset
 
 from wrfrun.core import WRFRUNConfig, WRFRUNConstants, WRFRUNNamelist
 from wrfrun.utils import check_domain_shape, check_path, logger, rectify_domain_size
+
+
+@dataclass()
+class VtableFiles:
+    """
+    Represent WPS Vtable files (v4.5).
+    With the ":/" we can tell from user custom Vtable files.
+    """
+    AFWAICE = ":/Vtable.AFWAICE"
+    AGRMETSNOW = ":/Vtable.AGRMETSNOW"
+    AGRMETSOIL = ":/Vtable.AGRMETSOIL"
+    AGRMETSOIL2 = ":/Vtable.AGRMETSOIL2"
+    AGRWRF = ":/Vtable.AGRWRF"
+    ARW = ":/Vtable.ARW.UPP"
+    ARWP = ":/Vtable.ARWp.UPP"
+    AVN0P5WRF = ":/Vtable.AVN0P5WRF"
+    AWIP = ":/Vtable.AWIP"
+    CFSR = ":/Vtable.CFSR"
+    CFSR_MEAN = ":/Vtable.CFSR_mean"
+    ECMWF = ":/Vtable.ECMWF"
+    ECMWF_SIGMA = ":/Vtable.ECMWF_sigma"
+    ERA_ML = ":/Vtable.ERA-interim.ml"
+    ERA_PL = ":/Vtable.ERA-interim.pl"
+    GFDL = ":/Vtable.GFDL"
+    GFS = ":/Vtable.GFS"
+    GFS_OZONE = ":/Vtable.GFS_OZONE"
+    GFSENS = ":/Vtable.GFSENS"
+    GODAS = ":/Vtable.GODAS"
+    GSM = ":/Vtable.GSM"
+    ICONM = ":/Vtable.ICONm"
+    ICONP = ":/Vtable.ICONp"
+    JMAGSM = ":/Vtable.JMAGSM"
+    NAM = ":/Vtable.NAM"
+    NARR = ":/Vtable.NARR"
+    NAVY_SST = ":/Vtable.NavySST"
+    NCEP2 = ":/Vtable.NCEP2"
+    NNRP = ":/Vtable.NNRP"
+    NOGAPS = ":/Vtable.NOGAPS"
+    NOGAPS_GFS_SOIL = ":/Vtable.NOGAPS_needs_GFS_soil"
+    RAP_HYBRID_NCEP = ":/Vtable.RAP.hybrid.ncep"
+    RAP_PRESSURE_NCEP = ":/Vtable.RAP.pressure.ncep"
+    RAP_SIGMA_GSD = ":/Vtable.RAP.sigma.gsd"
+    RAPHRRR = ":/Vtable.raphrrr"
+    RUCB = ":/Vtable.RUCb"
+    RUCP = ":/Vtable.RUCp"
+    SREF = ":/Vtable.SREF"
+    SST = ":/Vtable.SST"
+    TCRP = ":/Vtable.TCRP"
+    UKMO_END_GAME = ":/Vtable.UKMO_ENDGame"
+    UKMO_LANDSEA = ":/Vtable.UKMO_LANDSEA"
+    UKMO_NO_HEIGHTS = ":/Vtable.UKMO_no_heights"
 
 
 def _update_namelist_hook(namelist_data: Union[OrderedDict, dict]) -> Union[OrderedDict, dict]:
@@ -165,4 +217,4 @@ def clear_wps_logs():
         logger.warning(f"Unprocessed log files of {wrf_status} has been saved to {log_save_path}, check it")
 
 
-__all__ = ["get_metgrid_levels", "set_wif_prefix", "get_wif_dir", "get_wif_prefix", "get_fg_names", "set_fg_names", "clear_wps_logs"]
+__all__ = ["get_metgrid_levels", "set_wif_prefix", "get_wif_dir", "get_wif_prefix", "get_fg_names", "set_fg_names", "clear_wps_logs", "VtableFiles"]

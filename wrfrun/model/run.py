@@ -1,14 +1,14 @@
 from os import listdir, remove, symlink
 from os.path import abspath, basename, exists
 from shutil import copyfile, move
-from typing import Union
+from typing import Union, Optional
 
 from wrfrun.core import WRFRUNConfig, WRFRUNConstants, register_custom_namelist_type, unregister_custom_namelist_type
 from wrfrun.pbs import get_core_num
 from wrfrun.utils import check_path, logger
 from .core import exec_geogrid, exec_metgrid, exec_ndown, exec_real, exec_ungrib, exec_wrf
 from .namelist import generate_namelist_file, prepare_dfi_namelist
-from .utils import model_preprocess, model_postprocess, process_after_ndown, get_wif_dir, get_wif_prefix, reconcile_namelist_metgrid
+from .utils import model_preprocess, model_postprocess, process_after_ndown, get_wif_dir, get_wif_prefix, reconcile_namelist_metgrid, VtableFiles
 
 
 def geogrid(geogrid_tbl_file: Union[str, None] = None):
@@ -46,20 +46,12 @@ def geogrid(geogrid_tbl_file: Union[str, None] = None):
     exec_geogrid(get_core_num())
 
     model_postprocess(WPS_WORK_PATH, log_save_path, startswith="geogrid.log", copy_only=False, outputs="namelist.wps")
-    model_postprocess(WPS_WORK_PATH, output_save_path, startswith="geo_em")
-
-    # for _file in listdir(WPS_WORK_PATH):
-    #     if _file.startswith("geogrid.log"):
-    #         move(f"{WPS_WORK_PATH}/{_file}", f"{log_save_path}/{_file}")
-    #     elif _file.startswith("geo_em"):
-    #         copyfile(f"{WPS_WORK_PATH}/{_file}", f"{output_save_path}/{_file}")
-    #
-    # move(f"{WPS_WORK_PATH}/namelist.wps", f"{output_save_path}/namelist.wps")
+    model_postprocess(WPS_WORK_PATH, output_save_path, startswith="geo_em", error_message="Failed to execute geogrid.exe")
 
     logger.info(f"All geogrid output files have been copied to {output_save_path}")
 
 
-def ungrib(vtable_file: Union[str, None] = None):
+def ungrib(vtable_file: Union[str, None] = None, input_data_path: Optional[str] = None):
     """
     Interface to execute ungrib.exe.
     This function is a higher interface of WPS,
@@ -68,6 +60,7 @@ def ungrib(vtable_file: Union[str, None] = None):
 
     :param vtable_file: Vtable file used to run ungrib.
                         Defaults to None.
+    :param input_data_path: Directory path of the input data. If None, ``wrfrun`` will read its value from the config file.
     """
     WRFRUNConstants.check_wrfrun_context(error=True)
 
@@ -81,14 +74,26 @@ def ungrib(vtable_file: Union[str, None] = None):
 
     check_path(output_save_path, log_save_path)
 
-    input_data_path = WRFRUNConfig.get_wrf_config()["wps_input_data_folder"]
+    if input_data_path is None:
+        input_data_path = WRFRUNConfig.get_wrf_config()["wps_input_data_folder"]
+        
+    else:
+        if not exists(input_data_path):
+            logger.error(f"Can not find input data: {input_data_path}")
+            raise FileNotFoundError(f"Can not find input data: {input_data_path}")
 
     # convert to an absolute path
     input_data_path = abspath(input_data_path)
     if vtable_file is not None:
-        vtable_file = abspath(vtable_file)
+        if vtable_file.startswith(":/"):
+            vtable_file = vtable_file.strip(":/")
+            vtable_file = f"{WPS_WORK_PATH}/ungrib/Variable_Tables/{vtable_file}"
+
+        else:
+            vtable_file = abspath(vtable_file)
+
     else:
-        vtable_file = f"{WPS_WORK_PATH}/ungrib/Variable_Tables/Vtable.ERA-interim.pl"
+        vtable_file = f"{WPS_WORK_PATH}/ungrib/Variable_Tables/{VtableFiles.ERA_PL}"
 
     logger.info(f"Link vtable file: {vtable_file}")
     if exists(f"{WPS_WORK_PATH}/Vtable"):
@@ -104,15 +109,8 @@ def ungrib(vtable_file: Union[str, None] = None):
     dir_name = get_wif_dir()
     file_prefix = get_wif_prefix()
 
-    model_postprocess(dir_name, output_save_path, startswith=file_prefix)
+    model_postprocess(dir_name, output_save_path, startswith=file_prefix, error_message="Failed to execute ungrib.exe")
     model_postprocess(WPS_WORK_PATH, log_save_path, outputs=["ungrib.log", "namelist.wps"], copy_only=False)
-
-    # for _file in listdir(dir_name):
-    #     if _file.startswith(file_prefix):
-    #         copyfile(f"{dir_name}/{_file}", f"{output_save_path}/{_file}")
-    #
-    # move(f"{WPS_WORK_PATH}/ungrib.log", f"{log_save_path}/ungrib.log")
-    # move(f"{WPS_WORK_PATH}/namelist.wps", f"{log_save_path}/namelist.wps")
 
     logger.info(f"All ungrib output files have been copied to {output_save_path}")
 
@@ -143,15 +141,7 @@ def metgrid():
     exec_metgrid(get_core_num())
 
     model_postprocess(WPS_WORK_PATH, log_save_path, startswith="metgrid.log", outputs="namelist.wps", copy_only=False)
-    model_postprocess(WPS_WORK_PATH, output_save_path, startswith="met_em", copy_only=False)
-
-    # for _file in listdir(WPS_WORK_PATH):
-    #     if _file.startswith("metgrid.log"):
-    #         move(f"{WPS_WORK_PATH}/{_file}", f"{log_save_path}/{_file}")
-    #     elif _file.startswith("met_em"):
-    #         move(f"{WPS_WORK_PATH}/{_file}", f"{output_save_path}/{_file}")
-    #
-    # move(f"{WPS_WORK_PATH}/namelist.wps", f"{log_save_path}/namelist.wps")
+    model_postprocess(WPS_WORK_PATH, output_save_path, startswith="met_em", copy_only=False, error_message="Failed to execute metgrid.exe")
 
     logger.info(f"All metgrid output files have been copied to {output_save_path}")
 
@@ -202,7 +192,7 @@ def real(metgrid_path: Union[str, None] = None):
 
     exec_real(get_core_num())
 
-    model_postprocess(WRF_WORK_PATH, output_save_path, startswith=("wrfbdy", "wrfinput", "wrflow"))
+    model_postprocess(WRF_WORK_PATH, output_save_path, startswith=("wrfbdy", "wrfinput", "wrflow"), error_message="Failed to execute real.exe")
     model_postprocess(WRF_WORK_PATH, log_save_path, startswith="rsl.", outputs="namelist.input", copy_only=False)
 
     logger.info(f"All real output files have been copied to {output_save_path}")
@@ -307,7 +297,7 @@ def wrf(wrf_input_path: Union[str, None] = None):
     exec_wrf(get_core_num())
 
     model_postprocess(WRF_WORK_PATH, log_save_path, startswith="rsl.", outputs="namelist.input", copy_only=False)
-    model_postprocess(WRF_WORK_PATH, output_save_path, startswith="wrfout")
+    model_postprocess(WRF_WORK_PATH, output_save_path, startswith="wrfout", error_message="Failed to execute wrf.exe")
 
     logger.info(f"All wrf output files have been copied to {output_save_path}")
 
