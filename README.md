@@ -16,6 +16,16 @@ The following are the main features that wrfrun wants to achieve. These features
 - Real-time parsing of WRF logs, feedback on simulation progress.
 - Support for adding more functionality through extensions.
 
+## Dependencies
+
+You need to install `meson` and `ninja` at first, both of which can be installed using `pip`:
+
+```bash
+pip install meson ninja
+```
+
+Make sure the path `$HOME/.local/bin` has been added to your environment variable `PATH`.
+
 ## Installation
 
 Install using pip:
@@ -26,4 +36,4 @@ pip install wrfrun
 
 ## Documentation
 
-Please check [Wiki](https://github.com/Syize/wrfrun/wiki).
+Please check [Wiki](https://wrfrun.syize.cn).
