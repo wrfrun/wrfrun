@@ -115,22 +115,61 @@ def ungrib(vtable_file: Union[str, None] = None, input_data_path: Optional[str] 
     logger.info(f"All ungrib output files have been copied to {output_save_path}")
 
 
-def metgrid():
+def metgrid(geogrid_data_path: Optional[str] = None, ungrib_data_path: Optional[str] = None):
     """
     Interface to execute metgrid.exe.
     This function is a higher interface of WPS,
     which will automatically check and prepare essential files, and save outputs.
 
+    :param geogrid_data_path: Directory path of outputs from geogrid.exe. If None, tries to use the output path specified by config file.
+    :type geogrid_data_path: str
+    :param ungrib_data_path: Directory path of outputs from ungrib.exe. If None, tries to use the output path specified by config file.
+    :type ungrib_data_path: str
     """
     WRFRUNConstants.check_wrfrun_context(error=True)
 
     WPS_WORK_PATH = WRFRUNConstants.get_work_path("wps")
-
-    model_preprocess("metgrid", WPS_WORK_PATH)
-
     output_path = WRFRUNConfig.get_output_path()
     output_save_path = f"{output_path}/metgrid"
     log_save_path = f"{output_path}/metgrid/logs"
+
+    # check input of metgrid.exe
+    file_list = listdir(WPS_WORK_PATH)
+
+    if "geo_em.d01.nc" not in file_list:
+
+        if geogrid_data_path is None:
+            geogrid_data_path = f"{output_path}/geogrid"
+        geogrid_data_path = abspath(geogrid_data_path)
+
+        if not exists(geogrid_data_path) or "geo_em.d01.nc" not in listdir(geogrid_data_path):
+            logger.error(f"Can't find geogrid outputs in WPS_WORK_PATH and your outputs directory, which is essential to run metgrid")
+            raise FileNotFoundError(f"Can't find geogrid outputs in WPS_WORK_PATH and your outputs directory, which is essential to run metgrid")
+
+        else:
+            geogrid_file_list = [x for x in listdir(geogrid_data_path) if x.startswith("geo_em.d")]
+            for _file in geogrid_file_list:
+                if exists(f"{WPS_WORK_PATH}/{_file}"):
+                    remove(f"{WPS_WORK_PATH}/{_file}")
+                symlink(f"{geogrid_data_path}/{_file}", f"{WPS_WORK_PATH}/{_file}")
+
+    ungrib_output_dir = get_wif_dir()
+    if ungrib_output_dir not in file_list or len(listdir(ungrib_output_dir)) == 0:
+        
+        if ungrib_data_path is None:
+            ungrib_data_path = f"{output_path}/ungrib"
+        ungrib_data_path = abspath(ungrib_data_path)
+        
+        if not exists(ungrib_data_path) or len(listdir(ungrib_data_path)) == 0:
+            logger.error(f"Can't find ungrib outputs in WPS_WORK_PATH and your outputs directory, which is essential to run metgrid")
+            raise FileNotFoundError(f"Can't find ungrib outputs in WPS_WORK_PATH and your outputs directory, which is essential to run metgrid")
+        
+        else:
+            ungrib_file_list = [x for x in listdir(ungrib_data_path)]
+            for _file in ungrib_file_list:
+                symlink(f"{ungrib_data_path}/{_file}", f"{ungrib_output_dir}/{_file}")
+
+    model_preprocess("metgrid", WPS_WORK_PATH)
 
     check_path(output_save_path, log_save_path)
 
@@ -275,7 +314,11 @@ def wrf(wrf_input_path: Union[str, None] = None):
     output_path = WRFRUNConfig.get_output_path()
 
     if wrf_input_path is None:
-        wrf_input_path = WRF_WORK_PATH
+        real_output_path = f"{output_path}/real"
+        if len(listdir(real_output_path)) > 1:
+            wrf_input_path = abspath(real_output_path)
+        else:
+            wrf_input_path = WRF_WORK_PATH
     else:
         wrf_input_path = abspath(wrf_input_path)
 
@@ -286,6 +329,9 @@ def wrf(wrf_input_path: Union[str, None] = None):
 
     if wrf_input_path != WRF_WORK_PATH:
         for _file in listdir(wrf_input_path):
+            if _file == "logs":
+                continue
+
             if exists(f"{WRF_WORK_PATH}/{_file}"):
                 remove(f"{WRF_WORK_PATH}/{_file}")
             symlink(f"{wrf_input_path}/{_file}", f"{WRF_WORK_PATH}/{_file}")

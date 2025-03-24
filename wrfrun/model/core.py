@@ -28,8 +28,8 @@ def exec_geogrid(core_num: Optional[int] = None):
         logger.info(f"Running `./geogrid.exe` ...")
         call_subprocess(["./geogrid.exe"], work_path=WPS_WORK_PATH)
     else:
-        logger.info(f"Running `mpirun -np {core_num} geogrid.exe` ...")
-        call_subprocess(["mpirun", "-np", str(core_num), "./geogrid.exe"], work_path=WPS_WORK_PATH)
+        logger.info(f"Running `mpirun --oversubscribe -np {core_num} geogrid.exe` ...")
+        call_subprocess(["mpirun", "--oversubscribe", "-np", str(core_num), "./geogrid.exe"], work_path=WPS_WORK_PATH)
 
 
 def exec_ungrib(grib_dir_path: str):
@@ -72,8 +72,8 @@ def exec_metgrid(core_num: Optional[int] = None):
         logger.info(f"Running `./metgrid.exe` ...")
         call_subprocess(["./metgrid.exe"], work_path=WPS_WORK_PATH)
     else:
-        logger.info(f"Running `mpirun -np {core_num} metgrid.exe` ...")
-        call_subprocess(["mpirun", "-np", str(core_num), "./metgrid.exe"], work_path=WPS_WORK_PATH)
+        logger.info(f"Running `mpirun --oversubscribe -np {core_num} metgrid.exe` ...")
+        call_subprocess(["mpirun", "--oversubscribe", "-np", str(core_num), "./metgrid.exe"], work_path=WPS_WORK_PATH)
 
 
 def exec_ndown(core_num: Optional[int] = None):
@@ -96,8 +96,8 @@ def exec_ndown(core_num: Optional[int] = None):
         logger.info(f"Running `./ndown.exe` ...")
         call_subprocess(["./ndown.exe"], work_path=WRF_WORK_PATH)
     else:
-        logger.info(f"Running `mpirun -np {core_num} ./ndown.exe` ...")
-        call_subprocess(["mpirun", "-np", str(core_num), "./ndown.exe"], work_path=WRF_WORK_PATH)
+        logger.info(f"Running `mpirun --oversubscribe -np {core_num} ./ndown.exe` ...")
+        call_subprocess(["mpirun", "--oversubscribe", "-np", str(core_num), "./ndown.exe"], work_path=WRF_WORK_PATH)
 
 
 def exec_real(core_num: Optional[int] = None):
@@ -120,8 +120,8 @@ def exec_real(core_num: Optional[int] = None):
         logger.info(f"Running `./real.exe` ...")
         call_subprocess(["./real.exe"], work_path=WRF_WORK_PATH)
     else:
-        logger.info(f"Running `mpirun -np {core_num} real.exe` ...")
-        call_subprocess(["mpirun", "-np", str(core_num), "./real.exe"], work_path=WRF_WORK_PATH)
+        logger.info(f"Running `mpirun --oversubscribe -np {core_num} real.exe` ...")
+        call_subprocess(["mpirun", "--oversubscribe", "-np", str(core_num), "./real.exe"], work_path=WRF_WORK_PATH)
 
 
 def exec_wrf(core_num: Optional[int] = None):
@@ -144,8 +144,8 @@ def exec_wrf(core_num: Optional[int] = None):
         logger.info(f"Running `./wrf.exe` ...")
         call_subprocess(["./wrf.exe"], work_path=WRF_WORK_PATH)
     else:
-        logger.info(f"Running `mpirun -np {core_num} wrf.exe` ...")
-        call_subprocess(["mpirun", "-np", str(core_num), "./wrf.exe"], work_path=WRF_WORK_PATH)
+        logger.info(f"Running `mpirun --oversubscribe -np {core_num} wrf.exe` ...")
+        call_subprocess(["mpirun", "--oversubscribe", "-np", str(core_num), "./wrf.exe"], work_path=WRF_WORK_PATH)
 
 
 def exec_da_wrfvar(core_num: Optional[int] = None):
@@ -169,8 +169,8 @@ def exec_da_wrfvar(core_num: Optional[int] = None):
         logger.info(f"Running `./da_wrfvar.exe` ...")
         call_subprocess(["./da_wrfvar.exe"], work_path=WRFDA_WORK_PATH)
     else:
-        logger.info(f"Running `mpirun -np {core_num} da_wrfvar.exe` ...")
-        call_subprocess(["mpirun", "-np", str(core_num), "./da_wrfvar.exe"], work_path=WRFDA_WORK_PATH)
+        logger.info(f"Running `mpirun --oversubscribe -np {core_num} da_wrfvar.exe` ...")
+        call_subprocess(["mpirun", "--oversubscribe", "-np", str(core_num), "./da_wrfvar.exe"], work_path=WRFDA_WORK_PATH)
 
 
 def exec_da_update_bc():

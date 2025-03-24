@@ -1,7 +1,7 @@
-from os import listdir, makedirs
+from os import listdir, makedirs, remove
 from os.path import basename, exists
 from shutil import copyfile, move
-from typing import List, Tuple, Union, Optional
+from typing import List, Tuple, Union
 
 from wrfrun.utils import logger
 
@@ -54,6 +54,9 @@ def model_preprocess(exec_name: str, work_path: str):
         logger.debug(f"Found registered file for {exec_name}: {file_list}")
         for _file in file_list:
             filename = basename(_file)
+            if exists(f"{work_path}/{filename}"):
+                logger.warning(f"There is a {filename} in WPS_WORK_PATH, overwrite it")
+                remove(f"{work_path}/{filename}")
             copyfile(_file, f"{work_path}/{filename}")
 
 

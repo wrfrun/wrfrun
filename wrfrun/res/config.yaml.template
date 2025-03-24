@@ -175,7 +175,7 @@ wrf:
     # "temf": TEMF,
     # "old-mm5": old MM5
     surface_layer_scheme:
-      name: 'mo'
+      name: 'mm5'
       option: {}
 
 # The following settings are general settings.

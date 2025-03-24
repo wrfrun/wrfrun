@@ -23,7 +23,7 @@
     truelat1 = 20.0
     truelat2 = 50.0
     stand_lon = 123.0
-    geog_data_path = '/home/liurw/Documents/geog_data'
+    geog_data_path = ''
 /
 
 &ungrib
@@ -32,7 +32,7 @@
 /
 
 &metgrid
-    fg_name = './outputs/FILE', './outputs/SST_GOOS'
+    fg_name = './outputs/FILE'
     process_only_bdy = 0
     io_form_metgrid = 2
     opt_output_from_metgrid_path = './'
