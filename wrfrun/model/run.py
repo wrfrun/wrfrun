@@ -154,7 +154,7 @@ def metgrid(geogrid_data_path: Optional[str] = None, ungrib_data_path: Optional[
                 symlink(f"{geogrid_data_path}/{_file}", f"{WPS_WORK_PATH}/{_file}")
 
     ungrib_output_dir = get_wif_dir()
-    if ungrib_output_dir not in file_list or len(listdir(ungrib_output_dir)) == 0:
+    if basename(ungrib_output_dir) not in file_list or len(listdir(ungrib_output_dir)) == 0:
         
         if ungrib_data_path is None:
             ungrib_data_path = f"{output_path}/ungrib"
@@ -222,8 +222,9 @@ def real(metgrid_path: Union[str, None] = None):
     for _file in listdir(metgrid_path):
         if _file.startswith("met_em"):
             if exists(f"{WRF_WORK_PATH}/{_file}"):
-                remove(f"{WRF_WORK_PATH}/{_file}")
-            symlink(f"{metgrid_path}/{_file}", f"{WRF_WORK_PATH}/{_file}")
+                logger.debug(f"Found input file in workspace: {_file}, skip linking")
+            else:
+                symlink(f"{metgrid_path}/{_file}", f"{WRF_WORK_PATH}/{_file}")
 
     WRFRUNConstants.set_wrf_status("real")
 
@@ -296,7 +297,7 @@ def dfi(real_output_path: Union[str, None] = None, update_real_output=True):
     unregister_custom_namelist_type("dfi")
 
 
-def wrf(wrf_input_path: Union[str, None] = None):
+def wrf(wrf_input_path: Union[str, None] = None, restart_file_path: Optional[str] = None, save_restarts=False):
     """
     Interface to execute wrf.exe.
     This function is a higher interface of WRF,
@@ -304,6 +305,8 @@ def wrf(wrf_input_path: Union[str, None] = None):
 
     :param wrf_input_path: The path store input data which will be feed into wrf.exe.
                            Defaults to None.
+    :param restart_file_path: The path store WRF restart files. This parameter will be ignored if ``restart=False`` in your config.
+    :param save_restarts: Also save restart files to the output directory.
     """
     WRFRUNConstants.check_wrfrun_context(error=True)
 
@@ -312,7 +315,11 @@ def wrf(wrf_input_path: Union[str, None] = None):
     model_preprocess("wrf", WRF_WORK_PATH)
 
     output_path = WRFRUNConfig.get_output_path()
+    output_save_path = f"{output_path}/wrf"
+    log_save_path = f"{output_path}/wrf/logs"
+    check_path(output_save_path, log_save_path)
 
+    # decide wrf input path
     if wrf_input_path is None:
         real_output_path = f"{output_path}/real"
         if len(listdir(real_output_path)) > 1:
@@ -322,19 +329,36 @@ def wrf(wrf_input_path: Union[str, None] = None):
     else:
         wrf_input_path = abspath(wrf_input_path)
 
-    output_save_path = f"{output_path}/wrf"
-    log_save_path = f"{output_path}/wrf/logs"
-
-    check_path(output_save_path, log_save_path)
-
+    # link input files
     if wrf_input_path != WRF_WORK_PATH:
         for _file in listdir(wrf_input_path):
-            if _file == "logs":
+            # exclude logs and other WRF outputs
+            if _file == "logs" or _file.startswith("wrfout"):
                 continue
 
             if exists(f"{WRF_WORK_PATH}/{_file}"):
-                remove(f"{WRF_WORK_PATH}/{_file}")
-            symlink(f"{wrf_input_path}/{_file}", f"{WRF_WORK_PATH}/{_file}")
+                logger.debug(f"Found input file in workspace: {_file}, skip linking")
+            else:
+                symlink(f"{wrf_input_path}/{_file}", f"{WRF_WORK_PATH}/{_file}")
+
+    # need restart files?
+    if WRFRUNConfig.is_restart():
+        if isinstance(restart_file_path, str):
+            restart_file_path = abspath(restart_file_path)
+            if not exists(restart_file_path):
+                logger.error(f"Restart files not found: {restart_file_path}")
+                raise FileNotFoundError(f"Restart files not found: {restart_file_path}")
+
+            else:
+                restart_file_list = [x for x in listdir(restart_file_path) if x.startswith("wrfrst")]
+                for _file in restart_file_list:
+                    if exists(f"{WRF_WORK_PATH}/{_file}"):
+                        logger.debug(f"Found input file in workspace: {_file}, skip linking")
+                    else:
+                        copyfile(f"{restart_file_path}/{_file}", f"{WRF_WORK_PATH}/{_file}")
+            
+        else:
+            logger.debug(f"You are about to doing a restart run without giving restart_file_path")
 
     WRFRUNConstants.set_wrf_status("wrf")
 
@@ -344,6 +368,8 @@ def wrf(wrf_input_path: Union[str, None] = None):
 
     model_postprocess(WRF_WORK_PATH, log_save_path, startswith="rsl.", outputs="namelist.input", copy_only=False)
     model_postprocess(WRF_WORK_PATH, output_save_path, startswith="wrfout", error_message="Failed to execute wrf.exe")
+    if save_restarts:
+        model_postprocess(WRF_WORK_PATH, output_save_path, startswith="wrfrst", no_file_error=False)
 
     logger.info(f"All wrf output files have been copied to {output_save_path}")
 

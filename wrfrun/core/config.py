@@ -83,6 +83,15 @@ class _Config:
         """
         return self["wrfrun"]["log_path"]
 
+    def is_restart(self) -> bool:
+        """
+        Check if user does a restart run.
+
+        :return:
+        :rtype:
+        """
+        return self["wrf"]["restart"]
+
     def get_socket_server_config(self) -> Tuple[str, int]:
         """
         Return settings of the socket server.

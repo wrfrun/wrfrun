@@ -123,7 +123,8 @@ def prepare_wrf_namelist():
     input_data_interval = wrf_config["time"]["input_data_interval"]
     output_data_interval = wrf_config["time"]["output_data_interval"]
 
-    # get restart interval
+    # get restart settings
+    restart = wrf_config["restart"]
     restart_interval = wrf_config["time"]["restart_interval"]
     if restart_interval < 0:
         restart_interval = output_data_interval
@@ -165,6 +166,7 @@ def prepare_wrf_namelist():
             "interval_seconds": input_data_interval,
             "history_interval": [output_data_interval for _ in range(max_dom)],
             "auxinput4_interval": [input_data_interval // 60 for _ in range(max_dom)],
+            "restart": restart,
             "restart_interval": restart_interval,
             "debug_level": debug_level,
         },

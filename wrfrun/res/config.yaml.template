@@ -29,6 +29,9 @@ wrf:
   # And of course, who cares logs if WRF finished successfully?
   debug_level: 1000
 
+  # If you make a restart run?
+  restart: False
+
   time:
     # Set the start date, end date
     start_date: '2021-03-24 12:00:00'
@@ -43,8 +46,9 @@ wrf:
     time_step: 120
     # Time ratio to the first domain for each domain
     parent_time_step_ratio: [1, 3, 4]
-    # Time interval to write restart file. This help you can restart WRF after it stop.
-    # By default it equals to output_data_interval. Unit: minutes.
+    # Time interval to write restart files.
+    # This help you can restart WRF after it stops.
+    # By default, it equals to output_data_interval. Unit: minutes.
     restart_interval: -1
 
   domain:
