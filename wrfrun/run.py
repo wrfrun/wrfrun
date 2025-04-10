@@ -8,7 +8,7 @@ from datetime import datetime
 from os.path import abspath, dirname, exists
 from typing import Optional, Tuple, Union
 
-from .core import WRFRUNConfig, WRFRUNConstants, WRFRunServer, WRFRunServerHandler, save_config, stop_server
+from .core import WRFRUNConfig, WRFRunServer, WRFRunServerHandler, stop_server
 from .data import prepare_wps_input_data
 from .model.namelist import prepare_wps_namelist, prepare_wrf_namelist, prepare_wrfda_namelist
 from .model.plot import plot_domain_area
@@ -40,8 +40,10 @@ def confirm_model_area():
 class WRFRun:
     """
     ``WRFRun`` is a context class to use all functions in ``wrfrun`` package.
-
     """
+    _instance = None
+    _initialized = False
+
     def __init__(self, config_file: str, init_workspace=True, start_server=True, pbs_mode=True, prepare_wps_data=False, wps_data_area: Optional[Tuple[int, int, int, int]] = None):
         """
         WRFRun, a context class to achieve some goals before and after running WRF, like save a copy of config file, start and close WRFRunServer.
@@ -54,6 +56,9 @@ class WRFRun:
         :param wps_data_area: If ``prepare_wps_data==True``, you need to give the area range of input data so download function can download data from ERA5.
         :return:
         """
+        if self._initialized:
+            return
+
         # variables for running WRFRunServer
         self.start_server = start_server
         self.wrfrun_server: Union[WRFRunServer, None] = None
@@ -69,11 +74,19 @@ class WRFRun:
 
         # make sure we can read the config file, because sometimes the user may run the Python script in a different path.
         abs_config_path = f"{self.entry_file_dir_path}/{config_file}"
-        WRFRUNConfig.load_config(abs_config_path)
+        WRFRUNConfig.load_wrfrun_config(abs_config_path)
+
+        self._initialized = True
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+
+        return cls._instance
 
     def __enter__(self):
         # check workspace
-        for _path in [WRFRUNConstants.get_work_path("wps"), WRFRUNConstants.get_work_path("wrf"), WRFRUNConstants.get_work_path("wrfda")]:
+        for _path in [WRFRUNConfig.WPS_WORK_PATH, WRFRUNConfig.WRF_WORK_PATH, WRFRUNConfig.WRFDA_WORK_PATH]:
             if not exists(_path) and not self.init_workspace:
                 logger.info(f"Force re-create workspace because it is broken.")
                 self.init_workspace = True
@@ -110,7 +123,7 @@ class WRFRun:
         # check the path
         check_path(output_save_path)
 
-        save_config(f"{output_save_path}/config.yaml")
+        WRFRUNConfig.save_wrfrun_config(f"{output_save_path}/config.yaml")
 
         # check if we need to start a server
         if self.start_server:
@@ -118,7 +131,7 @@ class WRFRun:
             self._start_wrfrun_server()
 
         # change status
-        WRFRUNConstants.set_wrfrun_context(True)
+        WRFRUNConfig.set_wrfrun_context(True)
 
         logger_add_file_handler(WRFRUNConfig.get_log_path())
 
@@ -139,7 +152,7 @@ class WRFRun:
             stop_server(self.ip, self.port)     # type: ignore
 
         # change status
-        WRFRUNConstants.set_wrfrun_context(False)
+        WRFRUNConfig.set_wrfrun_context(False)
 
         clear_wps_logs()
         clear_wrf_logs()

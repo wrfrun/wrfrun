@@ -1,10 +1,10 @@
-from os import getcwd, chdir
+from os import chdir, getcwd
 from os.path import abspath, exists
 from shutil import copyfile, move
 
-from wrfrun.core import WRFRUNConfig, WRFRUNConstants, WRFRUNNamelist
+from wrfrun.core import WRFRUNConfig
 from wrfrun.res import NCL_PLOT_SCRIPT
-from wrfrun.utils import check_path, call_subprocess, logger
+from wrfrun.utils import call_subprocess, check_path, logger
 
 
 def plot_domain_area():
@@ -25,10 +25,10 @@ def plot_domain_area():
     origin_path = getcwd()
 
     # enter WPS WORK PATH
-    chdir(WRFRUNConstants.get_work_path("wps"))
+    chdir(WRFRUNConfig.get_work_path("wps"))
 
     # save namelist
-    WRFRUNNamelist.write_namelist("./namelist.wps", "wps", overwrite=True)
+    WRFRUNConfig.namelist.write_namelist("./namelist.wps", "wps", overwrite=True)
 
     # copy plot script and plot
     copyfile(NCL_PLOT_SCRIPT, f"./plotgrids.ncl")

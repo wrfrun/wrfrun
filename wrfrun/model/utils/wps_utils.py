@@ -6,11 +6,11 @@ from typing import Dict, List, OrderedDict, Union
 
 from xarray import open_dataset
 
-from wrfrun.core import WRFRUNConfig, WRFRUNConstants, WRFRUNNamelist
+from wrfrun.core import WRFRUNConfig
 from wrfrun.utils import check_domain_shape, check_path, logger, rectify_domain_size
 
 
-@dataclass()
+@dataclass
 class VtableFiles:
     """
     Represent WPS Vtable files (v4.5).
@@ -133,8 +133,8 @@ def get_wif_dir() -> str:
 
     :return: Absolute path.
     """
-    WPS_WORK_PATH = WRFRUNConstants.get_work_path("wps")
-    wif_path = WRFRUNNamelist.get_namelist("wps")["ungrib"]["prefix"]
+    WPS_WORK_PATH = WRFRUNConfig.get_work_path("wps")
+    wif_path = WRFRUNConfig.get_namelist("wps")["ungrib"]["prefix"]
     wif_path = abspath(f"{WPS_WORK_PATH}/{dirname(wif_path)}")
     return wif_path
 
@@ -145,7 +145,7 @@ def get_wif_prefix() -> str:
 
     :return: Prefix string of WRF intermediate file (wif).
     """
-    wif_prefix = WRFRUNNamelist.get_namelist("wps")["ungrib"]["prefix"]
+    wif_prefix = WRFRUNConfig.get_namelist("wps")["ungrib"]["prefix"]
     wif_prefix = basename(wif_prefix)
     return wif_prefix
 
@@ -159,7 +159,7 @@ def set_wif_prefix(prefix: str):
                    For example, "SST_FILE".
     :return:
     """
-    WRFRUNNamelist.update_namelist({
+    WRFRUNConfig.update_namelist({
         "ungrib": {"prefix": f"./outputs/{prefix}"}
     }, "wps")
 
@@ -171,7 +171,7 @@ def get_fg_names() -> List[str]:
     :return: Prefix strings list.
     :rtype: list
     """
-    fg_names = WRFRUNNamelist.get_namelist("wps")["metgrid"]["fg_name"]
+    fg_names = WRFRUNConfig.get_namelist("wps")["metgrid"]["fg_name"]
     fg_names = [basename(x) for x in fg_names]
     return fg_names
 
@@ -186,7 +186,7 @@ def set_fg_names(fg_names: List[str]):
     :rtype:
     """
     fg_names = [f"./outputs/{x}" for x in fg_names]
-    WRFRUNNamelist.update_namelist({
+    WRFRUNConfig.update_namelist({
         "metgrid": {"fg_name": fg_names}
     }, "wps")
 
@@ -200,8 +200,8 @@ def clear_wps_logs():
     :return:
     :rtype:
     """
-    wrf_status = WRFRUNConstants.get_wrf_status()
-    wps_work_path = WRFRUNConstants.get_work_path("wps")
+    wrf_status = WRFRUNConfig.get_wrf_status()
+    wps_work_path = WRFRUNConfig.get_work_path("wps")
 
     log_files = [x for x in listdir(wps_work_path) if ".log" in x]
 

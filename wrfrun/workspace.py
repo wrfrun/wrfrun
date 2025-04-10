@@ -2,12 +2,12 @@
 This file contains functions to interact with WRF workspace
 """
 
-from os import symlink, listdir, makedirs
+from os import listdir, makedirs, symlink
 from os.path import exists
 from shutil import rmtree
 
-from .core import WRFRUNConfig, WRFRUNConstants
-from .utils import logger, check_path
+from .core import WRFRUNConfig
+from .utils import check_path, logger
 
 
 def prepare_workspace():
@@ -22,18 +22,18 @@ def prepare_workspace():
     wrf_path = wrf_config["wrf_path"]
     wrfda_path = wrf_config["wrfda_path"]
 
-    WRFRUN_TEMP_PATH = WRFRUNConstants.get_temp_path()
-    WORK_PATH = WRFRUNConstants.get_workspace_path()
-    WPS_WORK_PATH = WRFRUNConstants.get_work_path("wps")
-    WRF_WORK_PATH = WRFRUNConstants.get_work_path("wrf")
-    WRFDA_WORK_PATH = WRFRUNConstants.get_work_path("wrfda")
+    WRFRUN_TEMP_PATH = WRFRUNConfig.get_temp_path()
+    WORK_PATH = WRFRUNConfig.get_workspace_path()
+    WPS_WORK_PATH = WRFRUNConfig.get_work_path("wps")
+    WRF_WORK_PATH = WRFRUNConfig.get_work_path("wrf")
+    WRFDA_WORK_PATH = WRFRUNConfig.get_work_path("wrfda")
 
     # check folder
     check_path(WRFRUN_TEMP_PATH)
     check_path(WRFRUNConfig.get_output_path())
 
     if exists(wrfda_path):
-        WRFRUNConstants.USE_WRFDA = True
+        WRFRUNConfig._USE_WRFDA = True
 
     # create folder to run WPS and WRF
     # check the path
@@ -69,7 +69,7 @@ def prepare_workspace():
     for file in file_list:
         symlink(f"{wrf_path}/run/{file}", f"{WRF_WORK_PATH}/{file}")
 
-    if WRFRUNConstants.USE_WRFDA:
+    if WRFRUNConfig.USE_WRFDA:
         # # link {wrfda_path}/bin/*.exe
         file_list = ["da_wrfvar.exe", "da_update_bc.exe"]
         for file in file_list:

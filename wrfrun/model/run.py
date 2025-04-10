@@ -7,7 +7,8 @@ from wrfrun.core import WRFRUNConfig, WRFRUNConstants, register_custom_namelist_
 from wrfrun.pbs import get_core_num
 from wrfrun.utils import check_path, logger
 from .core import exec_geogrid, exec_metgrid, exec_ndown, exec_real, exec_ungrib, exec_wrf
-from .namelist import generate_namelist_file, prepare_dfi_namelist
+from .namelist import prepare_dfi_namelist
+from .base import generate_namelist_file
 from .utils import model_preprocess, model_postprocess, process_after_ndown, get_wif_dir, get_wif_prefix, reconcile_namelist_metgrid, VtableFiles
 
 
@@ -39,7 +40,7 @@ def geogrid(geogrid_tbl_file: Union[str, None] = None):
         remove(f"{WPS_WORK_PATH}/geogrid/GEOGRID.TBL")
         copyfile(geogrid_tbl_file, f"{WPS_WORK_PATH}/geogrid/GEOGRID.TBL")
 
-    WRFRUNConstants.set_wrf_status("geogrid")
+    WRFRUNConstants.set_work_status("geogrid")
 
     generate_namelist_file("wps")
 
@@ -100,7 +101,7 @@ def ungrib(vtable_file: Union[str, None] = None, input_data_path: Optional[str] 
         remove(f"{WPS_WORK_PATH}/Vtable")
     symlink(vtable_file, f"{WPS_WORK_PATH}/Vtable")
 
-    WRFRUNConstants.set_wrf_status("ungrib")
+    WRFRUNConstants.set_work_status("ungrib")
 
     generate_namelist_file("wps")
 
@@ -173,7 +174,7 @@ def metgrid(geogrid_data_path: Optional[str] = None, ungrib_data_path: Optional[
 
     check_path(output_save_path, log_save_path)
 
-    WRFRUNConstants.set_wrf_status("metgrid")
+    WRFRUNConstants.set_work_status("metgrid")
 
     generate_namelist_file("wps")
 
@@ -226,7 +227,7 @@ def real(metgrid_path: Union[str, None] = None):
             else:
                 symlink(f"{metgrid_path}/{_file}", f"{WRF_WORK_PATH}/{_file}")
 
-    WRFRUNConstants.set_wrf_status("real")
+    WRFRUNConstants.set_work_status("real")
 
     generate_namelist_file("wrf")
 
@@ -278,7 +279,7 @@ def dfi(real_output_path: Union[str, None] = None, update_real_output=True):
                 remove(f"{WRF_WORK_PATH}/{_file}")
             symlink(f"{real_output_path}/{_file}", f"{WRF_WORK_PATH}/{_file}")
 
-    WRFRUNConstants.set_wrf_status("dfi")
+    WRFRUNConstants.set_work_status("dfi")
 
     generate_namelist_file("dfi", f"{WRF_WORK_PATH}/namelist.input")
 
@@ -360,7 +361,7 @@ def wrf(wrf_input_path: Union[str, None] = None, restart_file_path: Optional[str
         else:
             logger.debug(f"You are about to doing a restart run without giving restart_file_path")
 
-    WRFRUNConstants.set_wrf_status("wrf")
+    WRFRUNConstants.set_work_status("wrf")
 
     generate_namelist_file("wrf")
 
@@ -418,7 +419,7 @@ def ndown(wrfout_file_path: str, wrfinput_file_path: str, update_namelist=True):
         remove(f"{WRF_WORK_PATH}/wrfndi_d02")
     symlink(f"{wrfinput_file_path}", f"{WRF_WORK_PATH}/wrfndi_d02")
 
-    WRFRUNConstants.set_wrf_status("ndown")
+    WRFRUNConstants.set_work_status("ndown")
 
     exec_ndown(get_core_num())
 

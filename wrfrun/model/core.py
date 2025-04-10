@@ -4,7 +4,7 @@ This module provides the lower interface to WPS and WRF executable files.
 
 from typing import Optional
 
-from wrfrun.core import WRFRUNConstants
+from ..core import WRFRUNConfig
 from wrfrun.utils import call_subprocess, logger
 
 
@@ -18,7 +18,7 @@ def exec_geogrid(core_num: Optional[int] = None):
                   mpirun will be used to execute geogrid.exe if ``core_num != None``.
 
     """
-    WPS_WORK_PATH = WRFRUNConstants.get_work_path("wps")
+    WPS_WORK_PATH = WRFRUNConfig.get_work_path("wps")
 
     if isinstance(core_num, int) and core_num <= 0:
         logger.warning(f"`core_num` should be greater than 0")

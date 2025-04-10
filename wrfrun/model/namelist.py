@@ -1,35 +1,9 @@
 from datetime import datetime, timedelta
 from os.path import exists
-from typing import Optional
 
-from wrfrun.core import WRFRUNConfig, WRFRUNConstants, WRFRUNNamelist
+from wrfrun.core import WRFRUNConfig
 from wrfrun.res import NAMELIST_DA_WRFVAR_TEMPLATE, NAMELIST_DFI_TEMPLATE, NAMELIST_WPS_TEMPLATE, NAMELIST_WRF_TEMPLATE
-from wrfrun.utils import logger
 from .scheme import get_cumulus_scheme, get_land_surface_scheme, get_long_wave_scheme, get_pbl_scheme, get_short_wave_scheme, get_surface_layer_scheme
-
-
-def generate_namelist_file(namelist_type: str, save_path: Optional[str] = None):
-    """
-    Write namelist to a file so WPS or WRF can use its settings.
-
-    :param namelist_type: ``"wps"``, ``"wrf"``, ``"wrfda"``, or any other type registered.
-    :type namelist_type: str
-    :param save_path: If namelist_type isn't in ``["wps", "wrf", "wrfda"]``, ``save_path`` must be specified.
-    :type save_path: str | None
-    :return:
-    """
-    if namelist_type == "wps":
-        save_path = f"{WRFRUNConstants.get_work_path(namelist_type)}/namelist.wps"
-    elif namelist_type == "wrf":
-        save_path = f"{WRFRUNConstants.get_work_path(namelist_type)}/namelist.input"
-    elif namelist_type == "wrfda":
-        save_path = f"{WRFRUNConstants.get_work_path(namelist_type)}/namelist.input"
-    else:
-        if save_path is None:
-            logger.error(f"`save_path` is needed to save custom namelist.")
-            raise ValueError(f"`save_path` is needed to save custom namelist.")
-
-    WRFRUNNamelist.write_namelist(save_path, namelist_type)
 
 
 def prepare_wps_namelist():
@@ -39,7 +13,7 @@ def prepare_wps_namelist():
     """
     # prepare namelist
     # # read template
-    WRFRUNNamelist.read_namelist(NAMELIST_WPS_TEMPLATE, "wps")
+    WRFRUNConfig.namelist.read_namelist(NAMELIST_WPS_TEMPLATE, "wps")
 
     # # get wrf config from config
     wrf_config = WRFRUNConfig.get_wrf_config()
@@ -91,11 +65,11 @@ def prepare_wps_namelist():
             update_value["geogrid"][key] = wrf_config["domain"]["map_proj"][key]
 
     # # update namelist
-    WRFRUNNamelist.update_namelist(update_value, "wps")
+    WRFRUNConfig.namelist.update_namelist(update_value, "wps")
 
     # # update settings from custom namelist
     if wrf_config["user_wps_namelist"] != "" and exists(wrf_config["user_wps_namelist"]):
-        WRFRUNNamelist.update_namelist(wrf_config["user_wps_namelist"], "wps")
+        WRFRUNConfig.namelist.update_namelist(wrf_config["user_wps_namelist"], "wps")
 
 
 def prepare_wrf_namelist():
@@ -104,7 +78,7 @@ def prepare_wrf_namelist():
 
     """
     # read template namelist
-    WRFRUNNamelist.read_namelist(NAMELIST_WRF_TEMPLATE, "wrf")
+    WRFRUNConfig.namelist.read_namelist(NAMELIST_WRF_TEMPLATE, "wrf")
 
     # wrf config from config
     wrf_config = WRFRUNConfig.get_wrf_config()
@@ -238,12 +212,12 @@ def prepare_wrf_namelist():
     update_values["physics"].update(surface_layer_scheme)
 
     # update namelist
-    WRFRUNNamelist.update_namelist(update_values, "wrf")
+    WRFRUNConfig.namelist.update_namelist(update_values, "wrf")
 
     # read user real namelist and update value
     user_namelist_data = wrf_config["user_wrf_namelist"]
     if user_namelist_data != "" and exists(user_namelist_data):
-        WRFRUNNamelist.update_namelist(user_namelist_data, "wrf")
+        WRFRUNConfig.namelist.update_namelist(user_namelist_data, "wrf")
 
 
 def prepare_dfi_namelist():
@@ -251,7 +225,7 @@ def prepare_dfi_namelist():
 
     """
     # Read template namelist
-    WRFRUNNamelist.read_namelist(NAMELIST_DFI_TEMPLATE, "dfi")
+    WRFRUNConfig.namelist.read_namelist(NAMELIST_DFI_TEMPLATE, "dfi")
 
     wrf_config = WRFRUNConfig.get_wrf_config()
 
@@ -328,12 +302,12 @@ def prepare_dfi_namelist():
     }
 
     # update namelist data
-    WRFRUNNamelist.update_namelist(update_value, "dfi")
+    WRFRUNConfig.namelist.update_namelist(update_value, "dfi")
 
     # read user wrf namelist and update value
     user_namelist_data = wrf_config["user_wrf_namelist"]
     if user_namelist_data != "" and exists(user_namelist_data):
-        WRFRUNNamelist.update_namelist(user_namelist_data, "dfi")
+        WRFRUNConfig.namelist.update_namelist(user_namelist_data, "dfi")
 
 
 def prepare_wrfda_namelist():
@@ -341,7 +315,7 @@ def prepare_wrfda_namelist():
 
     """
     # read template namelist
-    WRFRUNNamelist.read_namelist(NAMELIST_DA_WRFVAR_TEMPLATE, "wrfda")
+    WRFRUNConfig.namelist.read_namelist(NAMELIST_DA_WRFVAR_TEMPLATE, "wrfda")
 
     wrf_config = WRFRUNConfig.get_wrf_config()
 
@@ -364,12 +338,12 @@ def prepare_wrfda_namelist():
     }
 
     # update namelist
-    WRFRUNNamelist.update_namelist(update_value, "wrfda")
+    WRFRUNConfig.namelist.update_namelist(update_value, "wrfda")
 
     # read user wrfda namelist and update value
     user_namelist_data = wrf_config["user_wrfda_namelist"]
     if user_namelist_data != "" and exists(user_namelist_data):
-        WRFRUNNamelist.update_namelist(user_namelist_data, "wrfda")
+        WRFRUNConfig.namelist.update_namelist(user_namelist_data, "wrfda")
 
 
-__all__ = ["prepare_wrf_namelist", "prepare_wps_namelist", "prepare_wrfda_namelist", "prepare_dfi_namelist", "generate_namelist_file"]
+__all__ = ["prepare_wrf_namelist", "prepare_wps_namelist", "prepare_wrfda_namelist", "prepare_dfi_namelist"]

@@ -1,40 +1,37 @@
-import subprocess
 import socket
 import socketserver
-import threading
+import subprocess
+from datetime import datetime
 from time import time
 from typing import Tuple
-from datetime import datetime
 
+from .config import WRFRUNConfig
 from wrfrun.utils import logger
-from wrfrun.core.constant import WRFRUNConstants
-
 
 WRFRUN_SERVER_INSTANCE = None
 WRFRUN_SERVER_THREAD = None
 
 
 def get_wrf_simulated_seconds(start_datetime: datetime) -> int:
-    """Get how many seconds wrf has integrated.
+    """
+    Get how many seconds wrf has integrated.
 
-    Args:
-        start_datetime (datetime): WRF start datetime.
-
-    Returns:
-        int: Seconds.
+    :param start_datetime: WRF start datetime.
+    :type start_datetime: datetime
+    :return: Seconds.
+    :rtype: int
     """
     # use linux cmd to get the latest line of wrf log files
     res = subprocess.run(
-        ["tail", "-n", "1", f"{WRFRUNConstants.get_work_path('wrf')}/rsl.out.0000"], capture_output=True)
+        ["tail", "-n", "1", f"{WRFRUNConfig.WRF_WORK_PATH}/rsl.out.0000"], capture_output=True)
     log_text = res.stdout.decode()
 
-    # parse log text
     if not (log_text.startswith("d01") or log_text.startswith("d02")):
         return -1
 
     time_string = log_text.split()[1]
 
-    # try to parse
+    seconds = -1
     try:
         current_datetime = datetime.strptime(time_string, "%Y-%m-%d_%H:%M:%S")
         date_delta = current_datetime - start_datetime
@@ -65,17 +62,30 @@ class WRFRunServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
         self.wrf_simulate_seconds = wrf_simulate_seconds
 
     def server_bind(self):
+        """
+        Bind address and port.
+        """
         # reuse address and port to prevent the error `Address already in use`
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind(self.server_address)
 
     def get_start_time(self) -> datetime:
+        """
+        Get the start time of the socket.
+        As the socket server should start with NWP, it is also regarded as the start time of NWP.
+
+        :return: Start datetime.
+        :rtype: datetime
+        """
         return self.start_timestamp
-    
-    def get_wrf_start_date(self) -> datetime:
-        return self.start_date
 
     def get_wrf_simulate_settings(self) -> Tuple[datetime, int]:
+        """
+        Get the start date of the case the NWP simulates and the total seconds of the simulation.
+
+        :return: (start date, simulation seconds)
+        :rtype: tuple
+        """
         return self.start_date, self.wrf_simulate_seconds
 
 
@@ -84,8 +94,8 @@ class WRFRunServerHandler(socketserver.StreamRequestHandler):
     Socket server handler.
 
     """
-    def __init__(self, request, client_address, server: WRFRunServer, *args, **kwargs) -> None:
-        super().__init__(request, client_address, server, *args, **kwargs)
+    def __init__(self, request, client_address, server: WRFRunServer) -> None:
+        super().__init__(request, client_address, server)
 
         # get server
         self.server: WRFRunServer = server
@@ -117,10 +127,14 @@ class WRFRunServerHandler(socketserver.StreamRequestHandler):
         return time_usage
 
     def calculate_progress(self) -> str:
-        # get wrf simulate settings
+        """
+        Calculate the simulation progress.
+
+        :return:
+        :rtype:
+        """
         start_date, simulate_seconds = self.server.get_wrf_simulate_settings()
 
-        # get wrf simulated seconds
         simulated_seconds = get_wrf_simulated_seconds(start_date)
 
         if simulated_seconds > 0:
@@ -129,8 +143,7 @@ class WRFRunServerHandler(socketserver.StreamRequestHandler):
         else:
             progress = 0
 
-        # get work status
-        status = WRFRUNConstants.get_wrf_status()
+        status = WRFRUNConfig.WRFRUN_WORK_STATUS
 
         if status == "":
             status = "*"
@@ -138,8 +151,13 @@ class WRFRunServerHandler(socketserver.StreamRequestHandler):
         return f"{status}: {progress}%"
 
     def handle(self) -> None:
+        """
+        Request handler.
+        """
+
         # check if we will to stop server
         msg = self.rfile.readline().decode().split('\n')[0]
+
         if msg == "stop":
             self.server.shutdown()
             self.wfile.write(f"Server stop\n".encode())
@@ -151,11 +169,10 @@ class WRFRunServerHandler(socketserver.StreamRequestHandler):
             self.wfile.write(f"{start_date}\n{simulate_seconds}\n".encode())
             
         else:
-            # get message to be sent
             progress = self.calculate_progress()
             time_usage = self.calculate_time_usage()
 
-            # send
+            # send the message
             self.wfile.write(f"{progress}\n{time_usage}".encode())
 
 
@@ -174,14 +191,13 @@ def stop_server(socket_ip: str, socket_port: int):
         # send msg to server
         sock.sendall("stop\n".encode())
 
-        # receive message
+        # receive the message
         msg = sock.recv(1024).decode().split('\n')[0]
 
         logger.info(f"WRFRunServer: {msg}")
 
     except (ConnectionRefusedError, ConnectionResetError):
-        logger.warning(
-            f"Fail to stop WRFRunServer, maybe it doesn't start at all.")
+        logger.warning("Fail to stop WRFRunServer, maybe it doesn't start at all.")
 
 
 __all__ = ["WRFRunServer", "WRFRunServerHandler", "get_wrf_simulated_seconds", "stop_server"]
