@@ -2,7 +2,7 @@ from os import environ
 from os.path import exists, dirname, abspath
 
 from .core import WRFRUNConfig
-from .res import PBS_SCRIPT_TEMPLATE
+from .res import TASKSYS_PBS_TEMPLATE
 from .utils import logger
 
 
@@ -38,9 +38,10 @@ def prepare_pbs_script(main_file_path: str):
     exec_cmd = f"{PBS_setting['python_interpreter']} {main_file_path}"
 
     # read template and write to file
+    pbs_template_path = WRFRUNConfig.parse_resource_uri(TASKSYS_PBS_TEMPLATE)
     with open(f"{dir_path}/run.sh", "w") as f:
 
-        with open(PBS_SCRIPT_TEMPLATE, "r") as f_template:
+        with open(pbs_template_path, "r") as f_template:
             template = f_template.read()
 
         template = template.format(

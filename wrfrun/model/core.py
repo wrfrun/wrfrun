@@ -43,7 +43,7 @@ def exec_ungrib(grib_dir_path: str):
         grib_dir_path: Absolute directory path of GRIB files.
 
     """
-    WPS_WORK_PATH = WRFRUNConstants.get_work_path("wps")
+    WPS_WORK_PATH = WRFRUNConfig.get_work_path("wps")
 
     logger.info(f"Running `./link_grib.csh {grib_dir_path}/* .` ...")
     call_subprocess(["./link_grib.csh", f"{grib_dir_path}/*", "."], work_path=WPS_WORK_PATH)
@@ -62,7 +62,7 @@ def exec_metgrid(core_num: Optional[int] = None):
                   mpirun will be used to execute geogrid.exe if ``core_num != None``.
 
     """
-    WPS_WORK_PATH = WRFRUNConstants.get_work_path("wps")
+    WPS_WORK_PATH = WRFRUNConfig.get_work_path("wps")
 
     if isinstance(core_num, int) and core_num <= 0:
         logger.warning(f"`core_num` should be greater than 0")
@@ -86,7 +86,7 @@ def exec_ndown(core_num: Optional[int] = None):
                   mpirun will be used to execute geogrid.exe if ``core_num != None``.
 
     """
-    WRF_WORK_PATH = WRFRUNConstants.get_work_path("wrf")
+    WRF_WORK_PATH = WRFRUNConfig.get_work_path("wrf")
 
     if isinstance(core_num, int) and core_num <= 0:
         logger.warning(f"`core_num` should be greater than 0")
@@ -110,7 +110,7 @@ def exec_real(core_num: Optional[int] = None):
                   mpirun will be used to execute geogrid.exe if ``core_num != None``.
 
     """
-    WRF_WORK_PATH = WRFRUNConstants.get_work_path("wrf")
+    WRF_WORK_PATH = WRFRUNConfig.get_work_path("wrf")
 
     if isinstance(core_num, int) and core_num <= 0:
         logger.warning(f"`core_num` should be greater than 0")
@@ -134,7 +134,7 @@ def exec_wrf(core_num: Optional[int] = None):
                   mpirun will be used to execute geogrid.exe if ``core_num != None``.
 
     """
-    WRF_WORK_PATH = WRFRUNConstants.get_work_path("wrf")
+    WRF_WORK_PATH = WRFRUNConfig.get_work_path("wrf")
 
     if isinstance(core_num, int) and core_num <= 0:
         logger.warning(f"`core_num` should be greater than 0")
@@ -159,7 +159,7 @@ def exec_da_wrfvar(core_num: Optional[int] = None):
                   mpirun will be used to execute geogrid.exe if ``core_num != None``.
 
     """
-    WRFDA_WORK_PATH = WRFRUNConstants.get_work_path("wrfda")
+    WRFDA_WORK_PATH = WRFRUNConfig.get_work_path("wrfda")
 
     if isinstance(core_num, int) and core_num <= 0:
         logger.warning(f"`core_num` should be greater than 0")
@@ -177,7 +177,7 @@ def exec_da_update_bc():
     """A lower interface to run da_update_bc.
 
     """
-    WRFDA_WORK_PATH = WRFRUNConstants.get_work_path("wrfda")
+    WRFDA_WORK_PATH = WRFRUNConfig.get_work_path("wrfda")
 
     logger.info(
         f"Running `./da_update_bc.exe` ...")

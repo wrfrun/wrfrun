@@ -33,11 +33,25 @@ class LoadConfigError(WRFRunBasicError):
     pass
 
 
-class OutputError(WRFRunBasicError):
+class OutputFileError(WRFRunBasicError):
     """
     No output found.
     """
     pass
 
 
-__all__ = ["WRFRunBasicError", "ConfigError", "WRFRunContextError", "CommandError", "LoadConfigError", "OutputError"]
+class ResourceURIError(WRFRunBasicError):
+    """
+    Error about resource namespace.
+    """
+    pass
+
+
+class InputFileError(WRFRunBasicError):
+    """
+    Input file error.
+    """
+    pass
+
+
+__all__ = ["WRFRunBasicError", "ConfigError", "WRFRunContextError", "CommandError", "LoadConfigError", "OutputFileError", "ResourceURIError", "InputFileError"]

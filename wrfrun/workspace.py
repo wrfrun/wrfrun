@@ -22,20 +22,21 @@ def prepare_workspace():
     wrf_path = wrf_config["wrf_path"]
     wrfda_path = wrf_config["wrfda_path"]
 
-    WRFRUN_TEMP_PATH = WRFRUNConfig.get_temp_path()
-    WORK_PATH = WRFRUNConfig.get_workspace_path()
-    WPS_WORK_PATH = WRFRUNConfig.get_work_path("wps")
-    WRF_WORK_PATH = WRFRUNConfig.get_work_path("wrf")
-    WRFDA_WORK_PATH = WRFRUNConfig.get_work_path("wrfda")
+    WRFRUN_TEMP_PATH = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_TEMP_PATH)
+    WORK_PATH = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_PATH)
+    WPS_WORK_PATH = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WPS_WORK_PATH)
+    WRF_WORK_PATH = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRF_WORK_PATH)
+    WRFDA_WORK_PATH = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFDA_WORK_PATH)
+    output_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_OUTPUT_PATH)
 
     # check folder
     check_path(WRFRUN_TEMP_PATH)
-    check_path(WRFRUNConfig.get_output_path())
+    check_path(output_path)
 
     if exists(wrfda_path):
-        WRFRUNConfig._USE_WRFDA = True
+        WRFRUNConfig.USE_WRFDA = True
 
-    # create folder to run WPS and WRF
+    # create folder to run WPS, and WRF
     # check the path
     if not (exists(wps_path) and exists(wrf_path)):
         logger.error(f"Your WPS or WRF path is wrong")

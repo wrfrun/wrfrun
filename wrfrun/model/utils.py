@@ -1,9 +1,9 @@
 from os import listdir
 from shutil import move
 
-from wrfrun.core import WRFRUNConfig, WRFRUNConstants, WRFRUNNamelist
-from wrfrun.utils import check_path, logger
-from .wps_utils import get_metgrid_levels
+from ..core import WRFRUNConfig
+from .dutils import get_metgrid_levels
+from ..utils import check_path, logger
 
 
 def reconcile_namelist_metgrid(metgrid_path: str):
@@ -34,7 +34,7 @@ def reconcile_namelist_metgrid(metgrid_path: str):
         }
     }
 
-    WRFRUNNamelist.update_namelist(update_values, "wrf")
+    WRFRUNConfig.update_namelist(update_values, "wrf")
 
 
 def clear_wrf_logs():
@@ -61,6 +61,3 @@ def clear_wrf_logs():
             move(f"{wrf_work_path}/{_file}", f"{log_save_path}/{_file}")
 
         logger.warning(f"Unprocessed log files of {wrf_status} has been saved to {log_save_path}, check it")
-
-
-__all__ = ["reconcile_namelist_metgrid", "clear_wrf_logs"]

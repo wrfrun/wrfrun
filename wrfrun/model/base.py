@@ -1,11 +1,9 @@
 from dataclasses import dataclass
-from os import listdir, makedirs, remove
-from os.path import basename, exists
-from shutil import copyfile
-from typing import Optional, TypedDict, Union
+from os import listdir
+from os.path import basename
+from typing import Optional, Union
 
-from .. import WRFRUNConfig
-from ..core import ExecutableBase, LoadConfigError, OutputError
+from ..core import ExecutableBase, FileConfigDict, LoadConfigError, OutputFileError, WRFRUNConfig
 from ..utils import logger
 
 
@@ -17,15 +15,6 @@ class NamelistName:
     WPS = "namelist.wps"
     WRF = "namelist.input"
     WRFDA = "namelist.input"
-
-
-class FileConfigDict(TypedDict):
-    """
-    Dict class to give information to process files.
-    """
-    file_path: str
-    save_path: Optional[str]
-    save_name: Optional[str]
 
 
 def generate_namelist_file(namelist_type: str, save_path: Optional[str] = None):
@@ -57,7 +46,7 @@ class ModelExecutableBase(ExecutableBase):
     Base class for NWP executables.
     """
 
-    def __init__(self, name: str, cmd: str, work_path: Optional[str] = None, mpi_use=False, mpi_cmd: Optional[str] = None, mpi_core_num: Optional[int] = None):
+    def __init__(self, name: str, cmd: Union[str, list[str]], work_path: Optional[str] = None, mpi_use=False, mpi_cmd: Optional[str] = None, mpi_core_num: Optional[int] = None):
         """
         Base class for NWP executables.
 
@@ -79,8 +68,7 @@ class ModelExecutableBase(ExecutableBase):
 
         super().__init__(name, cmd, work_path, mpi_use, mpi_cmd, mpi_core_num)
 
-        self.addition_files = []
-        self.save_rules = []
+        self.input_file_wrfrun = []
 
     def generate_custom_config(self):
         """
@@ -91,8 +79,6 @@ class ModelExecutableBase(ExecutableBase):
         """
         self.custom_config.update({
             "namelist": WRFRUNConfig.get_namelist("wps"),
-            "addition_files": self.addition_files,
-            "save_rules": self.save_rules,
         })
 
     def load_custom_config(self):
@@ -101,46 +87,54 @@ class ModelExecutableBase(ExecutableBase):
             raise LoadConfigError("'namelist' not found. Maybe you forget to load config or load value from a corrupted config file.")
         WRFRUNConfig.update_namelist(self.custom_config["namelist"], "wps")
 
-        if "addition_files" in self.custom_config:
-            self.addition_files = self.custom_config["addition_files"]
-
-        if "save_rules" in self.custom_config:
-            self.save_rules = self.custom_config["save_rules"]
-
-    def add_addition_files(self, addition_files: Union[str, list[str], FileConfigDict, list[FileConfigDict]]):
+    def add_input_files(self, input_files: Union[str, list[str], FileConfigDict, list[FileConfigDict]], is_data=True):
         """
-        Add addition files the NWP will use.
+        Add input files the NWP will use.
 
         You can give a single file path or a list contains files' path.
 
-        >>> self.add_addition_files("data/custom_file")
-        >>> self.add_addition_files(["data/custom_file_1", "data/custom_file_2"])
+        >>> self.add_input_files("data/custom_file")
+        >>> self.add_input_files(["data/custom_file_1", "data/custom_file_2"])
 
-        You can give more information with a ``FileConfigDict``, like the path and the name to store.
-        "save_path" and "save_name" is optional, ``self.work_path`` and file's base name will be used.
+        You can give more information with a ``FileConfigDict``, like the path and the name to store, and if it is data.
 
-        >>> file_dict: FileConfigDict = {"file_path": "data/custom_file", "save_path": None, "save_name": None}
-        >>> # self.work will replace "save_path", "custom_file" will replace "save_name" when process the file.
-        >>> self.add_addition_files(file_dict)
+        >>> file_dict: FileConfigDict = {"file_path": "data/custom_file.nc", "save_path": f"{WRFRUNConfig.WPS_WORK_PATH}", "save_name": "custom_file.nc", "is_data": True}
+        >>> self.add_input_files(file_dict)
 
-        >>> file_dict: FileConfigDict = {"file_path": "data/custom_file", "save_path": f"{WRFRUNConfig.WPS_WORK_PATH}/geogrid", "save_name": "GEOGRID.TBL"}
-        >>> self.add_addition_files(file_dict)
+        >>> file_dict_1: FileConfigDict = {"file_path": "data/custom_file", "save_path": f"{WRFRUNConfig.WPS_WORK_PATH}/geogrid", "save_name": "GEOGRID.TBL", "is_data": False}
+        >>> file_dict_2: FileConfigDict = {"file_path": "data/custom_file", "save_path": f"{WRFRUNConfig.WPS_WORK_PATH}/outputs", "save_name": "test_file", "is_data": True}
+        >>> self.add_input_files([file_dict_1, file_dict_2])
 
-        >>> file_dict_1: FileConfigDict = {"file_path": "data/custom_file", "save_path": f"{WRFRUNConfig.WPS_WORK_PATH}/geogrid", "save_name": "GEOGRID.TBL"}
-        >>> file_dict_2: FileConfigDict = {"file_path": "data/custom_file", "save_path": f"{WRFRUNConfig.WPS_WORK_PATH}/outputs", "save_name": "test_file"}
-        >>> self.add_addition_files([file_dict_1, file_dict_2])
-
-        :param addition_files: Custom files' path.
-        :type addition_files: str | list | dict
+        :param input_files: Custom files' path.
+        :type input_files: str | list | dict
+        :param is_data: If its data. This parameter will be overwritten by the value in ``input_files``.
+        :type is_data: bool
         :return:
         :rtype:
         """
-        if not isinstance(addition_files, list):
-            addition_files = [addition_files, ]
-        logger.debug(f"Add addition file for '{self.name}': {addition_files}")
-        self.addition_files += addition_files
+        if isinstance(input_files, str):
+            self.input_file_config.append({"file_path": input_files, "save_path": self.work_path, "save_name": basename(input_files), "is_data": is_data})
 
-    def add_save_files(
+        elif isinstance(input_files, list):
+            for _file in input_files:
+                if isinstance(_file, FileConfigDict):
+                    self.input_file_config.append(_file)
+
+                elif isinstance(_file, str):
+                    self.input_file_config.append({"file_path": _file, "save_path": self.work_path, "save_name": basename(_file), "is_data": is_data})
+
+                else:
+                    logger.error(f"Input file config should be string or `FileConfigDict`, but got '{type(_file)}'")
+                    raise TypeError(f"Input file config should be string or `FileConfigDict`, but got '{type(_file)}'")
+
+        elif isinstance(input_files, FileConfigDict):
+            self.input_file_config.append(input_files)
+
+        else:
+            logger.error(f"Input file config should be string or `FileConfigDict`, but got '{type(input_files)}'")
+            raise TypeError(f"Input file config should be string or `FileConfigDict`, but got '{type(input_files)}'")
+
+    def add_output_files(
         self, output_dir: Optional[str] = None, save_path: Optional[str] = None, startswith: Union[None, str, tuple[str, ...]] = None,
         endswith: Union[None, str, tuple[str, ...]] = None, outputs: Union[None, str, list[str]] = None, no_file_error=True
     ):
@@ -163,14 +157,12 @@ class ModelExecutableBase(ExecutableBase):
         :rtype:
         """
         if output_dir is None:
-            current_output_dir = self.work_path
-        else:
-            current_output_dir = output_dir
+            output_dir = self.work_path
 
         if save_path is None:
-            save_path = f"{WRFRUNConfig.get_output_path()}/{self.name}"
+            save_path = f"{WRFRUNConfig.WRFRUN_OUTPUT_PATH}/{self.name}"
 
-        file_list = listdir(current_output_dir)
+        file_list = listdir(WRFRUNConfig.parse_wrfrun_uri(output_dir))
         save_file_list = []
 
         if startswith is not None:
@@ -201,73 +193,17 @@ class ModelExecutableBase(ExecutableBase):
         if len(save_file_list) < 1:
             if no_file_error:
                 logger.error(f"Can't find any files match the giving rules: startswith='{startswith}', endswith='{endswith}', outputs='{outputs}'")
-                raise OutputError(f"Can't find any files match the giving rules: startswith='{startswith}', endswith='{endswith}', outputs='{outputs}'")
+                raise OutputFileError(f"Can't find any files match the giving rules: startswith='{startswith}', endswith='{endswith}', outputs='{outputs}'")
 
             else:
+                logger.warning(f"Can't find any files match the giving rules: startswith='{startswith}', endswith='{endswith}', outputs='{outputs}'. Skip it.")
                 return
 
         save_file_list = list(set(save_file_list))
         logger.debug(f"Files to be processed: {save_file_list}")
 
         for _file in save_file_list:
-            self.save_rules.append((_file, output_dir, save_path))
-
-    def before_call(self):
-        """
-        This function will copy the additional necessary files registered by ``add_addition_files`` to the workspace.
-
-        :return:
-        :rtype:
-        """
-        for _file_item in self.addition_files:
-            if isinstance(_file_item, str):
-                _file = _file_item
-                _save_path = self.work_path
-                _save_name = basename(_file)
-
-            if isinstance(_file_item, FileConfigDict):
-                _file = _file_item["file_path"]
-                _save_path = _file_item["save_path"]
-                _save_name = _file_item["save_name"]
-
-                _save_path = self.work_path if _save_path is None else _save_path
-                _save_name = basename(_file) if _save_name is None else _save_name
-
-            else:
-                logger.warning(f"Found unsupported registered file type: {type(_file_item)}. File is {_file_item}.")
-                logger.warning("Skip this file.")
-                continue
-
-            logger.debug(f"Copy addition file '{_file}' to '{_save_path}'")
-
-            if exists(f"{_save_path}/{_save_name}"):
-                logger.warning(f"There is a '{_save_name}' in '{_save_path}', overwrite it")
-                remove(f"{_save_path}/{_save_name}")
-            copyfile(_file, f"{_save_path}/{_save_name}")
-
-    def after_call(self):
-        """
-        Save file according to save rules.
-
-        :return:
-        :rtype:
-        """
-        for _rule in self.save_rules:
-            _file, _output_path, _save_path = _rule
-
-            if _output_path is None:
-                _output_path = self.work_path
-
-            if not exists(_save_path):
-                makedirs(_save_path)
-
-            if exists(f"{_save_path}/{_file}"):
-                logger.error(f"Found existed file, which means you already have output files in '{_save_path}'")
-                logger.error("Backup your results, or chose an empty directory to save results.")
-                raise FileExistsError(f"Found existed file, which means you already have output files in '{_save_path}'. "
-                                      "Backup your results, or chose an empty directory to save results.")
-
-            copyfile(f"{_output_path}/{_file}", f"{_save_path}/{_file}")
+            self.output_file_config.append({"file_path": f"{output_dir}/{_file}", "save_path": save_path, "save_name": _file, "is_data": True})
 
 
-__all__ = ["ModelExecutableBase", "NamelistName", "FileConfigDict"]
+__all__ = ["ModelExecutableBase", "NamelistName"]

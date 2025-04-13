@@ -11,14 +11,79 @@ from typing import Optional, Tuple, Union
 import f90nml
 import yaml
 
-from .error import WRFRunContextError
+from .error import WRFRunContextError, ResourceURIError
 from ..res import CONFIG_TEMPLATE
 from ..utils import logger
 
 
+class _WRFRunResources:
+    """
+    Manage resource files used by wrfrun components.
+    These resources include various configuration files from NWP as well as those provided by wrfrun itself.
+    Since their actual file paths may vary depending on the wrfrun installation environment, wrfrun maps them using URIs to ensure consistent access regardless of the environment.
+    """
+    def __init__(self):
+        self._resource_namespace_db = {}
+
+    def register_resource_uri(self, unique_prefix: str, res_space_path: str):
+        """
+        This function should only be used by wrfrun functions.
+
+        Register a unique resource file namespace.
+
+        :param unique_prefix: Unique prefix string represents the resource namespace. It must start with ``:WRFRUN_`` and end with ``:``. For example, ``":WRFRUN_WORK_PATH:"``.
+        :type unique_prefix: str
+        :param res_space_path: REAL absolute path of your resource namespace. For example, "$HOME/.config/wrfrun/res".
+        :type res_space_path: str
+        :return:
+        :rtype:
+        """
+        if not (unique_prefix.startswith(":WRFRUN_") and unique_prefix.endswith(":")):
+            logger.error(f"Can't register resource URI: '{unique_prefix}'. It should start with ':WRFRUN_' and end with ':'.")
+            raise ResourceURIError(f"Can't register resource URI: '{unique_prefix}'. It should start with ':WRFRUN_' and end with ':'.")
+
+        if unique_prefix in self._resource_namespace_db:
+            logger.error(f"Resource URI '{unique_prefix}' exists.")
+            raise ResourceURIError(f"Resource URI '{unique_prefix}' exists.")
+
+        logger.debug(f"Register URI '{unique_prefix}' to '{res_space_path}'")
+        self._resource_namespace_db[unique_prefix] = res_space_path
+
+    def parse_resource_uri(self, file_path: str) -> str:
+        """
+        Return a real file path by parsing the URI string in it.
+
+        Normal path will be returned with no change.
+
+        :param file_path: File path string which may contain URI string.
+        :type file_path: str
+        :return: Real file path.
+        :rtype: str
+        """
+        if not file_path.startswith(":WRFRUN_"):
+            return file_path
+
+        res_namespace_string = file_path.split(":")[0]
+
+        if res_namespace_string in self._resource_namespace_db:
+            file_path = file_path.replace(res_namespace_string, self._resource_namespace_db[res_namespace_string])
+
+            if not file_path.startswith(":WRFRUN_"):
+                return file_path
+
+            else:
+                return self.parse_resource_uri(file_path)
+
+        else:
+            logger.error(f"Unknown resource URI: '{res_namespace_string}'")
+            raise ResourceURIError(f"Unknown resource URI: '{res_namespace_string}'")
+
+
 class _WRFRunConstants:
     """
-    Define some variables used by wrfrun.
+    Define all variables that will be used by other wrfrun components.
+    These variables are related to the wrfrun installation environment and configuration files.
+    They are defined either directly or mapped using URIs to ensure consistent access across all components.
     """
     def __init__(self):
         # the path we may need to store temp files,
@@ -50,10 +115,31 @@ class _WRFRunConstants:
         self._WRFRUN_CONTEXT_STATUS = False
 
         # WRFDA is not necessary
-        self._USE_WRFDA: bool = False
+        self.USE_WRFDA: bool = False
 
         # output directory of ungrib
         self._UNGRIB_OUT_DIR = "./outputs"
+
+        self._WRFRUN_INPUT_PATH = ":WRFRUN_INPUT_PATH:"
+        self._WRFRUN_OUTPUT_PATH = ":WRFRUN_OUTPUT_PATH:"
+        self._WRFRUN_RESOURCE_PATH = ":WRFRUN_RESOURCE_PATH:"
+
+    def _get_uri_map(self) -> dict[str, str]:
+        """
+        Return uri and its value.
+        We will use this to register uri when initialize config.
+
+        :return:
+        :rtype:
+        """
+        return {
+            self.WRFRUN_TEMP_PATH: self._WRFRUN_TEMP_PATH,
+            self.WRFRUN_HOME_PATH: self._WRFRUN_HOME_PATH,
+            self.WRFRUN_WORKSPACE_PATH: self._WORK_PATH,
+            self.WPS_WORK_PATH: self._WPS_WORK_PATH,
+            self.WRF_WORK_PATH: self._WRF_WORK_PATH,
+            self.WRFDA_WORK_PATH: self._WRFDA_WORK_PATH,
+        }
 
     @property
     def WRFRUN_TEMP_PATH(self) -> str:
@@ -63,7 +149,7 @@ class _WRFRunConstants:
         :return: Path of the directory storing temporary files.
         :rtype: str
         """
-        return self._WRFRUN_TEMP_PATH
+        return ":WRFRUN_TEMP_PATH:"
 
     @property
     def WRFRUN_HOME_PATH(self) -> str:
@@ -73,7 +159,7 @@ class _WRFRunConstants:
         :return: Path of the directory storing temporary files.
         :rtype: str
         """
-        return self._WRFRUN_HOME_PATH
+        return ":WRFRUN_HOME_PATH:"
 
     @property
     def WRFRUN_WORKSPACE_PATH(self) -> str:
@@ -83,7 +169,7 @@ class _WRFRunConstants:
         :return: Path of the wrfrun workspace.
         :rtype: str
         """
-        return self._WORK_PATH
+        return ":WRFRUN_WORK_PATH:"
 
     @property
     def WPS_WORK_PATH(self) -> str:
@@ -93,7 +179,7 @@ class _WRFRunConstants:
         :return: Path of the directory to run WPS.
         :rtype: str
         """
-        return self._WPS_WORK_PATH
+        return ":WRFRUN_WPS_WORK_PATH:"
 
     @property
     def WRF_WORK_PATH(self) -> str:
@@ -103,7 +189,7 @@ class _WRFRunConstants:
         :return: Path of the directory to run WRF.
         :rtype: str
         """
-        return self._WRF_WORK_PATH
+        return ":WRFRUN_WRF_WORK_PATH:"
 
     @property
     def WRFDA_WORK_PATH(self) -> str:
@@ -113,7 +199,7 @@ class _WRFRunConstants:
         :return: Path of the directory to run WRFDA.
         :rtype: str
         """
-        return self._WRFDA_WORK_PATH
+        return ":WRFRUN_WRFDA_WORK_PATH:"
 
     @property
     def WRFRUN_WORK_STATUS(self) -> str:
@@ -143,6 +229,27 @@ class _WRFRunConstants:
         if not isinstance(value, str):
             value = str(value)
         self._UNGRIB_OUT_DIR = value
+
+    @property
+    def WRFRUN_OUTPUT_PATH(self) -> str:
+        """
+        A marco string represents the save path of output files in wrfrun config.
+        """
+        return self._WRFRUN_OUTPUT_PATH
+
+    @property
+    def WRFRUN_RESOURCE_PATH(self) -> str:
+        """
+        Return the preserved string used by wrfrun resource files.
+        """
+        return self._WRFRUN_RESOURCE_PATH
+
+    @property
+    def WRFRUN_INPUT_PATH(self):
+        """
+        A marco string represents the path of directory that stores input files in wrfrun config.
+        """
+        return self._WRFRUN_INPUT_PATH
 
     def check_wrfrun_context(self, error=False) -> bool:
         """
@@ -373,7 +480,7 @@ class _WRFRunNamelist:
             self._custom_namelist.pop(namelist_id)
 
 
-class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist):
+class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
     """
     Class to manage wrfrun config.
     """
@@ -386,6 +493,10 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist):
 
         super().__init__()
         self._config = {}
+
+        # register uri for wrfrun constants
+        for key, value in self._get_uri_map().items():
+            self.register_resource_uri(key, value)
 
         self._initialized = True
 
@@ -402,6 +513,8 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist):
         :param config_path: YAML config file. Defaults to None.
         :type config_path: str
         """
+        config_template_path = self.parse_resource_uri(CONFIG_TEMPLATE)
+
         if config_path is not None:
             if not exists(config_path):
                 logger.error(f"Config file doesn't exist, copy template config to {config_path}")
@@ -410,17 +523,24 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist):
                 if not exists(dirname(config_path)):
                     makedirs(dirname(config_path))
 
-                copyfile(CONFIG_TEMPLATE, config_path)
+                copyfile(config_template_path, config_path)
                 raise FileNotFoundError(config_path)
         else:
             logger.info("Read config template since you doesn't give config file")
             logger.info("A new config file has been saved to './config.yaml', you can change and use it latter")
 
-            copyfile(CONFIG_TEMPLATE, "./config.yaml")
+            copyfile(config_template_path, "./config.yaml")
             config_path = "./config.yaml"
 
         with open(config_path, "r") as f:
             self._config = yaml.load(f, Loader=yaml.FullLoader)
+
+        # register URI for input and output directory.
+        input_path = abspath(self["wrfrun"]["input_data_path"])
+        self.register_resource_uri(self.WRFRUN_INPUT_PATH, input_path)
+
+        output_path = abspath(self["wrfrun"]["output_path"])
+        self.register_resource_uri(self.WRFRUN_OUTPUT_PATH, output_path)
 
     def save_wrfrun_config(self, save_path: str):
         """
@@ -429,6 +549,11 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist):
         :param save_path: File path of the config.
         :type save_path: str
         """
+        save_path = self.parse_resource_uri(save_path)
+
+        if not exists(save_path):
+            makedirs(save_path)
+
         with open(save_path, "w") as f:
             yaml.dump(self._config, f, Dumper=yaml.Dumper)
 
@@ -484,24 +609,24 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist):
         """
         return deepcopy(self["wrfrun"]["PBS"])
 
-    def get_output_path(self) -> str:
+    def get_pbs_core_num(self) -> int:
         """
-        Return the output path, in which all results will be placed.
+        Return the number of CPU that will be used.
 
-        :return: A directory path.
-        :rtype: str
+        :return: CPU number.
+        :rtype: int
         """
-        return self["wrfrun"]["output_path"]
+        return self["wrfrun"]["PBS"]["core_num"]
 
     def get_ungrib_out_dir_path(self) -> str:
         """
         Get the output directory of ungrib output (WRF intermediate file).
 
-        :return: Absolute path.
+        :return: URI path.
         :rtype: str
         """
         wif_prefix = self.get_namelist("wps")["ungrib"]["prefix"]
-        wif_path = abspath(f"{self.WPS_WORK_PATH}/{dirname(wif_prefix)}")
+        wif_path = f"{self.WPS_WORK_PATH}/{dirname(wif_prefix)}"
 
         return wif_path
 
@@ -556,8 +681,12 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist):
             "metgrid": {"fg_name": fg_names}
         }, "wps")
 
+    def write_namelist(self, save_path: str, namelist_id: str, overwrite=True):
+        save_path = self.parse_resource_uri(save_path)
+        super().write_namelist(save_path, namelist_id, overwrite)
+
 
 WRFRUNConfig = WRFRunConfig()
 
 
-__all__ = ["WRFRUNConfig", "WRFRunConfig"]
+__all__ = ["WRFRUNConfig"]

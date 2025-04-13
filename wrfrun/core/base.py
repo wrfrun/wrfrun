@@ -1,9 +1,13 @@
 import subprocess
-from os import chdir, getcwd
-from typing import TypedDict, Optional, Union
+from enum import Enum
+from os import chdir, getcwd, makedirs, remove, symlink
+from os.path import exists
+from shutil import copyfile
+from typing import Optional, TypedDict, Union
 
+from .config import WRFRUNConfig
+from .error import CommandError, ConfigError
 from ..utils import logger
-from .error import ConfigError, CommandError
 
 
 def check_subprocess_status(status: subprocess.CompletedProcess):
@@ -62,6 +66,26 @@ def call_subprocess(command: list[str], work_path: Optional[str] = None, print_o
         logger.warning(status.stderr.decode())
 
 
+class InputFileType(Enum):
+    """
+    Input file type.
+    ``WRFRUN_RES`` means the input file is from the NWP or wrfrun package.
+    ``CUSTOM_RES`` means the input file is from the user, which may be a customized file.
+    """
+    WRFRUN_RES = 1
+    CUSTOM_RES = 2
+
+
+class FileConfigDict(TypedDict):
+    """
+    Dict class to give information to process files.
+    """
+    file_path: str
+    save_path: str
+    save_name: str
+    is_data: bool
+
+
 class ExecutableClassConfig(TypedDict):
     """
     Executable class initialization config template.
@@ -82,6 +106,8 @@ class ExecutableConfig(TypedDict):
     mpi_cmd: Optional[str]
     mpi_core_num: Optional[int]
     class_config: Optional[ExecutableClassConfig]
+    input_file_config: Optional[list[FileConfigDict]]
+    output_file_config: Optional[list[FileConfigDict]]
     custom_config: Optional[dict]
 
 
@@ -127,6 +153,8 @@ class ExecutableBase:
 
         self.class_config: Optional[ExecutableClassConfig] = None
         self.custom_config: Optional[dict] = None
+        self.input_file_config: Optional[list[FileConfigDict]] = None
+        self.output_file_config: Optional[list[FileConfigDict]] = None
 
         self._initialized = True
 
@@ -139,22 +167,20 @@ class ExecutableBase:
     def generate_custom_config(self):
         """
         Generate custom configs.
-        Child class must implement this method to use the replay feature.
 
         :return:
         :rtype:
         """
-        raise NotImplementedError
+        logger.debug(f"Method 'generate_custom_config' not implemented in '{self.name}'")
 
     def load_custom_config(self):
         """
         Load custom configs.
-        Child class must implement this method to use the replay feature.
 
         :return:
         :rtype:
         """
-        raise NotImplementedError
+        logger.debug(f"Method 'load_custom_config' not implemented in '{self.name}'")
 
     def export_config(self) -> ExecutableConfig:
         """
@@ -174,6 +200,8 @@ class ExecutableBase:
             "mpi_core_num": self.mpi_core_num,
             "class_config": self.class_config,
             "custom_config": self.custom_config,
+            "input_file_config": self.input_file_config,
+            "output_file_config": self.output_file_config
         }
 
     def load_config(self, config: ExecutableConfig):
@@ -200,6 +228,8 @@ class ExecutableBase:
         self.mpi_core_num = config["mpi_core_num"]
         self.class_config = config["class_config"]
         self.custom_config = config["custom_config"]
+        self.input_file_config = config["input_file_config"]
+        self.output_file_config = config["output_file_config"]
 
         self.load_custom_config()
 
@@ -211,7 +241,88 @@ class ExecutableBase:
         :return:
         :rtype:
         """
-        raise NotImplementedError("If you want your executable supports replay feature, you must implement this method.")
+        logger.debug(f"Method 'replay' not implemented in '{self.name}', fall back to default action.")
+        self()
+
+    def before_exec(self):
+        """
+        Prepare input files.
+
+        :return:
+        :rtype:
+        """
+        for input_file in self.input_file_config:
+            file_path = input_file["file_path"]
+            save_path = input_file["save_path"]
+            save_name = input_file["save_name"]
+
+            file_path = WRFRUNConfig.parse_wrfrun_uri(file_path)
+            save_path = WRFRUNConfig.parse_wrfrun_uri(save_path)
+
+            if not exists(file_path):
+                logger.error(f"File not found: '{file_path}'")
+                raise FileNotFoundError(f"File not found: '{file_path}'")
+
+            if not exists(save_path):
+                makedirs(save_path)
+
+            target_path = f"{save_path}/{save_name}"
+            if exists(target_path):
+                logger.debug(f"Target file {save_name} exists, overwrite it.")
+                remove(target_path)
+
+            symlink(file_path, target_path)
+            
+    def after_exec(self):
+        """
+        Save outputs and logs.
+        
+        :return: 
+        :rtype: 
+        """
+        for output_file in self.output_file_config:
+            file_path = output_file["file_path"]
+            save_path = output_file["save_path"]
+            save_name = output_file["save_name"]
+
+            file_path = WRFRUNConfig.parse_wrfrun_uri(file_path)
+            save_path = WRFRUNConfig.parse_wrfrun_uri(save_path)
+
+            if not exists(file_path):
+                logger.error(f"File not found: '{file_path}'")
+                raise FileNotFoundError(f"File not found: '{file_path}'")
+
+            if not exists(save_path):
+                makedirs(save_path)
+
+            target_path = f"{save_path}/{save_name}"
+            if exists(target_path):
+                logger.error(f"Found existed file, which means you already have output files in '{save_path}'")
+                logger.error("Backup your results, or chose an empty directory to save results.")
+                raise FileExistsError(f"Found existed file, which means you already have output files in '{save_path}'."
+                                      "Backup your results, or chose an empty directory to save results.")
+
+            copyfile(file_path, target_path)
+
+    def exec(self):
+        """
+        Execute the given command.
+
+        :return:
+        :rtype:
+        """
+        work_path = WRFRUNConfig.parse_wrfrun_uri(self.work_path)
+
+        if not self.mpi_use or None in [self.mpi_cmd, self.mpi_core_num]:
+            if isinstance(self.cmd, str):
+                self.cmd = [self.cmd, ]
+
+            logger.info(f"Running `{' '.join(self.cmd)}` ...")
+            call_subprocess(self.cmd, work_path=work_path)
+
+        else:
+            logger.info(f"Running `{self.mpi_cmd} --oversubscribe -np {self.mpi_core_num} {self.cmd}` ...")
+            call_subprocess([self.mpi_cmd, "--oversubscribe", "-np", str(self.mpi_core_num), self.cmd], work_path=work_path)
 
     def __call__(self):
         """
@@ -220,16 +331,9 @@ class ExecutableBase:
         :return:
         :rtype:
         """
-        if not self.mpi_use or None in [self.mpi_cmd, self.mpi_core_num]:
-            if isinstance(self.cmd, str):
-                self.cmd = [self.cmd, ]
-
-            logger.info(f"Running `{' '.join(self.cmd)}` ...")
-            call_subprocess(self.cmd, work_path=self.work_path)
-
-        else:
-            logger.info(f"Running `{self.mpi_cmd} --oversubscribe -np {self.mpi_core_num} {self.cmd}` ...")
-            call_subprocess([self.mpi_cmd, "--oversubscribe", "-np", str(self.mpi_core_num), self.cmd], work_path=self.work_path)
+        self.before_exec()
+        self.exec()
+        self.after_exec()
 
 
-__all__ = ["ExecutableBase"]
+__all__ = ["ExecutableBase", "FileConfigDict", "InputFileType", "ExecutableConfig", "ExecutableClassConfig"]

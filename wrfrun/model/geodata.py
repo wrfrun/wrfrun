@@ -87,9 +87,9 @@ def parse_geographical_data_index(index_path: str) -> OrderedDict:
             _temp_file.write("/")
 
     # read index
-    WRFRUNConfig.namelist.read_namelist(temp_file, "geog_static_data")
+    WRFRUNConfig.read_namelist(temp_file, "geog_static_data")
 
-    return WRFRUNConfig.namelist.get_namelist("geog_static_data")["index"]
+    return WRFRUNConfig.get_namelist("geog_static_data")["index"]
 
 
 def parse_geographical_data_file(file_path: str, wordsize: int, endian: str, tile_shape: tuple[int, ...],

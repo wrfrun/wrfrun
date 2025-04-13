@@ -1,0 +1,22 @@
+{
+    "namelist.input.da_wrfvar.template": {
+        "name": "WRFDA",
+        "type": "file"
+    },
+    "namelist.input.dfi.template": {
+        "name": "DFI",
+        "type": "file"
+    },
+    "namelist.input.real.template": {
+        "name": "REAL",
+        "type": "file"
+    },
+    "namelist.input.wrf.template": {
+        "name": "WRF",
+        "type": "file"
+    },
+    "namelist.wps.template": {
+        "name": "WPS",
+        "type": "file"
+    }
+}

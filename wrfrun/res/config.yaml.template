@@ -12,11 +12,9 @@ wrf:
   # It will be used as "geog_data_path" in namelist.wps
   geog_data_path: '/path/to/your/geog/data'
 
-  # Specify your WPS input data folder path here
-  wps_input_data_folder: './data/bg'
-
-  # Specify your Near GOOS data folder path here
-  near_goos_data_folder: './data/sst'
+  # You should place all your input data in this directory.
+  # It is recommended to place the data in their subdirectory separately.
+  input_data_path: './data'
 
   # Your can give your custom namelist files here
   # The value in it will overwrite the default value in py-wrfrun's namelist template file

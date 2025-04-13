@@ -1,4 +1,4 @@
-from wrfrun.core import WRFRUNConfig, WRFRUNNamelist
+from wrfrun.core import WRFRUNConfig
 from wrfrun.utils import logger
 
 
@@ -11,7 +11,7 @@ def process_after_ndown():
 
     :return:
     """
-    namelist_data = WRFRUNNamelist.get_namelist("wrf")
+    namelist_data = WRFRUNConfig.get_namelist("wrf")
 
     for section in namelist_data:
         if section in ["bdy_control", "namelist_quilt"]:
@@ -31,7 +31,7 @@ def process_after_ndown():
     time_ratio = WRFRUNConfig.get_wrf_config()["time"]["parent_time_step_ratio"][1]
     namelist_data["domains"]["time_step"] = namelist_data["domains"]["time_step"] // time_ratio
 
-    WRFRUNNamelist.update_namelist(namelist_data, "wrf")
+    WRFRUNConfig.update_namelist(namelist_data, "wrf")
 
     logger.info(f"Update namelist after running ndown.exe")
 

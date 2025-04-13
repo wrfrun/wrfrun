@@ -13,7 +13,7 @@ def prepare_wps_namelist():
     """
     # prepare namelist
     # # read template
-    WRFRUNConfig.namelist.read_namelist(NAMELIST_WPS_TEMPLATE, "wps")
+    WRFRUNConfig.read_namelist(NAMELIST_WPS_TEMPLATE, "wps")
 
     # # get wrf config from config
     wrf_config = WRFRUNConfig.get_wrf_config()

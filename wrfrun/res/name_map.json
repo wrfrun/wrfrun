@@ -1,0 +1,18 @@
+{
+    "extension": {
+        "name": "EXT",
+        "type": "dir"
+    },
+    "job_scheduler": {
+        "name": "TASKSYS",
+        "type": "dir"
+    },
+    "namelist": {
+        "name": "NAMELIST",
+        "type": "dir"
+    },
+    "config.yaml.template": {
+        "name": "CONFIG_TEMPLATE",
+        "type": "file"
+    }
+}

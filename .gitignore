@@ -18,3 +18,4 @@ docs/build
 **/*.so
 test.*
 config.yaml
+main.py

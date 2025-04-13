@@ -1,0 +1,10 @@
+{
+    "pbs.template": {
+        "name": "PBS_TEMPLATE",
+        "type": "file"
+    },
+    "slurm.template": {
+        "name": "SLURM_TEMPLATE",
+        "type": "file"
+    }
+}

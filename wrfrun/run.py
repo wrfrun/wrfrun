@@ -10,11 +10,12 @@ from typing import Optional, Tuple, Union
 
 from .core import WRFRUNConfig, WRFRunServer, WRFRunServerHandler, stop_server
 from .data import prepare_wps_input_data
+from .model.dutils import clear_wps_logs
 from .model.namelist import prepare_wps_namelist, prepare_wrf_namelist, prepare_wrfda_namelist
 from .model.plot import plot_domain_area
-from .model.utils import clear_wps_logs, clear_wrf_logs
+from .model.utils import clear_wrf_logs
 from .pbs import in_pbs, prepare_pbs_script
-from .utils import call_subprocess, check_path, logger, logger_add_file_handler
+from .utils import call_subprocess, logger, logger_add_file_handler
 from .workspace import prepare_workspace
 
 
@@ -86,7 +87,9 @@ class WRFRun:
 
     def __enter__(self):
         # check workspace
-        for _path in [WRFRUNConfig.WPS_WORK_PATH, WRFRUNConfig.WRF_WORK_PATH, WRFRUNConfig.WRFDA_WORK_PATH]:
+        check_list = [WRFRUNConfig.WPS_WORK_PATH, WRFRUNConfig.WRF_WORK_PATH, WRFRUNConfig.WRFDA_WORK_PATH]
+        check_list = [WRFRUNConfig.parse_resource_uri(x) for x in check_list]
+        for _path in check_list:
             if not exists(_path) and not self.init_workspace:
                 logger.info(f"Force re-create workspace because it is broken.")
                 self.init_workspace = True
@@ -119,11 +122,7 @@ class WRFRun:
             confirm_model_area()
 
         # save a copy of config to the output path
-        output_save_path = WRFRUNConfig.get_output_path()
-        # check the path
-        check_path(output_save_path)
-
-        WRFRUNConfig.save_wrfrun_config(f"{output_save_path}/config.yaml")
+        WRFRUNConfig.save_wrfrun_config(f"{WRFRUNConfig.WRFRUN_OUTPUT_PATH}/config.yaml")
 
         # check if we need to start a server
         if self.start_server:

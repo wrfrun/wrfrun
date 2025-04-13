@@ -6,7 +6,7 @@ from time import time
 from typing import Tuple
 
 from .config import WRFRUNConfig
-from wrfrun.utils import logger
+from ..utils import logger
 
 WRFRUN_SERVER_INSTANCE = None
 WRFRUN_SERVER_THREAD = None
