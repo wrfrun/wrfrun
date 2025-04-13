@@ -54,4 +54,20 @@ class InputFileError(WRFRunBasicError):
     pass
 
 
-__all__ = ["WRFRunBasicError", "ConfigError", "WRFRunContextError", "CommandError", "LoadConfigError", "OutputFileError", "ResourceURIError", "InputFileError"]
+class NamelistError(WRFRunBasicError):
+    """
+    Error about namelist.
+    """
+    pass
+
+
+class ExecRegisterError(WRFRunBasicError):
+    pass
+
+
+class GetExecClassError(WRFRunBasicError):
+    pass
+
+
+__all__ = ["WRFRunBasicError", "ConfigError", "WRFRunContextError", "CommandError", "LoadConfigError", "OutputFileError", "ResourceURIError", "InputFileError",
+           "NamelistError", "ExecRegisterError", "GetExecClassError"]

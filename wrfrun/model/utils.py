@@ -2,42 +2,21 @@ from os import listdir
 from shutil import move
 
 from ..core import WRFRUNConfig
-from .dutils import get_metgrid_levels
 from ..utils import check_path, logger
 
 
-def reconcile_namelist_metgrid(metgrid_path: str):
+def register_executables():
     """
-    There are some settings in WRF namelist that are affected by metgrid output, for example, ``num_metgrid_levels``.
-    Namelist should be checked and modified before be used by WRF.
+    Import NWP modules so they can register executables.
 
-    :param metgrid_path: The path store output from metgrid.exe.
-                         If it is None, the default output path will be used.
-    :type metgrid_path: str
     :return:
     :rtype:
     """
-    logger.info(f"Checking values in WRF namelist and metgrid output ...")
-    metgrid_output_name = [x for x in listdir(metgrid_path) if x.endswith(".nc")]
-    metgrid_output_name.sort()
-    metgrid_output_name = metgrid_output_name[0]
-
-    metgrid_levels = get_metgrid_levels(f"{metgrid_path}/{metgrid_output_name}")
-
-    update_values = {
-        "domains": {
-            "num_metgrid_levels": metgrid_levels["num_metgrid_levels"],
-            "num_metgrid_soil_levels": metgrid_levels["num_metgrid_soil_levels"],
-        },
-        "physics": {
-            "num_land_cat": metgrid_levels["num_land_cat"]
-        }
-    }
-
-    WRFRUNConfig.update_namelist(update_values, "wrf")
+    from .wrf import core
+    _ = core
 
 
-def clear_wrf_logs():
+def clear_model_logs():
     """
     This function can automatically collect WRF log files and save them to ``output_path``.
     This function is used inside the wrfrun package.
@@ -46,18 +25,21 @@ def clear_wrf_logs():
     :return:
     :rtype:
     """
-    wrf_status = WRFRUNConstants.get_wrf_status()
-    wrf_work_path = WRFRUNConstants.get_work_path("wrf")
+    work_status = WRFRUNConfig.WRFRUN_WORK_STATUS
+    work_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRF_WORK_PATH)
 
-    log_files = [x for x in listdir(wrf_work_path) if x.startswith("rsl.")]
+    log_files = [x for x in listdir(work_path) if x.startswith("rsl.")]
 
     if len(log_files) > 0:
-        logger.warning(f"Found unprocessed log files of {wrf_status}")
+        logger.warning(f"Found unprocessed log files of {work_status}")
 
-        log_save_path = f"{WRFRUNConfig.get_output_path()}/{wrf_status}/logs"
+        log_save_path = f"{WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_OUTPUT_PATH)}/{work_status}/logs"
         check_path(log_save_path)
 
         for _file in log_files:
-            move(f"{wrf_work_path}/{_file}", f"{log_save_path}/{_file}")
+            move(f"{work_path}/{_file}", f"{log_save_path}/{_file}")
 
-        logger.warning(f"Unprocessed log files of {wrf_status} has been saved to {log_save_path}, check it")
+        logger.warning(f"Unprocessed log files of {work_status} has been saved to {log_save_path}, check it")
+
+
+__all__ = ["clear_model_logs"]

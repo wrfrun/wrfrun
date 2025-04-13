@@ -3,16 +3,19 @@ from os.path import abspath, exists
 from shutil import copyfile, move
 
 from wrfrun.core import WRFRUNConfig
-from wrfrun.res import NCL_PLOT_SCRIPT
+from wrfrun.res import EXT_NCL_PLOT_SCRIPT
 from wrfrun.utils import call_subprocess, check_path, logger
+from .wrf.namelist import prepare_wps_namelist
 
 
 def plot_domain_area():
     """Generate namelist and plot domain area with WRF NCL script.
 
     """
+    prepare_wps_namelist()
+
     # get save path
-    save_path = WRFRUNConfig.get_output_path()
+    save_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_OUTPUT_PATH)
 
     # check
     check_path(save_path)
@@ -25,13 +28,13 @@ def plot_domain_area():
     origin_path = getcwd()
 
     # enter WPS WORK PATH
-    chdir(WRFRUNConfig.get_work_path("wps"))
+    chdir(WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WPS_WORK_PATH))
 
     # save namelist
-    WRFRUNConfig.namelist.write_namelist("./namelist.wps", "wps", overwrite=True)
+    WRFRUNConfig.write_namelist("./namelist.wps", "wps", overwrite=True)
 
     # copy plot script and plot
-    copyfile(NCL_PLOT_SCRIPT, f"./plotgrids.ncl")
+    copyfile(WRFRUNConfig.parse_resource_uri(EXT_NCL_PLOT_SCRIPT), f"./plotgrids.ncl")
     call_subprocess(["ncl", "./plotgrids.ncl"], print_output=True)
 
     # save image

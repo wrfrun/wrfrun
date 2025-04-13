@@ -12,10 +12,6 @@ wrf:
   # It will be used as "geog_data_path" in namelist.wps
   geog_data_path: '/path/to/your/geog/data'
 
-  # You should place all your input data in this directory.
-  # It is recommended to place the data in their subdirectory separately.
-  input_data_path: './data'
-
   # Your can give your custom namelist files here
   # The value in it will overwrite the default value in py-wrfrun's namelist template file
   user_wps_namelist: ''
@@ -208,6 +204,10 @@ wrfrun:
 
     # Specify custom python interpreter here
     python_interpreter: 'python3'
+
+  # You should place all your input data in this directory.
+  # It is recommended to place the data in their subdirectory separately.
+  input_data_path: './data'
 
   # Specify your data save path here, all the outputs from WPS, WRF and WRFDA will be copied and saved in it
   output_path: './outputs'

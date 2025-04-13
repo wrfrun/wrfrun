@@ -4,6 +4,7 @@ py3.install_sources(
         'base.py',
         'config.py',
         'error.py',
+        'replay.py',
         'server.py',
     ],
     subdir: 'wrfrun/core'

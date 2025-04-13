@@ -36,14 +36,19 @@ def extension_postprocess(output_dir: str, extension_id: str, outputs: Optional[
     :param outputs: A list contains multiple filenames. Files in this will be treated as outputs.
     :return:
     """
+    output_path = WRFRUNConfig.WRFRUN_OUTPUT_PATH
+    output_save_path = f"{output_path}/{extension_id}"
+    log_save_path = f"{output_path}/{extension_id}/logs"
+
+    output_save_path = WRFRUNConfig.parse_resource_uri(output_save_path)
+    log_save_path = WRFRUNConfig.parse_resource_uri(log_save_path)
+    output_dir = WRFRUNConfig.parse_resource_uri(output_dir)
+
     filenames = listdir(output_dir)
     logs = [x for x in filenames if x.endswith(".log")]
     if outputs is None:
         outputs = list(set(filenames) - set(logs))
 
-    output_path = WRFRUNConfig.get_output_path()
-    output_save_path = f"{output_path}/{extension_id}"
-    log_save_path = f"{output_path}/{extension_id}/logs"
     check_path(output_save_path, log_save_path)
 
     logger.info(f"Saving outputs and logs to {output_save_path}")

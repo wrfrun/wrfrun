@@ -5,7 +5,7 @@ from typing import OrderedDict, Union
 import numpy as np
 from xarray import DataArray
 
-from ..core.config import WRFRUNConfig
+from wrfrun.core import WRFRUNConfig
 from wrfrun.utils import logger
 
 # for example: 00001-00200.00201-00400
@@ -75,8 +75,8 @@ def parse_geographical_data_index(index_path: str) -> OrderedDict:
     # since the index file is very similar to fortran namelist file,
     # we can manually add "&index" and "/" and parse it as a namelist
     # temp file store path
-    WRFRUN_TEMP_PATH = WRFRUNConfig.get_temp_path()
-    temp_file = f"{WRFRUN_TEMP_PATH}/geogrid_data.index"
+    temp_file = f"{WRFRUNConfig.WRFRUN_TEMP_PATH}/geogrid_data.index"
+    temp_file = WRFRUNConfig.parse_resource_uri(temp_file)
 
     # open file and add header and tail
     with open(index_path, "r") as _index_file:

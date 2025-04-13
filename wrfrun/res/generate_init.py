@@ -1,5 +1,6 @@
 import argparse
 from json import loads
+from os import listdir
 from os.path import dirname, exists
 from typing import Union
 
@@ -12,6 +13,8 @@ RES_PATH = abspath(dirname(__file__))
 WRFRUNConfig.register_resource_uri(WRFRUNConfig.WRFRUN_RESOURCE_PATH, RES_PATH)
 
 """
+
+FOOT_CODE = """\nWRFRUNConfig.set_config_template_path(CONFIG_TEMPLATE)\n"""
 
 
 def _generate_init():
@@ -43,6 +46,8 @@ def _generate_init():
             f.write(f"{_var_name} = \"{_file_path}\"\n")
             all_string += f', "{_var_name}"'
 
+        f.write(FOOT_CODE)
+
         all_string = all_string.strip(", ")
 
         f.write(f'\n\n__all__ = [{all_string}]\n')
@@ -72,7 +77,7 @@ def _generate_name_list_in_dir(dir_path: Union[str, list[str]], dir_name: Union[
 
     for _dir_path, _dir_name in zip(dir_path, dir_name):
         if not exists(f"{_dir_path}/name_map.json"):
-            raise FileNotFoundError(f"{_dir_path}/name_map.json")
+            raise FileNotFoundError(f"{_dir_path}/name_map.json. Files: {listdir(_dir_path)}")
 
         with open(f"{_dir_path}/name_map.json", "r") as f:
             name_map_dict: dict[str, dict[str, str]] = loads(f.read())

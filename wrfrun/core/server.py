@@ -22,8 +22,9 @@ def get_wrf_simulated_seconds(start_datetime: datetime) -> int:
     :rtype: int
     """
     # use linux cmd to get the latest line of wrf log files
+    log_file_path = WRFRUNConfig.parse_resource_uri(f"{WRFRUNConfig.WRF_WORK_PATH}/rsl.out.0000")
     res = subprocess.run(
-        ["tail", "-n", "1", f"{WRFRUNConfig.WRF_WORK_PATH}/rsl.out.0000"], capture_output=True)
+        ["tail", "-n", "1", log_file_path], capture_output=True)
     log_text = res.stdout.decode()
 
     if not (log_text.startswith("d01") or log_text.startswith("d02")):

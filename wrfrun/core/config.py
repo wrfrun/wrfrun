@@ -11,8 +11,7 @@ from typing import Optional, Tuple, Union
 import f90nml
 import yaml
 
-from .error import WRFRunContextError, ResourceURIError
-from ..res import CONFIG_TEMPLATE
+from .error import ResourceURIError, WRFRunContextError
 from ..utils import logger
 
 
@@ -25,29 +24,46 @@ class _WRFRunResources:
     def __init__(self):
         self._resource_namespace_db = {}
 
-    def register_resource_uri(self, unique_prefix: str, res_space_path: str):
+    def check_resource_uri(self, unique_uri: str) -> bool:
+        """
+        Check if the uri has been registered.
+
+        :param unique_uri: Unique URI represents the resource.
+        :type unique_uri: str
+        :return: True or False.
+        :rtype: bool
+        """
+        if unique_uri in self._resource_namespace_db:
+            return True
+
+        else:
+            return False
+
+    def register_resource_uri(self, unique_uri: str, res_space_path: str):
         """
         This function should only be used by wrfrun functions.
 
         Register a unique resource file namespace.
 
-        :param unique_prefix: Unique prefix string represents the resource namespace. It must start with ``:WRFRUN_`` and end with ``:``. For example, ``":WRFRUN_WORK_PATH:"``.
-        :type unique_prefix: str
-        :param res_space_path: REAL absolute path of your resource namespace. For example, "$HOME/.config/wrfrun/res".
+        :param unique_uri: Unique URI represents the resource. It must start with ``:WRFRUN_`` and end with ``:``. For example, ``":WRFRUN_WORK_PATH:"``.
+        :type unique_uri: str
+        :param res_space_path: REAL absolute path of your resource path. For example, "$HOME/.config/wrfrun/res".
         :type res_space_path: str
         :return:
         :rtype:
         """
-        if not (unique_prefix.startswith(":WRFRUN_") and unique_prefix.endswith(":")):
-            logger.error(f"Can't register resource URI: '{unique_prefix}'. It should start with ':WRFRUN_' and end with ':'.")
-            raise ResourceURIError(f"Can't register resource URI: '{unique_prefix}'. It should start with ':WRFRUN_' and end with ':'.")
+        if not (unique_uri.startswith(":WRFRUN_") and unique_uri.endswith(":")):
+            logger.error(f"Can't register resource URI: '{unique_uri}'. It should start with ':WRFRUN_' and end with ':'.")
+            raise ResourceURIError(f"Can't register resource URI: '{unique_uri}'. It should start with ':WRFRUN_' and end with ':'.")
 
-        if unique_prefix in self._resource_namespace_db:
-            logger.error(f"Resource URI '{unique_prefix}' exists.")
-            raise ResourceURIError(f"Resource URI '{unique_prefix}' exists.")
+        if unique_uri in self._resource_namespace_db:
+            logger.error(f"Resource URI '{unique_uri}' exists.")
+            raise ResourceURIError(f"Resource URI '{unique_uri}' exists.")
 
-        logger.debug(f"Register URI '{unique_prefix}' to '{res_space_path}'")
-        self._resource_namespace_db[unique_prefix] = res_space_path
+
+
+        logger.debug(f"Register URI '{unique_uri}' to '{res_space_path}'")
+        self._resource_namespace_db[unique_uri] = res_space_path
 
     def parse_resource_uri(self, file_path: str) -> str:
         """
@@ -63,7 +79,8 @@ class _WRFRunResources:
         if not file_path.startswith(":WRFRUN_"):
             return file_path
 
-        res_namespace_string = file_path.split(":")[0]
+        res_namespace_string = file_path.split(":")[1]
+        res_namespace_string = f":{res_namespace_string}:"
 
         if res_namespace_string in self._resource_namespace_db:
             file_path = file_path.replace(res_namespace_string, self._resource_namespace_db[res_namespace_string])
@@ -101,6 +118,7 @@ class _WRFRunConstants:
             USER_HOME_PATH = "/root"
 
         self._WRFRUN_HOME_PATH = f"{USER_HOME_PATH}/.config/wrfrun"
+        self._WRFRUN_REPLAY_WORK_PATH = f"{self._WRFRUN_HOME_PATH}/replay"
 
         # work path to run WPS, WRF and WRFDA
         self._WORK_PATH = f"{self._WRFRUN_HOME_PATH}/workspace"
@@ -124,6 +142,8 @@ class _WRFRunConstants:
         self._WRFRUN_OUTPUT_PATH = ":WRFRUN_OUTPUT_PATH:"
         self._WRFRUN_RESOURCE_PATH = ":WRFRUN_RESOURCE_PATH:"
 
+        self.IS_IN_REPLAY = False
+
     def _get_uri_map(self) -> dict[str, str]:
         """
         Return uri and its value.
@@ -139,7 +159,12 @@ class _WRFRunConstants:
             self.WPS_WORK_PATH: self._WPS_WORK_PATH,
             self.WRF_WORK_PATH: self._WRF_WORK_PATH,
             self.WRFDA_WORK_PATH: self._WRFDA_WORK_PATH,
+            self.WRFRUN_REPLAY_WORK_PATH: self._WRFRUN_REPLAY_WORK_PATH,
         }
+
+    @property
+    def WRFRUN_REPLAY_WORK_PATH(self) -> str:
+        return ":WRFRUN_REPLAY_WORK_PATH:"
 
     @property
     def WRFRUN_TEMP_PATH(self) -> str:
@@ -491,12 +516,17 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
         if self._initialized:
             return
 
-        super().__init__()
+        _WRFRunConstants.__init__(self)
+        _WRFRunNamelist.__init__(self)
+        _WRFRunResources.__init__(self)
+
         self._config = {}
 
         # register uri for wrfrun constants
         for key, value in self._get_uri_map().items():
             self.register_resource_uri(key, value)
+
+        self._config_template_file_path = None
 
         self._initialized = True
 
@@ -506,6 +536,17 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
 
         return cls._instance
 
+    def set_config_template_path(self, file_path: str):
+        """
+        Set the path of template file.
+
+        :param file_path: Template file path.
+        :type file_path: str
+        :return:
+        :rtype:
+        """
+        self._config_template_file_path = file_path
+
     def load_wrfrun_config(self, config_path: Optional[str] = None):
         """
         Load wrfrun config.
@@ -513,7 +554,7 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
         :param config_path: YAML config file. Defaults to None.
         :type config_path: str
         """
-        config_template_path = self.parse_resource_uri(CONFIG_TEMPLATE)
+        config_template_path = self.parse_resource_uri(self._config_template_file_path)
 
         if config_path is not None:
             if not exists(config_path):
@@ -551,8 +592,9 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
         """
         save_path = self.parse_resource_uri(save_path)
 
-        if not exists(save_path):
-            makedirs(save_path)
+        path_dir = dirname(save_path)
+        if not exists(path_dir):
+            makedirs(path_dir)
 
         with open(save_path, "w") as f:
             yaml.dump(self._config, f, Dumper=yaml.Dumper)

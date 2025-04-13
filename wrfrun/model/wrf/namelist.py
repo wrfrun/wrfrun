@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 from os.path import exists
 
 from wrfrun.core import WRFRUNConfig
-from wrfrun.res import NAMELIST_DA_WRFVAR_TEMPLATE, NAMELIST_DFI_TEMPLATE, NAMELIST_WPS_TEMPLATE, NAMELIST_WRF_TEMPLATE
-from .scheme import get_cumulus_scheme, get_land_surface_scheme, get_long_wave_scheme, get_pbl_scheme, get_short_wave_scheme, get_surface_layer_scheme
+from wrfrun.res import NAMELIST_WRFDA, NAMELIST_DFI, NAMELIST_WPS, NAMELIST_WRF
+from .scheme import *
 
 
 def prepare_wps_namelist():
@@ -13,7 +13,7 @@ def prepare_wps_namelist():
     """
     # prepare namelist
     # # read template
-    WRFRUNConfig.read_namelist(NAMELIST_WPS_TEMPLATE, "wps")
+    WRFRUNConfig.read_namelist(WRFRUNConfig.parse_resource_uri(NAMELIST_WPS), "wps")
 
     # # get wrf config from config
     wrf_config = WRFRUNConfig.get_wrf_config()
@@ -65,11 +65,11 @@ def prepare_wps_namelist():
             update_value["geogrid"][key] = wrf_config["domain"]["map_proj"][key]
 
     # # update namelist
-    WRFRUNConfig.namelist.update_namelist(update_value, "wps")
+    WRFRUNConfig.update_namelist(update_value, "wps")
 
     # # update settings from custom namelist
     if wrf_config["user_wps_namelist"] != "" and exists(wrf_config["user_wps_namelist"]):
-        WRFRUNConfig.namelist.update_namelist(wrf_config["user_wps_namelist"], "wps")
+        WRFRUNConfig.update_namelist(wrf_config["user_wps_namelist"], "wps")
 
 
 def prepare_wrf_namelist():
@@ -78,7 +78,7 @@ def prepare_wrf_namelist():
 
     """
     # read template namelist
-    WRFRUNConfig.namelist.read_namelist(NAMELIST_WRF_TEMPLATE, "wrf")
+    WRFRUNConfig.read_namelist(WRFRUNConfig.parse_resource_uri(NAMELIST_WRF), "wrf")
 
     # wrf config from config
     wrf_config = WRFRUNConfig.get_wrf_config()
@@ -161,7 +161,7 @@ def prepare_wrf_namelist():
 
     # and we need to check physics scheme option
     long_wave_scheme = {
-        "ra_lw_physics": [get_long_wave_scheme(wrf_config["scheme"]["long_wave_scheme"]["name"]) for _ in range(max_dom)]
+        "ra_lw_physics": [SchemeLongWave.get_scheme_id(wrf_config["scheme"]["long_wave_scheme"]["name"]) for _ in range(max_dom)]
     }
     # # and other related options
     long_wave_scheme.update(wrf_config["scheme"]["long_wave_scheme"]["option"])
@@ -169,7 +169,7 @@ def prepare_wrf_namelist():
     update_values["physics"].update(long_wave_scheme)
 
     short_wave_scheme = {
-        "ra_sw_physics": [get_short_wave_scheme(wrf_config["scheme"]["short_wave_scheme"]["name"]) for _ in range(max_dom)]
+        "ra_sw_physics": [SchemeShortWave.get_scheme_id(wrf_config["scheme"]["short_wave_scheme"]["name"]) for _ in range(max_dom)]
     }
     # # and other related options
     short_wave_scheme.update(
@@ -178,7 +178,7 @@ def prepare_wrf_namelist():
     update_values["physics"].update(short_wave_scheme)
 
     cumulus_scheme = {
-        "cu_physics": [get_cumulus_scheme(wrf_config["scheme"]["cumulus_scheme"]["name"]) for _ in range(max_dom)]
+        "cu_physics": [SchemeCumulus.get_scheme_id(wrf_config["scheme"]["cumulus_scheme"]["name"]) for _ in range(max_dom)]
     }
     # # and other related options
     cumulus_scheme.update(wrf_config["scheme"]["cumulus_scheme"]["option"])
@@ -186,7 +186,7 @@ def prepare_wrf_namelist():
     update_values["physics"].update(cumulus_scheme)
 
     pbl_scheme = {
-        "bl_pbl_physics": [get_pbl_scheme(wrf_config["scheme"]["pbl_scheme"]["name"]) for _ in range(max_dom)]
+        "bl_pbl_physics": [SchemePBL.get_scheme_id(wrf_config["scheme"]["pbl_scheme"]["name"]) for _ in range(max_dom)]
     }
     # # and other related options
     pbl_scheme.update(wrf_config["scheme"]["pbl_scheme"]["option"])
@@ -194,7 +194,7 @@ def prepare_wrf_namelist():
     update_values["physics"].update(pbl_scheme)
 
     land_surface_scheme = {
-        "sf_surface_physics": [get_land_surface_scheme(wrf_config["scheme"]["land_surface_scheme"]["name"]) for _ in range(max_dom)]
+        "sf_surface_physics": [SchemeLandSurfaceModel.get_scheme_id(wrf_config["scheme"]["land_surface_scheme"]["name"]) for _ in range(max_dom)]
     }
     # # and other related options
     land_surface_scheme.update(
@@ -203,7 +203,7 @@ def prepare_wrf_namelist():
     update_values["physics"].update(land_surface_scheme)
 
     surface_layer_scheme = {
-        "sf_sfclay_physics": [get_surface_layer_scheme(wrf_config["scheme"]["surface_layer_scheme"]["name"]) for _ in range(max_dom)]
+        "sf_sfclay_physics": [SchemeSurfaceLayer.get_scheme_id(wrf_config["scheme"]["surface_layer_scheme"]["name"]) for _ in range(max_dom)]
     }
     # # and other related options
     surface_layer_scheme.update(
@@ -212,12 +212,12 @@ def prepare_wrf_namelist():
     update_values["physics"].update(surface_layer_scheme)
 
     # update namelist
-    WRFRUNConfig.namelist.update_namelist(update_values, "wrf")
+    WRFRUNConfig.update_namelist(update_values, "wrf")
 
     # read user real namelist and update value
     user_namelist_data = wrf_config["user_wrf_namelist"]
     if user_namelist_data != "" and exists(user_namelist_data):
-        WRFRUNConfig.namelist.update_namelist(user_namelist_data, "wrf")
+        WRFRUNConfig.update_namelist(user_namelist_data, "wrf")
 
 
 def prepare_dfi_namelist():
@@ -225,7 +225,7 @@ def prepare_dfi_namelist():
 
     """
     # Read template namelist
-    WRFRUNConfig.namelist.read_namelist(NAMELIST_DFI_TEMPLATE, "dfi")
+    WRFRUNConfig.read_namelist(WRFRUNConfig.parse_resource_uri(NAMELIST_DFI), "dfi")
 
     wrf_config = WRFRUNConfig.get_wrf_config()
 
@@ -302,12 +302,12 @@ def prepare_dfi_namelist():
     }
 
     # update namelist data
-    WRFRUNConfig.namelist.update_namelist(update_value, "dfi")
+    WRFRUNConfig.update_namelist(update_value, "dfi")
 
     # read user wrf namelist and update value
     user_namelist_data = wrf_config["user_wrf_namelist"]
     if user_namelist_data != "" and exists(user_namelist_data):
-        WRFRUNConfig.namelist.update_namelist(user_namelist_data, "dfi")
+        WRFRUNConfig.update_namelist(user_namelist_data, "dfi")
 
 
 def prepare_wrfda_namelist():
@@ -315,7 +315,7 @@ def prepare_wrfda_namelist():
 
     """
     # read template namelist
-    WRFRUNConfig.namelist.read_namelist(NAMELIST_DA_WRFVAR_TEMPLATE, "wrfda")
+    WRFRUNConfig.read_namelist(WRFRUNConfig.parse_resource_uri(NAMELIST_WRFDA), "wrfda")
 
     wrf_config = WRFRUNConfig.get_wrf_config()
 
@@ -338,12 +338,12 @@ def prepare_wrfda_namelist():
     }
 
     # update namelist
-    WRFRUNConfig.namelist.update_namelist(update_value, "wrfda")
+    WRFRUNConfig.update_namelist(update_value, "wrfda")
 
     # read user wrfda namelist and update value
     user_namelist_data = wrf_config["user_wrfda_namelist"]
     if user_namelist_data != "" and exists(user_namelist_data):
-        WRFRUNConfig.namelist.update_namelist(user_namelist_data, "wrfda")
+        WRFRUNConfig.update_namelist(user_namelist_data, "wrfda")
 
 
 __all__ = ["prepare_wrf_namelist", "prepare_wps_namelist", "prepare_wrfda_namelist", "prepare_dfi_namelist"]
