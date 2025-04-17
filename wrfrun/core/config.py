@@ -9,9 +9,10 @@ from shutil import copyfile
 from typing import Optional, Tuple, Union
 
 import f90nml
-import yaml
+import tomli
+import tomli_w
 
-from .error import ResourceURIError, WRFRunContextError
+from .error import ResourceURIError, WRFRunContextError, ModelNameError
 from ..utils import logger
 
 
@@ -138,7 +139,6 @@ class _WRFRunConstants:
         # output directory of ungrib
         self._UNGRIB_OUT_DIR = "./outputs"
 
-        self._WRFRUN_INPUT_PATH = ":WRFRUN_INPUT_PATH:"
         self._WRFRUN_OUTPUT_PATH = ":WRFRUN_OUTPUT_PATH:"
         self._WRFRUN_RESOURCE_PATH = ":WRFRUN_RESOURCE_PATH:"
 
@@ -269,13 +269,6 @@ class _WRFRunConstants:
         """
         return self._WRFRUN_RESOURCE_PATH
 
-    @property
-    def WRFRUN_INPUT_PATH(self):
-        """
-        A marco string represents the path of directory that stores input files in wrfrun config.
-        """
-        return self._WRFRUN_INPUT_PATH
-
     def check_wrfrun_context(self, error=False) -> bool:
         """
         Check if we're in WRFRun context or not.
@@ -313,8 +306,8 @@ class _WRFRunNamelist:
         self._wps_namelist = {}
         self._wrf_namelist = {}
         self._wrfda_namelist = {}
-        self._custom_namelist = {}
-        self._custom_namelist_type = ("param", "geog_static_data")
+        self._namelist_dict = {}
+        self._namelist_id_list = ("param", "geog_static_data", "wps", "wrf", "wrfda")
 
     def register_custom_namelist_id(self, namelist_id: str) -> bool:
         """
@@ -325,11 +318,11 @@ class _WRFRunNamelist:
         :return: True if register successfully, else False.
         :rtype: bool
         """
-        if namelist_id in self._custom_namelist_type:
+        if namelist_id in self._namelist_id_list:
             return False
 
         else:
-            self._custom_namelist_type += (namelist_id, )
+            self._namelist_id_list += (namelist_id,)
             return True
 
     def unregister_custom_namelist_id(self, namelist_id: str):
@@ -342,10 +335,25 @@ class _WRFRunNamelist:
         :return:
         :rtype:
         """
-        if namelist_id not in self._custom_namelist_type:
+        if namelist_id not in self._namelist_id_list:
             return
 
-        self._custom_namelist_type = tuple(set(self._custom_namelist_type) - {namelist_id, })
+        self.delete_namelist(namelist_id)
+        self._namelist_id_list = tuple(set(self._namelist_id_list) - {namelist_id, })
+
+    def check_namelist_id(self, namelist_id: str) -> bool:
+        """
+        Check if a namelist id is registered.
+
+        :param namelist_id: Unique namelist ID.
+        :type namelist_id: Unique namelist ID.
+        :return: True if the ID is registered, else False.
+        :rtype: bool
+        """
+        if namelist_id in self._namelist_id_list:
+            return True
+        else:
+            return False
 
     def read_namelist(self, file_path: str, namelist_id: str):
         """
@@ -361,18 +369,11 @@ class _WRFRunNamelist:
             logger.error(f"File not found: {file_path}")
             raise FileNotFoundError
 
-        if namelist_id == "wps":
-            self._wps_namelist = f90nml.read(file_path).todict()
-        elif namelist_id == "wrf":
-            self._wrf_namelist = f90nml.read(file_path).todict()
-        elif namelist_id == "wrfda":
-            self._wrfda_namelist = f90nml.read(file_path).todict()
-        else:
-            if namelist_id not in self._custom_namelist_type:
-                logger.error(f"Unknown namelist id: {namelist_id}, register it first.")
-                raise ValueError(f"Unknown namelist id: {namelist_id}, register it first.")
-            else:
-                self._custom_namelist[namelist_id] = f90nml.read(file_path).todict()
+        if namelist_id not in self._namelist_id_list:
+            logger.error(f"Unknown namelist id: {namelist_id}, register it first.")
+            raise ValueError(f"Unknown namelist id: {namelist_id}, register it first.")
+
+        self._namelist_dict[namelist_id] = f90nml.read(file_path).todict()
 
     def write_namelist(self, save_path: str, namelist_id: str, overwrite=True):
         """
@@ -385,22 +386,15 @@ class _WRFRunNamelist:
         :param overwrite: If overwrite the existed file, defaults to ``True``.
         :type overwrite: bool
         """
-        if namelist_id == "wps":
-            f90nml.Namelist(self._wps_namelist).write(save_path, force=overwrite)
-        elif namelist_id == "wrf":
-            f90nml.Namelist(self._wrf_namelist).write(save_path, force=overwrite)
-        elif namelist_id == "wrfda":
-            f90nml.Namelist(self._wrfda_namelist).write(save_path, force=overwrite)
-        else:
-            if namelist_id not in self._custom_namelist_type:
-                logger.error(f"Unknown namelist type: {namelist_id}")
-                raise ValueError(f"Unknown namelist type: {namelist_id}")
+        if namelist_id not in self._namelist_id_list:
+            logger.error(f"Unknown namelist id: {namelist_id}, register it first.")
+            raise ValueError(f"Unknown namelist id: {namelist_id}, register it first.")
 
-            if namelist_id not in self._custom_namelist:
-                logger.error(f"Can't found custom namelist '{namelist_id}', maybe you forget to read it first")
-                raise KeyError(f"Can't found custom namelist '{namelist_id}', maybe you forget to read it first")
+        if namelist_id not in self._namelist_dict:
+            logger.error(f"Can't found custom namelist '{namelist_id}', maybe you forget to read it first")
+            raise KeyError(f"Can't found custom namelist '{namelist_id}', maybe you forget to read it first")
 
-            f90nml.Namelist(self._custom_namelist[namelist_id]).write(save_path, force=overwrite)
+        f90nml.Namelist(self._namelist_dict[namelist_id]).write(save_path, force=overwrite)
 
     def update_namelist(self, new_values: Union[str, dict], namelist_id: str):
         """
@@ -427,21 +421,16 @@ class _WRFRunNamelist:
         :param namelist_id: ``"wps"``, ``"wrf"``, ``"wrfda"``, or any other id you have registered.
         :type namelist_id: str
         """
-        if namelist_id == "wps":
-            reference = self._wps_namelist
-        elif namelist_id == "wrf":
-            reference = self._wrf_namelist
-        elif namelist_id == "wrfda":
-            reference = self._wrfda_namelist
+        if namelist_id not in self._namelist_id_list:
+            logger.error(f"Unknown namelist id: {namelist_id}, register it first.")
+            raise ValueError(f"Unknown namelist id: {namelist_id}, register it first.")
+
+        elif namelist_id not in self._namelist_dict:
+            self._namelist_dict[namelist_id] = new_values
+            return
+
         else:
-            if namelist_id not in self._custom_namelist_type:
-                logger.error(f"Unknown namelist type: {namelist_id}")
-                raise ValueError(f"Unknown namelist type: {namelist_id}")
-            elif namelist_id not in self._custom_namelist:
-                self._custom_namelist[namelist_id] = new_values
-                return
-            else:
-                reference = self._custom_namelist[namelist_id]
+            reference = self._namelist_dict[namelist_id]
 
         if isinstance(new_values, str):
             if not exists(new_values):
@@ -464,20 +453,13 @@ class _WRFRunNamelist:
         :return: Namelist.
         :rtype: dict
         """
-        if namelist_id == "wps":
-            return deepcopy(self._wps_namelist)
-        elif namelist_id == "wrf":
-            return deepcopy(self._wrf_namelist)
-        elif namelist_id == "wrfda":
-            return deepcopy(self._wrfda_namelist)
+        if namelist_id not in self._namelist_id_list:
+            logger.error(f"Unknown namelist id: {namelist_id}, register it first.")
+            raise ValueError(f"Unknown namelist id: {namelist_id}, register it first.")
+        elif namelist_id not in self._namelist_dict:
+            return {}
         else:
-            if namelist_id not in self._custom_namelist_type:
-                logger.error(f"Unknown namelist type: {namelist_id}")
-                raise ValueError(f"Unknown namelist type: {namelist_id}")
-            elif namelist_id not in self._custom_namelist:
-                return {}
-            else:
-                return deepcopy(self._custom_namelist[namelist_id])
+            return deepcopy(self._namelist_dict[namelist_id])
 
     def delete_namelist(self, namelist_id: str):
         """
@@ -488,21 +470,14 @@ class _WRFRunNamelist:
         :return:
         :rtype:
         """
-        if namelist_id == "wps":
-            self._wps_namelist = {}
-        elif namelist_id == "wrf":
-            self._wrf_namelist = {}
-        elif namelist_id == "wrfda":
-            self._wrfda_namelist = {}
-        else:
-            if namelist_id not in self._custom_namelist_type:
-                logger.error(f"Unknown namelist type: {namelist_id}")
-                raise ValueError(f"Unknown namelist type: {namelist_id}")
+        if namelist_id not in self._namelist_id_list:
+            logger.error(f"Unknown namelist id: {namelist_id}, register it first.")
+            raise ValueError(f"Unknown namelist id: {namelist_id}, register it first.")
 
-            if namelist_id not in self._custom_namelist:
-                return
+        if namelist_id not in self._namelist_dict:
+            return
 
-            self._custom_namelist.pop(namelist_id)
+        self._namelist_dict.pop(namelist_id)
 
 
 class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
@@ -568,26 +543,23 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
                 raise FileNotFoundError(config_path)
         else:
             logger.info("Read config template since you doesn't give config file")
-            logger.info("A new config file has been saved to './config.yaml', you can change and use it latter")
+            logger.info("A new config file has been saved to './config.toml', you can change and use it latter")
 
-            copyfile(config_template_path, "./config.yaml")
-            config_path = "./config.yaml"
+            copyfile(config_template_path, "./config.toml")
+            config_path = "./config.toml"
 
-        with open(config_path, "r") as f:
-            self._config = yaml.load(f, Loader=yaml.FullLoader)
+        with open(config_path, "rb") as f:
+            self._config = tomli.load(f)
 
-        # register URI for input and output directory.
-        input_path = abspath(self["wrfrun"]["input_data_path"])
-        self.register_resource_uri(self.WRFRUN_INPUT_PATH, input_path)
-
-        output_path = abspath(self["wrfrun"]["output_path"])
+        # register URI for output directory.
+        output_path = abspath(self["output_path"])
         self.register_resource_uri(self.WRFRUN_OUTPUT_PATH, output_path)
 
     def save_wrfrun_config(self, save_path: str):
         """
         Save config to a file.
 
-        :param save_path: File path of the config.
+        :param save_path: Save path of the config.
         :type save_path: str
         """
         save_path = self.parse_resource_uri(save_path)
@@ -596,8 +568,8 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
         if not exists(path_dir):
             makedirs(path_dir)
 
-        with open(save_path, "w") as f:
-            yaml.dump(self._config, f, Dumper=yaml.Dumper)
+        with open(save_path, "wb") as f:
+            tomli_w.dump(self._config, f)
 
     def __getitem__(self, item):
         if len(self._config) == 0:
@@ -606,14 +578,29 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
 
         return deepcopy(self._config[item])
 
-    def get_wrf_config(self) -> dict:
+    def get_input_data_path(self) -> list[str]:
         """
-        Return the config of WRF.
+        Return the path of input data.
 
+        :return: Path list.
+        :rtype: list
+        """
+        return deepcopy(self["input_data_path"])
+
+    def get_model_config(self, model_name: str) -> dict:
+        """
+        Return the config of a NWP model.
+
+        :param model_name: Name of the model. For example, "wrf".
+        :type model_name: str
         :return: A dict object.
         :rtype: dict
         """
-        return deepcopy(self["wrf"])
+        if model_name not in self["model"]:
+            logger.error(f"Config of model '{model_name}' isn't found in your config file.")
+            raise ModelNameError(f"Config of model '{model_name}' isn't found in your config file.")
+
+        return deepcopy(self["model"][model_name])
 
     def get_log_path(self) -> str:
         """
@@ -622,16 +609,7 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
         :return: A directory path.
         :rtype: str
         """
-        return self["wrfrun"]["log_path"]
-
-    def is_restart(self) -> bool:
-        """
-        Check if user does a restart run.
-
-        :return:
-        :rtype:
-        """
-        return self["wrf"]["restart"]
+        return self["log_path"]
 
     def get_socket_server_config(self) -> Tuple[str, int]:
         """
@@ -640,25 +618,24 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
         :return: ("host", port)
         :rtype: tuple
         """
-        return self["wrfrun"]["socket_host"], self["wrfrun"]["socket_port"]
+        return self["server_host"], self["server_port"]
 
-    def get_pbs_config(self) -> dict:
+    def get_job_scheduler_config(self) -> dict:
         """
-        Return the config of PBS work system.
+        Return the config of job scheduler.
 
         :return: A dict object.
         :rtype: dict
         """
-        return deepcopy(self["wrfrun"]["PBS"])
+        return deepcopy(self["job_scheduler"])
 
-    def get_pbs_core_num(self) -> int:
+    def get_core_num(self) -> int:
         """
-        Return the number of CPU that will be used.
-
-        :return: CPU number.
-        :rtype: int
+        Return the number of CPU cores.
+        :return:
+        :rtype:
         """
-        return self["wrfrun"]["PBS"]["core_num"]
+        return self["core_num"]
 
     def get_ungrib_out_dir_path(self) -> str:
         """

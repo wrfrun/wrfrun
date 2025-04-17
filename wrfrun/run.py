@@ -4,11 +4,10 @@
 
 import sys
 import threading
-from datetime import datetime
 from os.path import abspath, dirname, exists
 from typing import Optional, Tuple, Union
 
-from .core import ExecConfigRecorder, WRFRUNConfig, WRFRunServer, WRFRunServerHandler, stop_server, replay_config_generator, WRFRunBasicError
+from .core import ExecConfigRecorder, WRFRUNConfig, WRFRunBasicError, WRFRunServer, WRFRunServerHandler, replay_config_generator, stop_server
 from .data import prepare_wps_input_data
 from .model import clear_model_logs, plot_domain_area
 from .pbs import in_pbs, prepare_pbs_script
@@ -124,7 +123,7 @@ class WRFRun:
             confirm_model_area()
 
         # save a copy of config to the output path
-        WRFRUNConfig.save_wrfrun_config(f"{WRFRUNConfig.WRFRUN_OUTPUT_PATH}/config.yaml")
+        WRFRUNConfig.save_wrfrun_config(f"{WRFRUNConfig.WRFRUN_OUTPUT_PATH}/config.toml")
 
         # check if we need to start a server
         if self.start_server:
@@ -171,10 +170,8 @@ class WRFRun:
         socket_ip, socket_port = WRFRUNConfig.get_socket_server_config()
 
         # get simulate settings
-        start_date = datetime.strptime(
-            WRFRUNConfig.get_wrf_config()["time"]["start_date"], "%Y-%m-%d %H:%M:%S")
-        end_date = datetime.strptime(
-            WRFRUNConfig.get_wrf_config()["time"]["end_date"], "%Y-%m-%d %H:%M:%S")
+        start_date = WRFRUNConfig.get_model_config("wrf")["time"]["start_date"]
+        end_date = WRFRUNConfig.get_model_config("wrf")["time"]["end_date"]
 
         # calculate simulate seconds
         time_delta = end_date - start_date

@@ -16,7 +16,7 @@ def prepare_workspace():
     logger.info(f"Initialize workspace...")
 
     # extract WRF path
-    wrf_config = WRFRUNConfig.get_wrf_config()
+    wrf_config = WRFRUNConfig.get_model_config("wrf")
     wps_path = wrf_config["wps_path"]
     wrf_path = wrf_config["wrf_path"]
     wrfda_path = wrf_config["wrfda_path"]

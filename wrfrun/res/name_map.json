@@ -14,5 +14,9 @@
     "config.yaml.template": {
         "name": "CONFIG_TEMPLATE",
         "type": "file"
+    },
+    "config.toml.template": {
+        "name": "CONFIG_TOML_TEMPLATE",
+        "type": "files"
     }
 }

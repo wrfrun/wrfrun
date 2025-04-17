@@ -28,7 +28,7 @@ def process_after_ndown():
 
     namelist_data["domains"]["max_dom"] = 1
 
-    time_ratio = WRFRUNConfig.get_wrf_config()["time"]["parent_time_step_ratio"][1]
+    time_ratio = namelist_data["domains"]["parent_time_step_ratio"][1]
     namelist_data["domains"]["time_step"] = namelist_data["domains"]["time_step"] // time_ratio
 
     WRFRUNConfig.update_namelist(namelist_data, "wrf")

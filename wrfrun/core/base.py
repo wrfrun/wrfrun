@@ -8,7 +8,7 @@ from typing import Optional, TypedDict, Union
 
 from .config import WRFRUNConfig
 from .error import CommandError, ConfigError, OutputFileError
-from ..utils import logger, check_path
+from ..utils import check_path, logger
 
 
 def check_subprocess_status(status: subprocess.CompletedProcess):
@@ -135,9 +135,6 @@ class _ExecutableConfigRecord:
 
         self.save_path = save_path
         self.include_data = include_data
-
-        if self.save_path is not None:
-            WRFRUNConfig.IS_IN_REPLAY = True
 
         self.work_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_REPLAY_WORK_PATH)
         self.content_path = f"{self.work_path}/config_and_data"
@@ -270,7 +267,7 @@ class ExecutableBase:
     """
     _instance = None
 
-    def __init__(self, name: str, cmd: Union[str, list[str]], work_path: Optional[str] = None, mpi_use=False, mpi_cmd: Optional[str] = None, mpi_core_num: Optional[int] = None):
+    def __init__(self, name: str, cmd: Union[str, list[str]], work_path: str, mpi_use=False, mpi_cmd: Optional[str] = None, mpi_core_num: Optional[int] = None):
         """
         Base class for all executables.
 
@@ -280,7 +277,7 @@ class ExecutableBase:
                     For example, ``"./geogrid.exe"``, ``["./link_grib.csh", "data/*", "."]``.
                     If you want to use mpi, then ``cmd`` must be a string.
         :type cmd: str
-        :param work_path: Working directory path. Defaults to None (wrfrun workspace).
+        :param work_path: Working directory path.
         :type work_path: str
         :param mpi_use: If you use mpi. You have to give ``mpi_cmd`` and ``mpi_core_num`` if you use mpi. Defaults to False.
         :type mpi_use: bool
@@ -367,7 +364,7 @@ class ExecutableBase:
         if "name" not in config:
             logger.error("A valid config is required. Please check ``ExecutableConfig``.")
             raise ValueError("A valid config is required. Please check ``ExecutableConfig``.")
-        
+
         if self.name != config["name"]:
             logger.error(f"Config belongs to '{config['name']}', not {self.name}")
             raise ConfigError(f"Config belongs to '{config['name']}', not {self.name}")
@@ -394,7 +391,7 @@ class ExecutableBase:
         """
         logger.debug(f"Method 'replay' not implemented in '{self.name}', fall back to default action.")
         self()
-        
+
     def add_input_files(self, input_files: Union[str, list[str], FileConfigDict, list[FileConfigDict]], is_data=True, is_output=True):
         """
         Add input files the extension will use.
@@ -439,24 +436,32 @@ class ExecutableBase:
         :rtype:
         """
         if isinstance(input_files, str):
-            self.input_file_config.append({"file_path": input_files, "save_path": self.work_path, "save_name": basename(input_files),
-                                           "is_data": is_data, "is_output": is_output})
+            self.input_file_config.append(
+                {
+                    "file_path": input_files, "save_path": self.work_path, "save_name": basename(input_files),
+                    "is_data": is_data, "is_output": is_output
+                }
+            )
 
         elif isinstance(input_files, list):
             for _file in input_files:
                 if isinstance(_file, dict):
-                    self.input_file_config.append(_file)
+                    self.input_file_config.append(_file)  # type: ignore
 
                 elif isinstance(_file, str):
-                    self.input_file_config.append({"file_path": _file, "save_path": self.work_path, "save_name": basename(_file),
-                                                   "is_data": is_data, "is_output": is_output})
+                    self.input_file_config.append(
+                        {
+                            "file_path": _file, "save_path": self.work_path, "save_name": basename(_file),
+                            "is_data": is_data, "is_output": is_output
+                        }
+                    )
 
                 else:
                     logger.error(f"Input file config should be string or `FileConfigDict`, but got '{type(_file)}'")
                     raise TypeError(f"Input file config should be string or `FileConfigDict`, but got '{type(_file)}'")
 
         elif isinstance(input_files, dict):
-            self.input_file_config.append(input_files)
+            self.input_file_config.append(input_files)  # type: ignore
 
         else:
             logger.error(f"Input file config should be string or `FileConfigDict`, but got '{type(input_files)}'")
@@ -564,7 +569,7 @@ class ExecutableBase:
                 remove(target_path)
 
             symlink(file_path, target_path)
-            
+
     def after_exec(self):
         """
         Save outputs and logs.
@@ -627,7 +632,7 @@ class ExecutableBase:
         self.exec()
         self.after_exec()
 
-        if WRFRUNConfig.IS_IN_REPLAY:
+        if not WRFRUNConfig.IS_IN_REPLAY:
             ExecConfigRecorder.record(self.export_config())
 
 

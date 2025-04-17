@@ -69,5 +69,12 @@ class GetExecClassError(WRFRunBasicError):
     pass
 
 
+class ModelNameError(WRFRunBasicError):
+    """
+    Name of the model isn't found in the config file.
+    """
+    pass
+
+
 __all__ = ["WRFRunBasicError", "ConfigError", "WRFRunContextError", "CommandError", "LoadConfigError", "OutputFileError", "ResourceURIError", "InputFileError",
-           "NamelistError", "ExecRegisterError", "GetExecClassError"]
+           "NamelistError", "ExecRegisterError", "GetExecClassError", "ModelNameError"]

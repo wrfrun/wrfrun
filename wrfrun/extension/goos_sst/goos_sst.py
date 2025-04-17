@@ -39,7 +39,7 @@ def merge_era5_goos_sst_grib(surface_grib_path: str, save_path: str, resolution=
     data_time = skt["time"].to_numpy()
     data_time = to_datetime(data_time).strftime("%Y-%m-%d %H:%M")
 
-    sst_data_path = WRFRUNConfig.get_wrf_config()["near_goos_data_folder"]
+    sst_data_path = WRFRUNConfig.get_model_config()["near_goos_data_folder"]
 
     # read the first time data, so we can interpolate skt data to the same resolution as sst data.
     _data = goos_sst_find_data(data_time[0], sst_data_path, resolution=resolution, show_progress=False)

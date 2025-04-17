@@ -294,7 +294,7 @@ def prepare_wps_input_data(area: Tuple[int, int, int, int]):
     Args:
         area (Tuple[int, int, int, int]): Range of longitude and latitude, `[lon1, lon2, lat1, lat2]`.
     """
-    wrf_config = WRFRUNConfig.get_wrf_config()
+    wrf_config = WRFRUNConfig.get_model_config("wrf")
     # get start and end date from config
     start_date = wrf_config["time"]["start_date"]
     end_date = wrf_config["time"]["end_date"]

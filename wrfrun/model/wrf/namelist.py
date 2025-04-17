@@ -1,8 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from os.path import exists
 
 from wrfrun.core import WRFRUNConfig
-from wrfrun.res import NAMELIST_WRFDA, NAMELIST_DFI, NAMELIST_WPS, NAMELIST_WRF
+from wrfrun.res import NAMELIST_DFI, NAMELIST_WPS, NAMELIST_WRF, NAMELIST_WRFDA
 from .scheme import *
 
 
@@ -12,20 +12,15 @@ def prepare_wps_namelist():
 
     """
     # prepare namelist
-    # # read template
     WRFRUNConfig.read_namelist(WRFRUNConfig.parse_resource_uri(NAMELIST_WPS), "wps")
-
-    # # get wrf config from config
-    wrf_config = WRFRUNConfig.get_wrf_config()
+    wrf_config = WRFRUNConfig.get_model_config("wrf")
 
     # # get domain number
     max_dom = wrf_config["domain"]["domain_num"]
 
     # # get start_date and end_date
-    start_date = datetime.strptime(
-        wrf_config["time"]["start_date"], "%Y-%m-%d %H:%M:%S")
-    end_date = datetime.strptime(
-        wrf_config["time"]["end_date"], "%Y-%m-%d %H:%M:%S")
+    start_date = wrf_config["time"]["start_date"]
+    end_date = wrf_config["time"]["end_date"]
 
     # # get input data time interval
     interval_seconds = wrf_config["time"]["input_data_interval"]
@@ -81,24 +76,22 @@ def prepare_wrf_namelist():
     WRFRUNConfig.read_namelist(WRFRUNConfig.parse_resource_uri(NAMELIST_WRF), "wrf")
 
     # wrf config from config
-    wrf_config = WRFRUNConfig.get_wrf_config()
+    wrf_config = WRFRUNConfig.get_model_config("wrf")
 
     # get debug level
-    debug_level = wrf_config["debug_level"]
+    debug_level = WRFRUNConfig["model"]["debug_level"]
 
     # get domain number, start_date and end_date
     max_dom = wrf_config["domain"]["domain_num"]
-    start_date = datetime.strptime(
-        wrf_config["time"]["start_date"], "%Y-%m-%d %H:%M:%S")
-    end_date = datetime.strptime(
-        wrf_config["time"]["end_date"], "%Y-%m-%d %H:%M:%S")
+    start_date = wrf_config["time"]["start_date"]
+    end_date = wrf_config["time"]["end_date"]
 
     # get time interval of input data and output data
     input_data_interval = wrf_config["time"]["input_data_interval"]
     output_data_interval = wrf_config["time"]["output_data_interval"]
 
     # get restart settings
-    restart = wrf_config["restart"]
+    restart = wrf_config["restart_mode"]
     restart_interval = wrf_config["time"]["restart_interval"]
     if restart_interval < 0:
         restart_interval = output_data_interval
@@ -227,11 +220,10 @@ def prepare_dfi_namelist():
     # Read template namelist
     WRFRUNConfig.read_namelist(WRFRUNConfig.parse_resource_uri(NAMELIST_DFI), "dfi")
 
-    wrf_config = WRFRUNConfig.get_wrf_config()
+    wrf_config = WRFRUNConfig.get_model_config("wrf")
 
     # Read start date and end date
-    start_date = datetime.strptime(
-        wrf_config["time"]["start_date"], "%Y-%m-%d %H:%M:%S")
+    start_date = wrf_config["time"]["start_date"]
     input_data_interval = wrf_config["time"]["input_data_interval"]
     time_step = wrf_config["time"]["time_step"]
     # calculate dfi date because:
@@ -317,10 +309,10 @@ def prepare_wrfda_namelist():
     # read template namelist
     WRFRUNConfig.read_namelist(WRFRUNConfig.parse_resource_uri(NAMELIST_WRFDA), "wrfda")
 
-    wrf_config = WRFRUNConfig.get_wrf_config()
+    wrf_config = WRFRUNConfig.get_model_config("wrf")
 
     # get wrf start date
-    start_date = datetime.strptime(wrf_config["time"]["start_date"], "%Y-%m-%d %H:%M:%S")
+    start_date = wrf_config["time"]["start_date"]
 
     # generate update value
     update_value = {

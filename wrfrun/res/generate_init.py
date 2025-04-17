@@ -14,7 +14,7 @@ WRFRUNConfig.register_resource_uri(WRFRUNConfig.WRFRUN_RESOURCE_PATH, RES_PATH)
 
 """
 
-FOOT_CODE = """\nWRFRUNConfig.set_config_template_path(CONFIG_TEMPLATE)\n"""
+FOOT_CODE = """\nWRFRUNConfig.set_config_template_path(CONFIG_TOML_TEMPLATE)\n"""
 
 
 def _generate_init():

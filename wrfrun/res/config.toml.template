@@ -1,0 +1,140 @@
+# Config template of wrfrun.
+# Path of the directory which contains input data.
+input_data_path = ""
+
+# Path of the directory to store all outputs.
+output_path = "./outputs"
+log_path = "./logs"
+
+# wrfrun can launch a socket server during NWP execution to report simulation progress.
+# To enable the server, you need to configure the IP address and port on which it will listen to.
+server_host = "localhost"
+server_port = 54321
+
+# How many cores you will use.
+# Note that if you use a job scheduler (like PBS), this value means the number of cores each node you use.
+core_num = 36
+
+
+[job_scheduler]
+# Job scheduler settings.
+# How many nodes you will use.
+node_num = 1
+
+# Custom environment settings
+env_settings = {}
+
+# Path of the python interpreter that will be used to run wrfrun.
+# You can also give its name only.
+python_interpreter = "/usr/bin/python3"     # or just "python3"
+
+
+[model]
+# Model debug level
+debug_level = 100
+
+# ################################################### Only settings above is necessary ###########################################
+
+
+# ####################################### You can give more settings about the NWP you will use ##################################
+
+[model.wrf]
+# Config for WRF
+# WRF model path
+wps_path = '/path/to/your/WPS/folder'
+wrf_path = '/path/to/your/WRF/folder'
+# WRFDA is optional.
+wrfda_path = ''
+
+# static geographic data path
+geog_data_path = '/path/to/your/geog/data'
+
+# Path of the base namelist file.
+# You can provide your base namelist, and wrfrun will read its contents as the default values for simulations.
+# You may leave it empty to use the default namelist template provided by wrfrun.
+#base_namelist = ''
+
+# Your can give your custom namelist files here.
+# The value in it will overwrite the default value in the namelist template file.
+user_wps_namelist = ''
+user_real_namelist = ''
+user_wrf_namelist = ''
+user_wrfda_namelist = ''
+
+# If you make a restart run?
+restart_mode = false
+
+
+[model.wrf.time]
+# Advance time config for WRF
+# Set the start date, end date
+start_date = 2021-03-24T12:00:00Z
+end_date = 2021-03-26T00:00:00Z
+
+# Set input data time interval. Unit: seconds
+input_data_interval = 10800
+
+# Set output data time interval. Unit: minutes
+output_data_interval = 180
+
+# Note that there are various reasons which could crash wrf,
+# and in most cases you can deal with them by decrease time step.
+# Unit: seconds
+time_step = 120
+
+# Time ratio to the first domain for each domain
+parent_time_step_ratio = [1, 3, 4]
+
+# Time interval to write restart files.
+# This help you can restart WRF after it stops.
+# By default, it equals to output_data_interval. Unit: minutes.
+restart_interval = -1
+
+
+[model.wrf.domain]
+# Advance domain config for WRF.
+# Set domain number.
+domain_num = 3
+
+# It's very hard to process wrf domain settings because it's related to various settings, so I keep it.
+# The resolution ratio to the first domain.
+parent_grid_ratio = [1, 3, 9]
+
+# Index of the start point.
+i_parent_start = [1, 17, 72]
+j_parent_start = [1, 17, 36]
+
+# Number of points.
+e_we = [120, 250, 1198]
+e_sn = [120, 220, 1297]
+
+# Resolution of the first domain.
+dx = 9000
+dy = 9000
+
+# Projection.
+map_proj = { name = 'lambert', truelat1 = 34.0, truelat2 = 40.0}
+
+# Central point of the first area.
+ref_lat = 37.0
+ref_lon = 120.5
+stand_lon = 120.5
+
+
+[model.wrf.scheme]
+# Advance physics scheme config for WRF.
+# To loop up the nickname for all physics schemes, please see: https://wrfrun.syize.cn.
+# Option contains many other settings related to the scheme.
+# Sometimes some option can only be used for a specific scheme.
+# You can check it in online namelist variables: https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/namelist_variables.html
+# You can set option with its `wrf name` and its `wrf value`.
+# For example, `ghg_input=1` works with rrtm scheme. If you want to set `ghg_input=1` when using rrtm, set option: {"ghg_input": 1}
+# However, sometimes some options work with various schemes, and some options themselves are schem.
+# Use this carefully.
+# You can set multiple keys in option.
+long_wave_scheme = { name = "rrtm", option = {} }
+short_wave_scheme = { name = "rrtm", option = {} }
+cumulus_scheme = { name = "kf", option = {} }
+pbl_scheme = { name = "ysu", option = { ysu_topdown_pblmix = 1} }
+land_surface_scheme = { name = "noah", option = {} }
+surface_layer_scheme = { name = "mm5", option = {} }

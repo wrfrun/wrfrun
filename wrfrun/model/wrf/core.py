@@ -3,11 +3,11 @@ from os.path import abspath, basename, exists
 from shutil import copyfile, move, rmtree
 from typing import Optional, Union
 
-from wrfrun.core import FileConfigDict, InputFileError, NamelistError, WRFRUNConfig, WRFRUNExecDB, ExecutableBase
+from wrfrun.core import ExecutableBase, FileConfigDict, InputFileError, NamelistError, WRFRUNConfig, WRFRUNExecDB
 from wrfrun.utils import logger
 from ._metgrid import reconcile_namelist_metgrid
-from .namelist import prepare_dfi_namelist, prepare_wps_namelist, prepare_wrf_namelist
 from ._ndown import process_after_ndown
+from .namelist import prepare_dfi_namelist, prepare_wps_namelist, prepare_wrf_namelist
 from .vtable import VtableFiles
 from ..base import NamelistName
 
@@ -50,10 +50,12 @@ class GeoGrid(ExecutableBase):
         :return:
         :rtype:
         """
-        self.custom_config.update({
-            "namelist": WRFRUNConfig.get_namelist("wps"),
-            "geogrid_tbl_file": self.geogrid_tbl_file
-        })
+        self.custom_config.update(
+            {
+                "namelist": WRFRUNConfig.get_namelist("wps"),
+                "geogrid_tbl_file": self.geogrid_tbl_file
+            }
+        )
 
     def load_custom_config(self):
         WRFRUNConfig.update_namelist(self.custom_config["namelist"], "wps")
@@ -69,8 +71,10 @@ class GeoGrid(ExecutableBase):
                 prepare_wps_namelist()
 
             if self.geogrid_tbl_file is not None:
-                tbl_file: FileConfigDict = {"file_path": self.geogrid_tbl_file, "save_path": f"{WRFRUNConfig.WPS_WORK_PATH}/geogrid",
-                                            "save_name": "GEOGRID.TBL", "is_data": False, "is_output": False}
+                tbl_file: FileConfigDict = {
+                    "file_path": self.geogrid_tbl_file, "save_path": f"{WRFRUNConfig.WPS_WORK_PATH}/geogrid",
+                    "save_name": "GEOGRID.TBL", "is_data": False, "is_output": False
+                }
                 self.add_input_files(tbl_file)
 
         super().before_exec()
@@ -96,13 +100,12 @@ class LinkGrib(ExecutableBase):
         """
         Execute "link_grib.csh".
 
-        :param grib_dir_path: GRIB data path. Relative path is recommended, because it will have better compatibility when you use the replay feature.
+        :param grib_dir_path: GRIB data path. Absolute path is recommended.
         :type grib_dir_path: str
         """
         self._link_grib_input_path = "./input_grib_data_dir"
 
         super().__init__(name="link_grib", cmd=["./link_grib.csh", f"{self._link_grib_input_path}/*", "."], work_path=WRFRUNConfig.WPS_WORK_PATH)
-
         self.grib_dir_path = grib_dir_path
 
     def generate_custom_config(self):
@@ -113,26 +116,26 @@ class LinkGrib(ExecutableBase):
 
     def before_exec(self):
         if not WRFRUNConfig.IS_IN_REPLAY:
-            # prepare config
-            grib_dir_path = WRFRUNConfig.parse_resource_uri(self.grib_dir_path)
 
-            if not exists(grib_dir_path):
-                logger.error(f"GRIB file directory not found: {grib_dir_path}")
-                raise FileNotFoundError(f"GRIB file directory not found: {grib_dir_path}")
+            logger.debug(f"Input data are: {self.grib_dir_path}")
+            _grib_dir_path = abspath(self.grib_dir_path)
+
+            if not exists(_grib_dir_path):
+                logger.error(f"GRIB file directory not found: {_grib_dir_path}")
+                raise FileNotFoundError(f"GRIB file directory not found: {_grib_dir_path}")
 
             save_path = f"{WRFRUNConfig.WPS_WORK_PATH}/{self._link_grib_input_path}"
             save_path = WRFRUNConfig.parse_resource_uri(save_path)
             if exists(save_path):
                 rmtree(save_path)
 
-            for _file in listdir(grib_dir_path):
-                self.add_input_files(
-                    {
-                        "file_path": f"{self.grib_dir_path}/{_file}",
-                        "save_path": f"{WRFRUNConfig.WPS_WORK_PATH}/{self._link_grib_input_path}",
-                        "save_name": _file, "is_data": True, "is_output": False,
-                    }
-                )
+            for _file in listdir(_grib_dir_path):
+                _file_config: FileConfigDict = {
+                    "file_path": f"{_grib_dir_path}/{_file}",
+                    "save_path": f"{WRFRUNConfig.WPS_WORK_PATH}/{self._link_grib_input_path}",
+                    "save_name": _file, "is_data": True, "is_output": False,
+                }
+                self.add_input_files(_file_config)
 
         super().before_exec()
 
@@ -164,14 +167,7 @@ class UnGrib(ExecutableBase):
         :rtype:
         """
         if self.input_data_path is None:
-            self.input_data_path = WRFRUNConfig["wrfrun"]["input_data_path"]
-
-        else:
-            if not exists(self.input_data_path):
-                logger.error(f"Can not find input data: {self.input_data_path}")
-                raise FileNotFoundError(f"Can not find input data: {self.input_data_path}")
-
-        self.input_data_path = abspath(self.input_data_path)
+            self.input_data_path = WRFRUNConfig.get_input_data_path()
 
         LinkGrib(self.input_data_path)()
 
@@ -182,10 +178,12 @@ class UnGrib(ExecutableBase):
         :return:
         :rtype:
         """
-        self.custom_config.update({
-            "namelist": WRFRUNConfig.get_namelist("wps"),
-            "vtable_file": self.vtable_file
-        })
+        self.custom_config.update(
+            {
+                "namelist": WRFRUNConfig.get_namelist("wps"),
+                "vtable_file": self.vtable_file
+            }
+        )
 
     def load_custom_config(self):
         self.vtable_file = self.custom_config["vtable_file"]
@@ -207,15 +205,14 @@ class UnGrib(ExecutableBase):
             if self.vtable_file is None:
                 self.vtable_file = VtableFiles.ERA_PL
 
-            self.add_input_files(
-                {
-                    "file_path": self.vtable_file,
-                    "save_path": WRFRUNConfig.WPS_WORK_PATH,
-                    "save_name": "Vtable",
-                    "is_data": False,
-                    "is_output": False
-                }
-            )
+            _file_config: FileConfigDict = {
+                "file_path": self.vtable_file,
+                "save_path": WRFRUNConfig.WPS_WORK_PATH,
+                "save_name": "Vtable",
+                "is_data": False,
+                "is_output": False
+            }
+            self.add_input_files(_file_config)
 
         super().before_exec()
 
@@ -317,15 +314,14 @@ class MetGrid(ExecutableBase):
                 else:
                     geogrid_file_list = [x for x in listdir(geogrid_data_path) if x.startswith("geo_em.d")]
                     for _file in geogrid_file_list:
-                        self.add_input_files(
-                            {
-                                "file_path": f"{self.geogrid_data_path}/{_file}",
-                                "save_path": WRFRUNConfig.WPS_WORK_PATH,
-                                "save_name": _file,
-                                "is_data": True,
-                                "is_output": True
-                            }
-                        )
+                        _file_config = {
+                            "file_path": f"{self.geogrid_data_path}/{_file}",
+                            "save_path": WRFRUNConfig.WPS_WORK_PATH,
+                            "save_name": _file,
+                            "is_data": True,
+                            "is_output": True
+                        }
+                        self.add_input_files(_file_config)
 
             ungrib_output_dir = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.get_ungrib_out_dir_path())
             if basename(ungrib_output_dir) not in file_list or len(listdir(ungrib_output_dir)) == 0:
@@ -342,15 +338,14 @@ class MetGrid(ExecutableBase):
                 else:
                     ungrib_file_list = [x for x in listdir(ungrib_data_path)]
                     for _file in ungrib_file_list:
-                        self.add_input_files(
-                            {
-                                "file_path": f"{self.ungrib_data_path}/{_file}",
-                                "save_path": WRFRUNConfig.get_ungrib_out_dir_path(),
-                                "save_name": _file,
-                                "is_data": True,
-                                "is_output": True
-                            }
-                        )
+                        _file_config: FileConfigDict = {
+                            "file_path": f"{self.ungrib_data_path}/{_file}",
+                            "save_path": WRFRUNConfig.get_ungrib_out_dir_path(),
+                            "save_name": _file,
+                            "is_data": True,
+                            "is_output": True
+                        }
+                        self.add_input_files(_file_config)
 
         super().before_exec()
 
@@ -400,10 +395,12 @@ class Real(ExecutableBase):
 
     def generate_custom_config(self):
         self.custom_config["metgrid_data_path"] = self.metgrid_data_path
-        self.custom_config.update({
-            "namelist": WRFRUNConfig.get_namelist("wrf"),
-            "metgrid_data_path": self.metgrid_data_path
-        })
+        self.custom_config.update(
+            {
+                "namelist": WRFRUNConfig.get_namelist("wrf"),
+                "metgrid_data_path": self.metgrid_data_path
+            }
+        )
 
     def load_custom_config(self):
         self.metgrid_data_path = self.custom_config["metgrid_data_path"]
@@ -426,15 +423,14 @@ class Real(ExecutableBase):
 
             file_list = [x for x in listdir(metgrid_data_path) if x.startswith("met_em")]
             for _file in file_list:
-                self.add_input_files(
-                    {
-                        "file_path": f"{self.metgrid_data_path}/{_file}",
-                        "save_path": WRFRUNConfig.WRF_WORK_PATH,
-                        "save_name": _file,
-                        "is_data": True,
-                        "is_output": True
-                    }
-                )
+                _file_config: FileConfigDict = {
+                    "file_path": f"{self.metgrid_data_path}/{_file}",
+                    "save_path": WRFRUNConfig.WRF_WORK_PATH,
+                    "save_name": _file,
+                    "is_data": True,
+                    "is_output": True
+                }
+                self.add_input_files(_file_config)
 
         super().before_exec()
 
@@ -454,6 +450,7 @@ class WRF(ExecutableBase):
     """
     Execute "wrf.exe".
     """
+
     def __init__(self, input_file_dir_path: Optional[str] = None, restart_file_dir_path: Optional[str] = None, save_restarts=False, core_num: Optional[int] = None):
         """
         Execute "wrf.exe"
@@ -488,11 +485,13 @@ class WRF(ExecutableBase):
         self.save_restarts = save_restarts
 
     def generate_custom_config(self):
-        self.custom_config.update({
-            "input_file_dir_path": self.input_file_dir_path,
-            "restart_file_dir_path": self.restart_file_dir_path,
-            "namelist": WRFRUNConfig.get_namelist("wrf")
-        })
+        self.custom_config.update(
+            {
+                "input_file_dir_path": self.input_file_dir_path,
+                "restart_file_dir_path": self.restart_file_dir_path,
+                "namelist": WRFRUNConfig.get_namelist("wrf")
+            }
+        )
 
     def load_custom_config(self):
         self.input_file_dir_path = self.custom_config["input_file_dir_path"]
@@ -521,17 +520,16 @@ class WRF(ExecutableBase):
                 file_list = [x for x in listdir(input_file_dir_path) if x != "logs"]
 
                 for _file in file_list:
-                    self.add_input_files(
-                        {
-                            "file_path": f"{self.input_file_dir_path}/{_file}",
-                            "save_path": WRFRUNConfig.WRF_WORK_PATH,
-                            "save_name": _file,
-                            "is_data": True,
-                            "is_output": is_output
-                        }
-                    )
+                    _file_config: FileConfigDict = {
+                        "file_path": f"{self.input_file_dir_path}/{_file}",
+                        "save_path": WRFRUNConfig.WRF_WORK_PATH,
+                        "save_name": _file,
+                        "is_data": True,
+                        "is_output": is_output
+                    }
+                    self.add_input_files(_file_config)
 
-            if WRFRUNConfig.is_restart():
+            if WRFRUNConfig.get_model_config("wrf")["restart_mode"]:
                 if self.restart_file_dir_path is None:
                     logger.error("You need to specify the restart file if you want to restart WRF.")
                     raise InputFileError("You need to specify the restart file if you want to restart WRF.")
@@ -544,15 +542,14 @@ class WRF(ExecutableBase):
 
                 file_list = [x for x in listdir(restart_file_dir_path) if x.startswith("wrfrst")]
                 for _file in file_list:
-                    self.add_input_files(
-                        {
-                            "file_path": f"{self.restart_file_dir_path}/{_file}",
-                            "save_path": WRFRUNConfig.WRF_WORK_PATH,
-                            "save_name": _file,
-                            "is_data": True,
-                            "is_output": False
-                        }
-                    )
+                    _file_config: FileConfigDict = {
+                        "file_path": f"{self.restart_file_dir_path}/{_file}",
+                        "save_path": WRFRUNConfig.WRF_WORK_PATH,
+                        "save_name": _file,
+                        "is_data": True,
+                        "is_output": False
+                    }
+                    self.add_input_files(_file_config)
 
         super().before_exec()
 
@@ -575,6 +572,7 @@ class DFI(ExecutableBase):
     """
     Execute "wrf.exe" to run DFI.
     """
+
     def __init__(self, input_file_dir_path: Optional[str] = None, update_real_output=True, core_num: Optional[int] = None):
         """
         Execute "wrf.exe" to run DFI.
@@ -606,11 +604,13 @@ class DFI(ExecutableBase):
         self.update_real_output = update_real_output
 
     def generate_custom_config(self):
-        self.custom_config.update({
-            "input_file_dir_path": self.input_file_dir_path,
-            "update_real_output": self.update_real_output,
-            "namelist": WRFRUNConfig.get_namelist("dfi")
-        })
+        self.custom_config.update(
+            {
+                "input_file_dir_path": self.input_file_dir_path,
+                "update_real_output": self.update_real_output,
+                "namelist": WRFRUNConfig.get_namelist("dfi")
+            }
+        )
 
     def load_custom_config(self):
         self.input_file_dir_path = self.custom_config["input_file_dir_path"]
@@ -640,15 +640,14 @@ class DFI(ExecutableBase):
                 file_list = [x for x in listdir(input_file_dir_path) if x != "logs"]
 
                 for _file in file_list:
-                    self.add_input_files(
-                        {
-                            "file_path": f"{self.input_file_dir_path}/{_file}",
-                            "save_path": WRFRUNConfig.WRF_WORK_PATH,
-                            "save_name": _file,
-                            "is_data": True,
-                            "is_output": is_output
-                        }
-                    )
+                    _file_config: FileConfigDict = {
+                        "file_path": f"{self.input_file_dir_path}/{_file}",
+                        "save_path": WRFRUNConfig.WRF_WORK_PATH,
+                        "save_name": _file,
+                        "is_data": True,
+                        "is_output": is_output
+                    }
+                    self.add_input_files(_file_config)
 
             if not WRFRUNConfig.register_custom_namelist_id("dfi"):
                 logger.error("Can't register namelist for DFI.")
@@ -681,6 +680,7 @@ class NDown(ExecutableBase):
     """
     Execute "ndown.exe".
     """
+
     def __init__(self, wrfout_file_path: str, real_output_dir_path: Optional[str] = None, update_namelist=True, core_num: Optional[int] = None):
         """
         Execute "ndown.exe".
@@ -718,11 +718,13 @@ class NDown(ExecutableBase):
 
     def generate_custom_config(self):
         self.class_config["class_args"] = (self.wrfout_file_path,)
-        self.custom_config.update({
-            "real_output_dir_path": self.real_output_dir_path,
-            "update_namelist": self.update_namelist,
-            "namelist": WRFRUNConfig.get_namelist("wrf"),
-        })
+        self.custom_config.update(
+            {
+                "real_output_dir_path": self.real_output_dir_path,
+                "update_namelist": self.update_namelist,
+                "namelist": WRFRUNConfig.get_namelist("wrf"),
+            }
+        )
 
     def load_custom_config(self):
         self.real_output_dir_path = self.custom_config["real_output_dir_path"]
@@ -739,7 +741,7 @@ class NDown(ExecutableBase):
 
         else:
             is_output = False
-        
+
         wrfndi_file_config: FileConfigDict = {
             "file_path": f"{self.real_output_dir_path}/wrfinput_d02",
             "save_path": WRFRUNConfig.WRF_WORK_PATH,
@@ -784,7 +786,7 @@ def geogrid(geogrid_tbl_file: Union[str, None] = None):
 
     :param geogrid_tbl_file: Custom GEOGRID.TBL file path. Defaults to None.
     """
-    GeoGrid(geogrid_tbl_file, WRFRUNConfig.get_pbs_core_num())()
+    GeoGrid(geogrid_tbl_file, WRFRUNConfig.get_core_num())()
 
 
 def ungrib(vtable_file: Union[str, None] = None, input_data_path: Optional[str] = None):
@@ -806,7 +808,7 @@ def metgrid(geogrid_data_path: Optional[str] = None, ungrib_data_path: Optional[
     :param ungrib_data_path: Directory path of outputs from ungrib.exe. If None, tries to use the output path specified by config file.
     :type ungrib_data_path: str
     """
-    MetGrid(geogrid_data_path, ungrib_data_path, WRFRUNConfig.get_pbs_core_num())()
+    MetGrid(geogrid_data_path, ungrib_data_path, WRFRUNConfig.get_core_num())()
 
 
 def real(metgrid_data_path: Union[str, None] = None):
@@ -815,7 +817,7 @@ def real(metgrid_data_path: Union[str, None] = None):
 
     :param metgrid_data_path: The path store output from metgrid.exe. If it is None, the default output path will be used.
     """
-    Real(metgrid_data_path, WRFRUNConfig.get_pbs_core_num())()
+    Real(metgrid_data_path, WRFRUNConfig.get_core_num())()
 
 
 def wrf(input_file_dir_path: Union[str, None] = None, restart_file_dir_path: Optional[str] = None, save_restarts=False):
@@ -826,7 +828,7 @@ def wrf(input_file_dir_path: Union[str, None] = None, restart_file_dir_path: Opt
     :param restart_file_dir_path: The path store WRF restart files. This parameter will be ignored if ``restart=False`` in your config.
     :param save_restarts: Also save restart files to the output directory.
     """
-    WRF(input_file_dir_path, restart_file_dir_path, save_restarts, WRFRUNConfig.get_pbs_core_num())()
+    WRF(input_file_dir_path, restart_file_dir_path, save_restarts, WRFRUNConfig.get_core_num())()
 
 
 def dfi(input_file_dir_path: Optional[str] = None, update_real_output=True):
@@ -838,7 +840,7 @@ def dfi(input_file_dir_path: Optional[str] = None, update_real_output=True):
     :param update_real_output: If update the corresponding file in real.exe output directory.
     :type update_real_output: bool
     """
-    DFI(input_file_dir_path, update_real_output, WRFRUNConfig.get_pbs_core_num())
+    DFI(input_file_dir_path, update_real_output, WRFRUNConfig.get_core_num())
 
 
 class_list = [GeoGrid, LinkGrib, UnGrib, MetGrid, Real, WRF]
@@ -847,6 +849,5 @@ class_id_list = ["geogrid", "link_grib", "ungrib", "metgrid", "real", "wrf"]
 for _class, _id in zip(class_list, class_id_list):
     if not WRFRUNExecDB.is_registered(_id):
         WRFRUNExecDB.register_exec(_id, _class)
-
 
 __all__ = ["GeoGrid", "LinkGrib", "UnGrib", "MetGrid", "Real", "WRF", "geogrid", "ungrib", "metgrid", "real", "wrf", "dfi"]

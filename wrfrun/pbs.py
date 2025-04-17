@@ -22,7 +22,7 @@ def prepare_pbs_script(main_file_path: str):
 
     # read log path and PBS setting from config
     log_path = WRFRUNConfig.get_log_path()
-    PBS_setting = WRFRUNConfig.get_pbs_config()
+    PBS_setting = WRFRUNConfig.get_job_scheduler_config()
 
     # set PBS log path
     stdout_log_path = f"{log_path}/PBS.log"
@@ -66,7 +66,7 @@ def get_core_num() -> int:
     Returns:
         int: Core number.
     """
-    return WRFRUNConfig.get_pbs_config()["core_num"]
+    return WRFRUNConfig["core_num"]
 
 
 def in_pbs() -> bool:

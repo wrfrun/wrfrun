@@ -14,7 +14,7 @@ maintainers = [
 ]
 keywords = [ "WRF", ]
 description = "wrfrun is a comprehensive toolkit for managing and using WRF"
-dependencies = ["xarray", "netCDF4", "rich", "PyYAML", "pandas", "f90nml", "cdsapi", "matplotlib", "Cartopy", "wrf-python", "cfgrib"]
+dependencies = ["xarray", "netCDF4", "rich", "pandas", "f90nml", "cdsapi", "matplotlib", "Cartopy", "wrf-python", "cfgrib", "tomli", "tomli-w"]
 
 [project.urls]
 homepage = "https://github.com/Syize/wrfrun"
