@@ -7,9 +7,20 @@ from wrfrun.core import ExecutableBase, FileConfigDict, InputFileError, Namelist
 from wrfrun.utils import logger
 from ._metgrid import reconcile_namelist_metgrid
 from ._ndown import process_after_ndown
-from .namelist import prepare_dfi_namelist, prepare_wps_namelist, prepare_wrf_namelist
+from .namelist import prepare_dfi_namelist, prepare_wps_namelist, prepare_wrf_namelist, prepare_wrfda_namelist
 from .vtable import VtableFiles
 from ..base import NamelistName
+
+
+def _check_namelist_preparation():
+    if len(WRFRUNConfig.get_namelist("wps")) == 0:
+        prepare_wps_namelist()
+
+    if len(WRFRUNConfig.get_namelist("wrf")) == 0:
+        prepare_wrf_namelist()
+
+    if len(WRFRUNConfig.get_namelist("wrfda")) == 0:
+        prepare_wrfda_namelist()
 
 
 class GeoGrid(ExecutableBase):
@@ -44,6 +55,8 @@ class GeoGrid(ExecutableBase):
 
         self.geogrid_tbl_file = geogrid_tbl_file
 
+        _check_namelist_preparation()
+
     def generate_custom_config(self):
         """
         Get and store namelist.
@@ -66,10 +79,6 @@ class GeoGrid(ExecutableBase):
         WRFRUNConfig.WRFRUN_WORK_STATUS = "geogrid"
 
         if not WRFRUNConfig.IS_IN_REPLAY:
-            # prepare config
-            if len(WRFRUNConfig.get_namelist("wps")) == 0:
-                prepare_wps_namelist()
-
             if self.geogrid_tbl_file is not None:
                 tbl_file: FileConfigDict = {
                     "file_path": self.geogrid_tbl_file, "save_path": f"{WRFRUNConfig.WPS_WORK_PATH}/geogrid",
@@ -159,6 +168,8 @@ class UnGrib(ExecutableBase):
         self.vtable_file = vtable_file
         self.input_data_path = input_data_path
 
+        _check_namelist_preparation()
+
     def call_link_grib(self):
         """
         Execute "link_grib.csh" if needed.
@@ -197,11 +208,6 @@ class UnGrib(ExecutableBase):
         WRFRUNConfig.WRFRUN_WORK_STATUS = "ungrib"
 
         if not WRFRUNConfig.IS_IN_REPLAY:
-            # prepare config
-
-            if len(WRFRUNConfig.get_namelist("wps")) == 0:
-                prepare_wps_namelist()
-
             if self.vtable_file is None:
                 self.vtable_file = VtableFiles.ERA_PL
 
@@ -268,6 +274,8 @@ class MetGrid(ExecutableBase):
         self.geogrid_data_path = geogrid_data_path
         self.ungrib_data_path = ungrib_data_path
 
+        _check_namelist_preparation()
+
     def generate_custom_config(self):
         """
         Get and store namelist.
@@ -292,11 +300,6 @@ class MetGrid(ExecutableBase):
         WRFRUNConfig.WRFRUN_WORK_STATUS = "metgrid"
 
         if not WRFRUNConfig.IS_IN_REPLAY:
-            # prepare config
-
-            if len(WRFRUNConfig.get_namelist("wps")) == 0:
-                prepare_wps_namelist()
-
             # check input of metgrid.exe
             # try to search input files in the output path if workspace is clear.
             file_list = listdir(WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WPS_WORK_PATH))
@@ -389,6 +392,8 @@ class Real(ExecutableBase):
             mpi_cmd = "mpirun"
             mpi_core_num = core_num
 
+        _check_namelist_preparation()
+
         super().__init__(name="real", cmd="./real.exe", work_path=WRFRUNConfig.WRF_WORK_PATH, mpi_use=mpi_use, mpi_cmd=mpi_cmd, mpi_core_num=mpi_core_num)
 
         self.metgrid_data_path = metgrid_data_path
@@ -411,10 +416,6 @@ class Real(ExecutableBase):
         WRFRUNConfig.WRFRUN_WORK_STATUS = "real"
 
         if not WRFRUNConfig.IS_IN_REPLAY:
-            # prepare config
-            if len(WRFRUNConfig.get_namelist("wrf")) == 0:
-                prepare_wrf_namelist()
-
             if self.metgrid_data_path is None:
                 self.metgrid_data_path = f"{WRFRUNConfig.WRFRUN_OUTPUT_PATH}/metgrid"
 
@@ -478,6 +479,8 @@ class WRF(ExecutableBase):
             mpi_cmd = "mpirun"
             mpi_core_num = core_num
 
+        _check_namelist_preparation()
+
         super().__init__(name="wrf", cmd="./wrf.exe", work_path=WRFRUNConfig.WRF_WORK_PATH, mpi_use=mpi_use, mpi_cmd=mpi_cmd, mpi_core_num=mpi_core_num)
 
         self.input_file_dir_path = input_file_dir_path
@@ -496,17 +499,13 @@ class WRF(ExecutableBase):
     def load_custom_config(self):
         self.input_file_dir_path = self.custom_config["input_file_dir_path"]
         self.restart_file_dir_path = self.custom_config["restart_file_dir_path"]
-        WRFRUNConfig.update_namelist(self.custom_config["namelist"])
+        WRFRUNConfig.update_namelist(self.custom_config["namelist"], "wrf")
 
     def before_exec(self):
         WRFRUNConfig.check_wrfrun_context(True)
         WRFRUNConfig.WRFRUN_WORK_STATUS = "wrf"
 
         if not WRFRUNConfig.IS_IN_REPLAY:
-            # prepare config
-            if len(WRFRUNConfig.get_namelist("wrf")) == 0:
-                prepare_wrf_namelist()
-
             if self.input_file_dir_path is None:
                 self.input_file_dir_path = f"{WRFRUNConfig.WRFRUN_OUTPUT_PATH}/real"
                 is_output = True
@@ -707,6 +706,8 @@ class NDown(ExecutableBase):
             mpi_use = True
             mpi_cmd = "mpirun"
             mpi_core_num = core_num
+
+        _check_namelist_preparation()
 
         super().__init__(name="ndown", cmd="./ndown.exe", work_path=WRFRUNConfig.WRF_WORK_PATH, mpi_use=mpi_use, mpi_cmd=mpi_cmd, mpi_core_num=mpi_core_num)
 

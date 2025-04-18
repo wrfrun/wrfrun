@@ -5,17 +5,6 @@ from ..core import WRFRUNConfig
 from ..utils import check_path, logger
 
 
-def register_executables():
-    """
-    Import NWP modules so they can register executables.
-
-    :return:
-    :rtype:
-    """
-    from .wrf import core
-    _ = core
-
-
 def clear_model_logs():
     """
     This function can automatically collect WRF log files and save them to ``output_path``.

@@ -3,7 +3,7 @@ import socketserver
 import subprocess
 from datetime import datetime
 from time import time
-from typing import Tuple
+from typing import Tuple, Optional
 
 from .config import WRFRUNConfig
 from ..utils import logger
@@ -12,19 +12,21 @@ WRFRUN_SERVER_INSTANCE = None
 WRFRUN_SERVER_THREAD = None
 
 
-def get_wrf_simulated_seconds(start_datetime: datetime) -> int:
+def get_wrf_simulated_seconds(start_datetime: datetime, log_file_path: Optional[str] = None) -> int:
     """
     Get how many seconds wrf has integrated.
 
     :param start_datetime: WRF start datetime.
     :type start_datetime: datetime
+    :param log_file_path: Absolute path of the log file to be parsed.
+    :type log_file_path: str
     :return: Seconds.
     :rtype: int
     """
     # use linux cmd to get the latest line of wrf log files
-    log_file_path = WRFRUNConfig.parse_resource_uri(f"{WRFRUNConfig.WRF_WORK_PATH}/rsl.out.0000")
-    res = subprocess.run(
-        ["tail", "-n", "1", log_file_path], capture_output=True)
+    if log_file_path is None:
+        log_file_path = WRFRUNConfig.parse_resource_uri(f"{WRFRUNConfig.WRF_WORK_PATH}/rsl.out.0000")
+    res = subprocess.run(["tail", "-n", "1", log_file_path], capture_output=True)
     log_text = res.stdout.decode()
 
     if not (log_text.startswith("d01") or log_text.startswith("d02")):
@@ -35,7 +37,8 @@ def get_wrf_simulated_seconds(start_datetime: datetime) -> int:
     seconds = -1
     try:
         current_datetime = datetime.strptime(time_string, "%Y-%m-%d_%H:%M:%S")
-        date_delta = current_datetime - start_datetime
+        # remove timezone info so we can calculate.
+        date_delta = current_datetime - start_datetime.replace(tzinfo=None)
         seconds = date_delta.days * 24 * 60 * 60 + date_delta.seconds
 
     except ValueError:
@@ -61,6 +64,11 @@ class WRFRunServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 
         # record how many seconds the wrf will integral
         self.wrf_simulate_seconds = wrf_simulate_seconds
+
+        # we need to parse the log file to track the simulation progress.
+        self.wrf_log_path = WRFRUNConfig.parse_resource_uri(f"{WRFRUNConfig.WRF_WORK_PATH}/rsl.out.0000")
+        logger.debug("WRFRun Server will try to track simulation progress with following log files:")
+        logger.debug(f"WRF: {self.wrf_log_path}")
 
     def server_bind(self):
         """
@@ -136,7 +144,7 @@ class WRFRunServerHandler(socketserver.StreamRequestHandler):
         """
         start_date, simulate_seconds = self.server.get_wrf_simulate_settings()
 
-        simulated_seconds = get_wrf_simulated_seconds(start_date)
+        simulated_seconds = get_wrf_simulated_seconds(start_date, self.server.wrf_log_path)
 
         if simulated_seconds > 0:
             progress = simulated_seconds * 100 // simulate_seconds

@@ -18,6 +18,7 @@ class SchemeLongWave:
     NEW_GODDARD = 5
     FLG = 7
     RRTMG_K = 14
+    FAST_RRTMG = 24     # for GPU and MIC
     HELD_SUAREZ = 31
     GFDL = 99
 
@@ -38,6 +39,7 @@ class SchemeLongWave:
             "new-goddard": cls.NEW_GODDARD,
             "flg": cls.FLG,
             "rrtmg-k": cls.RRTMG_K,
+            "fast-rrtmg": cls.FAST_RRTMG,
             "held-suarez": cls.HELD_SUAREZ,
             "gfdl": cls.GFDL
         }
@@ -65,6 +67,8 @@ class SchemeShortWave:
     NEW_GODDARD = 5
     FLG = 7
     RRTMG_K = 14
+    FAST_RRTMG = 24
+    EARTH_HELD_SUAREZ_FORCING = 31
     GFDL = 99
 
     @classmethod
@@ -85,6 +89,8 @@ class SchemeShortWave:
             "new-goddard": cls.NEW_GODDARD,
             "flg": cls.FLG,
             "rrtmg-k": cls.RRTMG_K,
+            "fast-rrtmg": cls.FAST_RRTMG,
+            "earth-hs-force": cls.EARTH_HELD_SUAREZ_FORCING,
             "gfdl": cls.GODDARD
         }
 

@@ -6,6 +6,8 @@ from os.path import abspath, basename, dirname, exists, isdir
 from shutil import copyfile, make_archive, move
 from typing import Optional, TypedDict, Union
 
+import numpy as np
+
 from .config import WRFRUNConfig
 from .error import CommandError, ConfigError, OutputFileError
 from ..utils import check_path, logger
@@ -65,6 +67,23 @@ def call_subprocess(command: list[str], work_path: Optional[str] = None, print_o
     if print_output:
         logger.info(status.stdout.decode())
         logger.warning(status.stderr.decode())
+
+
+def _json_default(obj):
+    """
+    Used for json.dumps.
+
+    :param obj:
+    :type obj:
+    :return:
+    :rtype:
+    """
+    if isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    else:
+        raise TypeError(f"Object of type {type(obj)} is not JSON serializable.")
 
 
 class InputFileType(Enum):
@@ -235,7 +254,7 @@ class _ExecutableConfigRecord:
         check_path(self.content_path)
 
         with open(f"{self.content_path}/config.json", "w") as f:
-            f.write(dumps(self._recorded_config, indent=4))
+            f.write(dumps(self._recorded_config, indent=4, default=_json_default))
 
         if exists(self.save_path):
             if isdir(self.save_path):

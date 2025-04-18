@@ -1,7 +1,6 @@
 py3.install_sources(
     [
         '__init__.py',
-        'config.yaml.template',
         'config.toml.template',
         'run.sh.template',
     ],

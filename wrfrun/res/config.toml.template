@@ -133,7 +133,7 @@ stand_lon = 120.5
 # Use this carefully.
 # You can set multiple keys in option.
 long_wave_scheme = { name = "rrtm", option = {} }
-short_wave_scheme = { name = "rrtm", option = {} }
+short_wave_scheme = { name = "rrtmg", option = {} }
 cumulus_scheme = { name = "kf", option = {} }
 pbl_scheme = { name = "ysu", option = { ysu_topdown_pblmix = 1} }
 land_surface_scheme = { name = "noah", option = {} }
