@@ -1,7 +1,7 @@
 from os import listdir
 from os.path import abspath, basename, exists
 from shutil import copyfile, move, rmtree
-from typing import Optional, Union
+from typing import Optional
 
 from wrfrun.core import ExecutableBase, FileConfigDict, InputFileError, NamelistError, WRFRUNConfig, WRFRUNExecDB
 from wrfrun.utils import logger
@@ -231,7 +231,7 @@ class UnGrib(ExecutableBase):
 
         super().after_exec()
 
-        logger.info(f"All geogrid output files have been copied to {WRFRUNConfig.parse_resource_uri(self._output_save_path)}")
+        logger.info(f"All ungrib output files have been copied to {WRFRUNConfig.parse_resource_uri(self._output_save_path)}")
 
     def __call__(self):
         self.call_link_grib()
@@ -781,69 +781,6 @@ class NDown(ExecutableBase):
             process_after_ndown()
 
 
-def geogrid(geogrid_tbl_file: Union[str, None] = None):
-    """
-    Interface to execute geogrid.exe.
-
-    :param geogrid_tbl_file: Custom GEOGRID.TBL file path. Defaults to None.
-    """
-    GeoGrid(geogrid_tbl_file, WRFRUNConfig.get_core_num())()
-
-
-def ungrib(vtable_file: Union[str, None] = None, input_data_path: Optional[str] = None):
-    """
-    Interface to execute ungrib.exe.
-
-    :param vtable_file: Vtable file used to run ungrib. Defaults to None.
-    :param input_data_path: Directory path of the input data. If None, ``wrfrun`` will read its value from the config file.
-    """
-    UnGrib(vtable_file, input_data_path)()
-
-
-def metgrid(geogrid_data_path: Optional[str] = None, ungrib_data_path: Optional[str] = None):
-    """
-    Interface to execute metgrid.exe.
-
-    :param geogrid_data_path: Directory path of outputs from geogrid.exe. If None, tries to use the output path specified by config file.
-    :type geogrid_data_path: str
-    :param ungrib_data_path: Directory path of outputs from ungrib.exe. If None, tries to use the output path specified by config file.
-    :type ungrib_data_path: str
-    """
-    MetGrid(geogrid_data_path, ungrib_data_path, WRFRUNConfig.get_core_num())()
-
-
-def real(metgrid_data_path: Union[str, None] = None):
-    """
-    Interface to execute real.exe.
-
-    :param metgrid_data_path: The path store output from metgrid.exe. If it is None, the default output path will be used.
-    """
-    Real(metgrid_data_path, WRFRUNConfig.get_core_num())()
-
-
-def wrf(input_file_dir_path: Union[str, None] = None, restart_file_dir_path: Optional[str] = None, save_restarts=False):
-    """
-    Interface to execute wrf.exe.
-
-    :param input_file_dir_path: The path store input data which will be feed into wrf.exe. Defaults to None.
-    :param restart_file_dir_path: The path store WRF restart files. This parameter will be ignored if ``restart=False`` in your config.
-    :param save_restarts: Also save restart files to the output directory.
-    """
-    WRF(input_file_dir_path, restart_file_dir_path, save_restarts, WRFRUNConfig.get_core_num())()
-
-
-def dfi(input_file_dir_path: Optional[str] = None, update_real_output=True):
-    """
-    Execute "wrf.exe" to run DFI.
-
-    :param input_file_dir_path: Path of the directory that stores input data for "wrf.exe".
-    :type input_file_dir_path: str
-    :param update_real_output: If update the corresponding file in real.exe output directory.
-    :type update_real_output: bool
-    """
-    DFI(input_file_dir_path, update_real_output, WRFRUNConfig.get_core_num())
-
-
 class_list = [GeoGrid, LinkGrib, UnGrib, MetGrid, Real, WRF]
 class_id_list = ["geogrid", "link_grib", "ungrib", "metgrid", "real", "wrf"]
 
@@ -851,4 +788,4 @@ for _class, _id in zip(class_list, class_id_list):
     if not WRFRUNExecDB.is_registered(_id):
         WRFRUNExecDB.register_exec(_id, _class)
 
-__all__ = ["GeoGrid", "LinkGrib", "UnGrib", "MetGrid", "Real", "WRF", "geogrid", "ungrib", "metgrid", "real", "wrf", "dfi"]
+__all__ = ["GeoGrid", "LinkGrib", "UnGrib", "MetGrid", "Real", "WRF", "DFI"]

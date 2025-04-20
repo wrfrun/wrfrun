@@ -152,6 +152,11 @@ class _ExecutableConfigRecord:
         if self._initialized:
             return
 
+        if save_path is None:
+            WRFRUNConfig.IS_RECORDING = False
+        else:
+            WRFRUNConfig.IS_RECORDING = True
+
         self.save_path = save_path
         self.include_data = include_data
 
@@ -651,7 +656,7 @@ class ExecutableBase:
         self.exec()
         self.after_exec()
 
-        if not WRFRUNConfig.IS_IN_REPLAY:
+        if not WRFRUNConfig.IS_IN_REPLAY and WRFRUNConfig.IS_RECORDING:
             ExecConfigRecorder.record(self.export_config())
 
 

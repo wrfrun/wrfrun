@@ -49,11 +49,6 @@ wrfda_path = ''
 # static geographic data path
 geog_data_path = '/path/to/your/geog/data'
 
-# Path of the base namelist file.
-# You can provide your base namelist, and wrfrun will read its contents as the default values for simulations.
-# You may leave it empty to use the default namelist template provided by wrfrun.
-#base_namelist = ''
-
 # Your can give your custom namelist files here.
 # The value in it will overwrite the default value in the namelist template file.
 user_wps_namelist = ''

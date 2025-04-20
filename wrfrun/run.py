@@ -41,7 +41,7 @@ class WRFRun:
     _instance = None
     _initialized = False
 
-    def __init__(self, config_file: str, init_workspace=True, start_server=True, pbs_mode=True, prepare_wps_data=False, wps_data_area: Optional[Tuple[int, int, int, int]] = None,
+    def __init__(self, config_file: str, init_workspace=True, start_server=False, pbs_mode=False, prepare_wps_data=False, wps_data_area: Optional[Tuple[int, int, int, int]] = None,
                  generate_replay_file: Optional[str] = None, replay_include_data=False):
         """
         WRFRun, a context class to achieve some goals before and after running WRF, like save a copy of config file, start and close WRFRunServer.
@@ -151,7 +151,7 @@ class WRFRun:
         if self.start_server:
             stop_server(self.ip, self.port)     # type: ignore
 
-        if exc_type is None:
+        if exc_type is None and WRFRUNConfig.IS_RECORDING:
             self._WRFRUNReplay.export_replay_file()
             self._WRFRUNReplay.clear_records()
 

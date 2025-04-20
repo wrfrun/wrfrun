@@ -144,6 +144,8 @@ class _WRFRunConstants:
 
         self.IS_IN_REPLAY = False
 
+        self.IS_RECORDING = False
+
     def _get_uri_map(self) -> dict[str, str]:
         """
         Return uri and its value.
