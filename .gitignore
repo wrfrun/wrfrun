@@ -19,3 +19,5 @@ docs/build
 test.*
 config.yaml
 main.py
+.python-version
+uv.lock

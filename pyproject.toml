@@ -7,19 +7,33 @@ name = "wrfrun"
 version = "0.1.6"
 readme = "README.md"
 license = { text = "GPL-3.0-or-later" }
-requires-python = '>=3.10'
+requires-python = '<3.11'
 authors = [{name = "Syize", email = "syizeliu@gmail.com"}]
 maintainers = [
     { name = "Syize", email = "syizeliu@gmail.com" },
 ]
 keywords = [ "WRF", ]
 description = "wrfrun is a comprehensive toolkit for managing and using WRF"
-dependencies = ["xarray", "netCDF4", "rich", "pandas", "f90nml", "cdsapi", "matplotlib", "Cartopy", "wrf-python", "cfgrib", "tomli", "tomli-w"]
+dependencies = [
+    "numpy<2.0.0",
+    "xarray",
+    "netCDF4",
+    "rich",
+    "pandas",
+    "f90nml",
+    "cdsapi",
+    "matplotlib",
+    "Cartopy",
+    "wrf-python",
+    "cfgrib",
+    "tomli",
+    "tomli-w"
+]
 
 [project.urls]
 homepage = "https://github.com/Syize/wrfrun"
 repository = "https://github.com/Syize/wrfrun"
-documentation = "https://github.com/Syize/wrfrun/wiki"
+documentation = "https://wrfrun.syize.cn"
 "Bug Tracker" = "https://github.com/Syize/wrfrun/issues"
 
 [tool.poetry]
