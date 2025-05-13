@@ -299,7 +299,7 @@ class MetGrid(ExecutableBase):
         WRFRUNConfig.check_wrfrun_context(True)
         WRFRUNConfig.WRFRUN_WORK_STATUS = "metgrid"
 
-        if not WRFRUNConfig.IS_IN_REPLAY:
+        if not WRFRUNConfig.IS_IN_REPLAY and not WRFRUNConfig.FAKE_SIMULATION_MODE:
             # check input of metgrid.exe
             # try to search input files in the output path if workspace is clear.
             file_list = listdir(WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WPS_WORK_PATH))
@@ -415,7 +415,7 @@ class Real(ExecutableBase):
         WRFRUNConfig.check_wrfrun_context(True)
         WRFRUNConfig.WRFRUN_WORK_STATUS = "real"
 
-        if not WRFRUNConfig.IS_IN_REPLAY:
+        if not WRFRUNConfig.IS_IN_REPLAY and not WRFRUNConfig.FAKE_SIMULATION_MODE:
             if self.metgrid_data_path is None:
                 self.metgrid_data_path = f"{WRFRUNConfig.WRFRUN_OUTPUT_PATH}/metgrid"
 
@@ -503,12 +503,21 @@ class WRF(ExecutableBase):
 
     def before_exec(self):
         WRFRUNConfig.check_wrfrun_context(True)
+        # help wrfrun to make sure the input file is from real or ndown.
+        last_work_status = WRFRUNConfig.WRFRUN_WORK_STATUS
+        if last_work_status not in ["real", "ndown"]:
+            last_work_status = ""
         WRFRUNConfig.WRFRUN_WORK_STATUS = "wrf"
 
-        if not WRFRUNConfig.IS_IN_REPLAY:
+        if not WRFRUNConfig.IS_IN_REPLAY and not WRFRUNConfig.FAKE_SIMULATION_MODE:
             if self.input_file_dir_path is None:
-                self.input_file_dir_path = f"{WRFRUNConfig.WRFRUN_OUTPUT_PATH}/real"
-                is_output = True
+                if last_work_status == "":
+                    # assume we already have outputs from real.exe.
+                    self.input_file_dir_path = f"{WRFRUNConfig.WRFRUN_OUTPUT_PATH}/real"
+                    is_output = False
+                else:
+                    self.input_file_dir_path = f"{WRFRUNConfig.WRFRUN_OUTPUT_PATH}/{last_work_status}"
+                    is_output = True
 
             else:
                 is_output = False
@@ -624,7 +633,7 @@ class DFI(ExecutableBase):
         WRFRUNConfig.check_wrfrun_context(True)
         WRFRUNConfig.WRFRUN_WORK_STATUS = "dfi"
 
-        if not WRFRUNConfig.IS_IN_REPLAY:
+        if not WRFRUNConfig.IS_IN_REPLAY and not WRFRUNConfig.FAKE_SIMULATION_MODE:
             # prepare config
             if self.input_file_dir_path is None:
                 self.input_file_dir_path = f"{WRFRUNConfig.WRFRUN_OUTPUT_PATH}/real"
@@ -665,7 +674,7 @@ class DFI(ExecutableBase):
         super().after_exec()
 
         parsed_output_save_path = WRFRUNConfig.parse_resource_uri(self._output_save_path)
-        if self.update_real_output:
+        if self.update_real_output and not WRFRUNConfig.FAKE_SIMULATION_MODE:
             real_dir_path = WRFRUNConfig.parse_resource_uri(self.input_file_dir_path)
 
             move(f"{real_dir_path}/wrfinput_d01", f"{real_dir_path}/wrfinput_d01_before_dfi")
@@ -686,10 +695,10 @@ class NDown(ExecutableBase):
 
         :param wrfout_file_path: wrfout file path.
         :type wrfout_file_path: str
-        :param real_output_dir_path: 
-        :type real_output_dir_path:
-        :param update_namelist:
-        :type update_namelist:
+        :param real_output_dir_path: Path of the directory that contains output of "real.exe".
+        :type real_output_dir_path: str
+        :param update_namelist: If update wrf's namelist for the final integral.
+        :type update_namelist: bool
         :param core_num:
         :type core_num:
         """
@@ -715,8 +724,6 @@ class NDown(ExecutableBase):
         self.real_output_dir_path = real_output_dir_path
         self.update_namelist = update_namelist
 
-        raise NotImplementedError("NDown hasn't been implemented yet.")
-
     def generate_custom_config(self):
         self.class_config["class_args"] = (self.wrfout_file_path,)
         self.custom_config.update(
@@ -735,6 +742,10 @@ class NDown(ExecutableBase):
     def before_exec(self):
         WRFRUNConfig.check_wrfrun_context(True)
         WRFRUNConfig.WRFRUN_WORK_STATUS = "ndown"
+
+        # we need to make sure time_control.io_form_auxinput2 is 2.
+        # which means the format of input stream 2 is NetCDF.
+        WRFRUNConfig.update_namelist({"time_control": {"io_form_auxinput2": 2}}, "wrf")
 
         if self.real_output_dir_path is None:
             self.real_output_dir_path = f"{WRFRUNConfig.WRFRUN_OUTPUT_PATH}/real"
@@ -762,11 +773,14 @@ class NDown(ExecutableBase):
 
         super().before_exec()
 
-        # need to process namelist
+        WRFRUNConfig.write_namelist(f"{WRFRUNConfig.WRF_WORK_PATH}/{NamelistName.WRF}", "wrf")
 
     def after_exec(self):
         self.add_output_files(save_path=self._log_save_path, startswith="rsl.", outputs="namelist.input")
         self.add_output_files(save_path=self._output_save_path, outputs=["wrfinput_d02", "wrfbdy_d02"])
+        # also save other outputs of real.exe, so WRF can directly use them.
+        self.add_output_files(output_dir=f"{WRFRUNConfig.WRFRUN_OUTPUT_PATH}/real", save_path=self._output_save_path,
+                              startswith="wrflowinp_", no_file_error=False)
 
         super().after_exec()
 
@@ -781,11 +795,11 @@ class NDown(ExecutableBase):
             process_after_ndown()
 
 
-class_list = [GeoGrid, LinkGrib, UnGrib, MetGrid, Real, WRF]
-class_id_list = ["geogrid", "link_grib", "ungrib", "metgrid", "real", "wrf"]
+class_list = [GeoGrid, LinkGrib, UnGrib, MetGrid, Real, WRF, NDown]
+class_id_list = ["geogrid", "link_grib", "ungrib", "metgrid", "real", "wrf", "ndown"]
 
 for _class, _id in zip(class_list, class_id_list):
     if not WRFRUNExecDB.is_registered(_id):
         WRFRUNExecDB.register_exec(_id, _class)
 
-__all__ = ["GeoGrid", "LinkGrib", "UnGrib", "MetGrid", "Real", "WRF", "DFI"]
+__all__ = ["GeoGrid", "LinkGrib", "UnGrib", "MetGrid", "Real", "WRF", "DFI", "NDown"]

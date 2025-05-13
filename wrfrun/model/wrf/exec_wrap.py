@@ -2,7 +2,7 @@ from os.path import basename
 from typing import Optional, Union
 
 from wrfrun import WRFRUNConfig
-from .core import DFI, GeoGrid, MetGrid, Real, UnGrib, WRF
+from .core import DFI, GeoGrid, MetGrid, Real, UnGrib, WRF, NDown
 
 
 def geogrid(geogrid_tbl_file: Union[str, None] = None):
@@ -79,7 +79,23 @@ def dfi(input_file_dir_path: Optional[str] = None, update_real_output=True):
     :param update_real_output: If update the corresponding file in real.exe output directory.
     :type update_real_output: bool
     """
-    DFI(input_file_dir_path, update_real_output, WRFRUNConfig.get_core_num())
+    DFI(input_file_dir_path, update_real_output, WRFRUNConfig.get_core_num())()
 
 
-__all__ = ["geogrid", "ungrib", "metgrid", "real", "wrf", "dfi"]
+def ndown(wrfout_file_path: str, real_output_dir_path: Optional[str] = None, update_namelist=True):
+    """
+    Execute "ndown.exe".
+
+    :param wrfout_file_path: wrfout file path.
+    :type wrfout_file_path: str
+    :param real_output_dir_path: Path of the directory that contains output of "real.exe".
+    :type real_output_dir_path: str
+    :param update_namelist: If update wrf's namelist for the final integral.
+    :type update_namelist: bool
+    :return:
+    :rtype:
+    """
+    NDown(wrfout_file_path, real_output_dir_path, update_namelist, WRFRUNConfig.get_core_num())()
+
+
+__all__ = ["geogrid", "ungrib", "metgrid", "real", "wrf", "dfi", "ndown"]

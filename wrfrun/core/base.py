@@ -513,6 +513,9 @@ class ExecutableBase:
         :return:
         :rtype:
         """
+        if WRFRUNConfig.FAKE_SIMULATION_MODE:
+            return
+
         if output_dir is None:
             output_dir = self.work_path
 
@@ -569,6 +572,10 @@ class ExecutableBase:
         :return:
         :rtype:
         """
+        if WRFRUNConfig.FAKE_SIMULATION_MODE:
+            logger.info(f"We are in fake simulation mode, skip preparing input files for '{self.name}'")
+            return
+
         for input_file in self.input_file_config:
             file_path = input_file["file_path"]
             save_path = input_file["save_path"]
@@ -601,6 +608,10 @@ class ExecutableBase:
         :return: 
         :rtype: 
         """
+        if WRFRUNConfig.FAKE_SIMULATION_MODE:
+            logger.info(f"We are in fake simulation mode, skip saving outputs for '{self.name}'")
+            return
+
         for output_file in self.output_file_config:
             file_path = output_file["file_path"]
             save_path = output_file["save_path"]
@@ -639,11 +650,17 @@ class ExecutableBase:
                 self.cmd = [self.cmd, ]
 
             logger.info(f"Running `{' '.join(self.cmd)}` ...")
-            call_subprocess(self.cmd, work_path=work_path)
+            _cmd = self.cmd
 
         else:
             logger.info(f"Running `{self.mpi_cmd} --oversubscribe -np {self.mpi_core_num} {self.cmd}` ...")
-            call_subprocess([self.mpi_cmd, "--oversubscribe", "-np", str(self.mpi_core_num), self.cmd], work_path=work_path)
+            _cmd = [self.mpi_cmd, "--oversubscribe", "-np", str(self.mpi_core_num), self.cmd]
+
+        if WRFRUNConfig.FAKE_SIMULATION_MODE:
+            logger.info(f"We are in fake simulation mode, skip calling numerical model for '{self.name}'")
+            return
+
+        call_subprocess(_cmd, work_path=work_path)
 
     def __call__(self):
         """
