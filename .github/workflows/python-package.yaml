@@ -9,6 +9,8 @@ jobs:
   release-build:
     name: Build Python Package
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
   
     steps:
       - name: Check out repository code of master branch
@@ -25,7 +27,7 @@ jobs:
         run: pip install build twine meson
 
       - name: Build Python Package
-        run: python -m build --sdist ${{ github.workspace }}
+        run: python -m build ${{ github.workspace }}
 
       - name: upload windows dists
         uses: actions/upload-artifact@v4
