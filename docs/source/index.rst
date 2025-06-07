@@ -46,3 +46,13 @@ These sections will explain important concepts of ``wrfrun`` and help you unders
    :caption: User guide:
 
    documentation/index
+
+API reference
+*************
+
+:doc:`/api/index` contains a detailed description of the ``wrfrun`` API. It describes how the methods work and which parameters can be used.
+
+.. toctree:: 
+   :hidden:
+
+   api/index

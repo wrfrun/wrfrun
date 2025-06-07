@@ -49,11 +49,6 @@ wrfda_path = ''
 # static geographic data path
 geog_data_path = '/path/to/your/geog/data'
 
-# Path of the base namelist file.
-# You can provide your base namelist, and wrfrun will read its contents as the default values for simulations.
-# You may leave it empty to use the default namelist template provided by wrfrun.
-#base_namelist = ''
-
 # Your can give your custom namelist files here.
 # The value in it will overwrite the default value in the namelist template file.
 user_wps_namelist = ''
@@ -67,9 +62,10 @@ restart_mode = false
 
 [model.wrf.time]
 # Advance time config for WRF
-# Set the start date, end date
-start_date = 2021-03-24T12:00:00Z
-end_date = 2021-03-26T00:00:00Z
+# Set the start and end date. It will be used for all domains.
+# You can also provide all the dates as a list, with each date for the corresponding domain.
+start_date = 2021-03-24T12:00:00Z   # or [2021-03-24T12:00:00Z, 2021-03-24T12:00:00Z]
+end_date = 2021-03-26T00:00:00Z     # or [2021-03-26T00:00:00Z, 2021-03-24T12:00:00Z]
 
 # Set input data time interval. Unit: seconds
 input_data_interval = 10800

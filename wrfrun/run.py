@@ -41,8 +41,7 @@ class WRFRun:
     _instance = None
     _initialized = False
 
-    def __init__(self, config_file: str, init_workspace=True, start_server=True, pbs_mode=True, prepare_wps_data=False, wps_data_area: Optional[Tuple[int, int, int, int]] = None,
-                 generate_replay_file: Optional[str] = None, replay_include_data=False):
+    def __init__(self, config_file: str, init_workspace=True, start_server=False, pbs_mode=False, prepare_wps_data=False, wps_data_area: Optional[Tuple[int, int, int, int]] = None):
         """
         WRFRun, a context class to achieve some goals before and after running WRF, like save a copy of config file, start and close WRFRunServer.
 
@@ -52,35 +51,33 @@ class WRFRun:
         :param pbs_mode: If commit this task to the PBS system, defaults to True.
         :param prepare_wps_data: If True, download input datas for WPS first.
         :param wps_data_area: If ``prepare_wps_data==True``, you need to give the area range of input data so download function can download data from ERA5.
-        :param generate_replay_file: Provide a file path to save replay configs.
-        :type generate_replay_file: str
-        :param replay_include_data: If include input data in replay configs.
-        :type replay_include_data: bool
         :return:
         """
         if self._initialized:
             return
 
         # variables for running WRFRunServer
-        self.start_server = start_server
-        self.wrfrun_server: Union[WRFRunServer, None] = None
-        self.wrfrun_server_thread: Union[threading.Thread, None] = None
-        self.ip = ""
-        self.port = -1
+        self._start_server = start_server
+        self._wrfrun_server: Union[WRFRunServer, None] = None
+        self._wrfrun_server_thread: Union[threading.Thread, None] = None
+        self._ip = ""
+        self._port = -1
 
-        self.pbs_mode = pbs_mode
-        self.init_workspace = init_workspace
-        self.prepare_wps_data = prepare_wps_data
-        self.wps_data_area = wps_data_area
-        self.entry_file_path = abspath(sys.argv[0])
-        self.entry_file_dir_path = dirname(self.entry_file_path)
+        self._pbs_mode = pbs_mode
+        self._init_workspace = init_workspace
+        self._prepare_wps_data = prepare_wps_data
+        self._wps_data_area = wps_data_area
+        self._entry_file_path = abspath(sys.argv[0])
+        self._entry_file_dir_path = dirname(self._entry_file_path)
         self._replay_configs = None
 
         # make sure we can read the config file, because sometimes the user may run the Python script in a different path.
-        abs_config_path = f"{self.entry_file_dir_path}/{config_file}"
+        abs_config_path = f"{self._entry_file_dir_path}/{config_file}"
         WRFRUNConfig.load_wrfrun_config(abs_config_path)
 
-        self._WRFRUNReplay = ExecConfigRecorder.reinit(save_path=generate_replay_file, include_data=replay_include_data)
+        self._record_output_path = None
+        self._record_include_data = False
+        self._WRFRUNReplay = ExecConfigRecorder
 
         self._initialized = True
 
@@ -95,29 +92,29 @@ class WRFRun:
         check_list = [WRFRUNConfig.WPS_WORK_PATH, WRFRUNConfig.WRF_WORK_PATH, WRFRUNConfig.WRFDA_WORK_PATH]
         check_list = [WRFRUNConfig.parse_resource_uri(x) for x in check_list]
         for _path in check_list:
-            if not exists(_path) and not self.init_workspace:
+            if not exists(_path) and not self._init_workspace:
                 logger.info(f"Force re-create workspace because it is broken.")
-                self.init_workspace = True
+                self._init_workspace = True
                 break
 
         # here is the condition we need to initialize workspace:
         # 1. pbs_mode = True and init_workspace = True, do prepare_workspace before committing the task to the PBS system.
         # 2. pbs_mode = False and init_workspace = True, do prepare_workspace.
-        if self.pbs_mode and not in_pbs():
-            if self.init_workspace:
+        if self._pbs_mode and not in_pbs():
+            if self._init_workspace:
                 prepare_workspace()
 
             # ask user before commit the task
             confirm_model_area()
 
-            prepare_pbs_script(self.entry_file_path)
+            prepare_pbs_script(self._entry_file_path)
 
-            call_subprocess(["qsub", f"{self.entry_file_dir_path}/run.sh"])
+            call_subprocess(["qsub", f"{self._entry_file_dir_path}/run.sh"])
             logger.info(f"Work has been submit to PBS system")
             exit(0)
 
-        elif not self.pbs_mode:
-            if self.init_workspace:
+        elif not self._pbs_mode:
+            if self._init_workspace:
                 prepare_workspace()
 
             confirm_model_area()
@@ -126,7 +123,7 @@ class WRFRun:
         WRFRUNConfig.save_wrfrun_config(f"{WRFRUNConfig.WRFRUN_OUTPUT_PATH}/config.toml")
 
         # check if we need to start a server
-        if self.start_server:
+        if self._start_server:
             # start server
             self._start_wrfrun_server()
 
@@ -135,12 +132,12 @@ class WRFRun:
 
         logger_add_file_handler(WRFRUNConfig.get_log_path())
 
-        if self.prepare_wps_data:
-            if self.wps_data_area is None:
+        if self._prepare_wps_data:
+            if self._wps_data_area is None:
                 logger.error(f"If you want wrfrun preparing data, you need to give `wps_data_area`")
                 raise ValueError(f"If you want wrfrun preparing data, you need to give `wps_data_area`")
             else:
-                prepare_wps_input_data(self.wps_data_area)
+                prepare_wps_input_data(self._wps_data_area)
 
         logger.info(r"Enter wrfrun context")
 
@@ -148,10 +145,10 @@ class WRFRun:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         # stop thread if needed
-        if self.start_server:
-            stop_server(self.ip, self.port)     # type: ignore
+        if self._start_server:
+            stop_server(self._ip, self._port)     # type: ignore
 
-        if exc_type is None:
+        if exc_type is None and WRFRUNConfig.IS_RECORDING:
             self._WRFRUNReplay.export_replay_file()
             self._WRFRUNReplay.clear_records()
 
@@ -173,27 +170,45 @@ class WRFRun:
         start_date = WRFRUNConfig.get_model_config("wrf")["time"]["start_date"]
         end_date = WRFRUNConfig.get_model_config("wrf")["time"]["end_date"]
 
+        start_date = start_date[0] if isinstance(start_date, list) else start_date
+        end_date = end_date[0] if isinstance(end_date, list) else end_date
+
         # calculate simulate seconds
         time_delta = end_date - start_date
         simulate_seconds = time_delta.days * 24 * 60 * 60 + time_delta.seconds
 
         # init server
-        self.wrfrun_server = WRFRunServer(
+        self._wrfrun_server = WRFRunServer(
             start_date, simulate_seconds, (socket_ip, socket_port),
             WRFRunServerHandler
         )
 
         # get ip and port from instance, because the port may change
-        self.ip, self.port = self.wrfrun_server.server_address
+        self._ip, self._port = self._wrfrun_server.server_address
 
-        logger.info(f"Start socket server on {self.ip}:{self.port}")
+        logger.info(f"Start socket server on {self._ip}:{self._port}")
 
         # start server thread
-        self.wrfrun_server_thread = threading.Thread(
-            target=self.wrfrun_server.serve_forever
+        self._wrfrun_server_thread = threading.Thread(
+            target=self._wrfrun_server.serve_forever
         )
-        self.wrfrun_server_thread.daemon = True
-        self.wrfrun_server_thread.start()
+        self._wrfrun_server_thread.daemon = True
+        self._wrfrun_server_thread.start()
+
+    def record_simulation(self, output_path: str, include_data=False):
+        """
+        Change settings, so wrfrun can record simulation and generate a replay file.
+
+        :param output_path: Output file path.
+        :type output_path: str
+        :param include_data: If includes data.
+        :type include_data: bool
+        :return:
+        :rtype:
+        """
+        self._record_output_path = output_path
+        self._record_include_data = include_data
+        self._WRFRUNReplay = self._WRFRUNReplay.reinit(save_path=output_path, include_data=include_data)
 
     def replay_simulation(self, replay_file: str):
         """

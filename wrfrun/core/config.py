@@ -144,6 +144,12 @@ class _WRFRunConstants:
 
         self.IS_IN_REPLAY = False
 
+        self.IS_RECORDING = False
+
+        # in this mode, wrfrun will do all things except call the numerical model.
+        # all output rules will also not be executed.
+        self.FAKE_SIMULATION_MODE = False
+
     def _get_uri_map(self) -> dict[str, str]:
         """
         Return uri and its value.

@@ -1,9 +1,41 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from os.path import exists
+from typing import Union
 
 from wrfrun.core import WRFRUNConfig
 from wrfrun.res import NAMELIST_DFI, NAMELIST_WPS, NAMELIST_WRF, NAMELIST_WRFDA
+from wrfrun.utils import logger
 from .scheme import *
+
+
+def _check_start_end_date(max_dom: int, start_date: Union[datetime, list[datetime]], end_date: Union[datetime, list[datetime]]) -> tuple[list[datetime], list[datetime]]:
+    """
+    Format start date and end date.
+
+    :param max_dom: Domain number.
+    :type max_dom: int
+    :param start_date: Date list parsed from the config file.
+    :type start_date: datetime | list
+    :param end_date: Date list parsed from the config file.
+    :type end_date: datetime | list
+    :return: Formated date list.
+    :rtype: list
+    """
+    if isinstance(start_date, datetime):
+        start_date = [start_date for _ in range(max_dom)]
+    elif isinstance(start_date, list):
+        if len(start_date) != max_dom:
+            logger.error(f"You have {max_dom} domains, but you only give {len(start_date)} dates for `start_date`.")
+            raise ValueError(f"You have {max_dom} domains, but you only give {len(start_date)} dates for `start_date`.")
+
+    if isinstance(end_date, datetime):
+        end_date = [end_date for _ in range(max_dom)]
+    elif isinstance(end_date, list):
+        if len(end_date) != max_dom:
+            logger.error(f"You have {max_dom} domains, but you only give {len(end_date)} dates for `start_date`.")
+            raise ValueError(f"You have {max_dom} domains, but you only give {len(end_date)} dates for `start_date`.")
+
+    return start_date, end_date
 
 
 def prepare_wps_namelist():
@@ -15,26 +47,26 @@ def prepare_wps_namelist():
     WRFRUNConfig.read_namelist(WRFRUNConfig.parse_resource_uri(NAMELIST_WPS), "wps")
     wrf_config = WRFRUNConfig.get_model_config("wrf")
 
-    # # get domain number
+    # get domain number
     max_dom = wrf_config["domain"]["domain_num"]
 
-    # # get start_date and end_date
+    # get start_date and end_date
     start_date = wrf_config["time"]["start_date"]
     end_date = wrf_config["time"]["end_date"]
 
-    # # get input data time interval
+    start_date, end_date = _check_start_end_date(max_dom, start_date, end_date)
+    start_date = [x.strftime("%Y-%m-%d_%H:%M:%S") for x in start_date]
+    end_date = [x.strftime("%Y-%m-%d_%H:%M:%S") for x in end_date]
+
+    # get input data time interval
     interval_seconds = wrf_config["time"]["input_data_interval"]
 
-    # # generate update settings based on the config file
+    # generate update settings based on the config file
     update_value = {
         "share": {
             "max_dom": max_dom,
-            "start_date": [
-                start_date.strftime("%Y-%m-%d_%H:%M:%S") for _ in range(max_dom)
-            ],
-            "end_date": [
-                end_date.strftime("%Y-%m-%d_%H:%M:%S") for _ in range(max_dom)
-            ],
+            "start_date": start_date,
+            "end_date": end_date,
             "interval_seconds": interval_seconds
         },
         "geogrid": {
@@ -85,8 +117,10 @@ def prepare_wrf_namelist():
     max_dom = wrf_config["domain"]["domain_num"]
     start_date = wrf_config["time"]["start_date"]
     end_date = wrf_config["time"]["end_date"]
+    
+    start_date, end_date = _check_start_end_date(max_dom, start_date, end_date)
 
-    # get time interval of input data and output data
+    # get the time interval of input data and output data
     input_data_interval = wrf_config["time"]["input_data_interval"]
     output_data_interval = wrf_config["time"]["output_data_interval"]
 
@@ -96,11 +130,11 @@ def prepare_wrf_namelist():
     if restart_interval < 0:
         restart_interval = output_data_interval
 
-    # get time step of integral
+    # get the time step of integral
     time_step = wrf_config["time"]["time_step"]
 
     # calculate run hours
-    run_hours = end_date - start_date
+    run_hours = end_date[0] - start_date[0]
     run_hours = run_hours.days * 24 + run_hours.seconds // 3600
 
     # calculate dx and dy for each domain
@@ -118,18 +152,18 @@ def prepare_wrf_namelist():
             "run_minutes": 0,
             "run_seconds": 0,
             "run_hours": run_hours,
-            "start_year": [start_date.year for _ in range(max_dom)],
-            "start_month": [start_date.month for _ in range(max_dom)],
-            "start_day": [start_date.day for _ in range(max_dom)],
-            "start_hour": [start_date.hour for _ in range(max_dom)],
-            "start_minute": [start_date.minute for _ in range(max_dom)],
-            "start_second": [start_date.second for _ in range(max_dom)],
-            "end_year": [end_date.year for _ in range(max_dom)],
-            "end_month": [end_date.month for _ in range(max_dom)],
-            "end_day": [end_date.day for _ in range(max_dom)],
-            "end_hour": [end_date.hour for _ in range(max_dom)],
-            "end_minute": [end_date.minute for _ in range(max_dom)],
-            "end_second": [end_date.second for _ in range(max_dom)],
+            "start_year": [_date.year for _date in start_date],
+            "start_month": [_date.month for _date in start_date],
+            "start_day": [_date.day for _date in start_date],
+            "start_hour": [_date.hour for _date in start_date],
+            "start_minute": [_date.minute for _date in start_date],
+            "start_second": [_date.second for _date in start_date],
+            "end_year": [_date.year for _date in end_date],
+            "end_month": [_date.month for _date in end_date],
+            "end_day": [_date.day for _date in end_date],
+            "end_hour": [_date.hour for _date in end_date],
+            "end_minute": [_date.minute for _date in end_date],
+            "end_second": [_date.second for _date in end_date],
             "interval_seconds": input_data_interval,
             "history_interval": [output_data_interval for _ in range(max_dom)],
             "auxinput4_interval": [input_data_interval // 60 for _ in range(max_dom)],
@@ -152,7 +186,7 @@ def prepare_wrf_namelist():
         "physics": {}
     }
 
-    # and we need to check physics scheme option
+    # and we need to check the physics scheme option
     long_wave_scheme = {
         "ra_lw_physics": [SchemeLongWave.get_scheme_id(wrf_config["scheme"]["long_wave_scheme"]["name"]) for _ in range(max_dom)]
     }
@@ -224,6 +258,7 @@ def prepare_dfi_namelist():
 
     # Read start date and end date
     start_date = wrf_config["time"]["start_date"]
+    start_date = start_date[0] if isinstance(start_date, list) else start_date
     input_data_interval = wrf_config["time"]["input_data_interval"]
     time_step = wrf_config["time"]["time_step"]
     # calculate dfi date because:
@@ -247,7 +282,7 @@ def prepare_dfi_namelist():
             "run_hours": 0,
             "run_minutes": 0,
             "run_seconds": 0,
-            # start date and end date is same
+            # start date and end date are same
             "start_year": [start_date.year],
             "start_month": [start_date.month],
             "start_day": [start_date.day],
@@ -313,6 +348,7 @@ def prepare_wrfda_namelist():
 
     # get wrf start date
     start_date = wrf_config["time"]["start_date"]
+    start_date = start_date[0] if isinstance(start_date, list) else start_date
 
     # generate update value
     update_value = {
