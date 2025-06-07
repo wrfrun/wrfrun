@@ -5,8 +5,8 @@ from shutil import copyfile, move
 from wrfrun.core import WRFRUNConfig
 from wrfrun.res import EXT_NCL_PLOT_SCRIPT
 from wrfrun.utils import call_subprocess, check_path, logger
-from .wrf.namelist import prepare_wps_namelist
 from .base import NamelistName
+from .wrf.namelist import prepare_wps_namelist
 
 
 def plot_domain_area():

@@ -12,29 +12,29 @@ from xarray import DataArray
 from wrfrun.utils import logger
 
 # Here defines the colormap for landuse and soiltype
-LANDUSE_CMAP = ListedColormap([
-    [0, .4, 0],         # 1 Evergreen Needleleaf Forest
-    [0, .4, .2],        # 2 Evergreen Broadleaf Forest
-    [.2, .8, .2],       # 3 Deciduous Needleleaf Forest
-    [.2, .8, .4],       # 4 Deciduous Broadleaf Forest
-    [.2, .6, .2],       # 5 Mixed Forests
-    [.3, .7, 0],        # 6 Closed Shrublands
-    [.82, .41, .12],    # 7 Open Shurblands
-    [.74, .71, .41],    # 8 Woody Savannas
-    [1, .84, .0],       # 9 Savannas
-    [0, 1, 0],          # 10 Grasslands
-    [0, 1, 1],          # 11 Permanant Wetlands
-    [1, 1, 0],          # 12 Croplands
-    [1, 0, 0],          # 13 Urban and Built-up
-    [.7, .9, .3],       # 14 Cropland/Natual Vegation Mosaic
-    [1, 1, 1],          # 15 Snow and Ice
-    [.914, .914, .7],   # 16 Barren or Sparsely Vegetated
-    [.5, .7, 1],        # 17 Water (like oceans)
-    [.86, .08, .23],    # 18 Wooded Tundra
-    [.97, .5, .31],     # 19 Mixed Tundra
-    [.91, .59, .48],    # 20 Barren Tundra
-    [0, 0, .88],        # 21 Lake
-])
+LANDUSE_CMAP = ListedColormap((
+    [0, .4, 0],         # 1: Evergreen Needleleaf Forest
+    [0, .4, .2],        # 2: Evergreen Broadleaf Forest
+    [.2, .8, .2],       # 3: Deciduous Needleleaf Forest
+    [.2, .8, .4],       # 4: Deciduous Broadleaf Forest
+    [.2, .6, .2],       # 5: Mixed Forests
+    [.3, .7, 0],        # 6: Closed Shrublands
+    [.82, .41, .12],    # 7: Open Shurblands
+    [.74, .71, .41],    # 8: Woody Savannas
+    [1, .84, .0],       # 9: Savannas
+    [0, 1, 0],          # 10: Grasslands
+    [0, 1, 1],          # 11: Permanent Wetlands
+    [1, 1, 0],          # 12: Croplands
+    [1, 0, 0],          # 13: Urban and Built-up
+    [.7, .9, .3],       # 14: Cropland/Natual Vegation Mosaic
+    [1, 1, 1],          # 15: Snow and Ice
+    [.914, .914, .7],   # 16: Barren or Sparsely Vegetated
+    [.5, .7, 1],        # 17: Water (like oceans)
+    [.86, .08, .23],    # 18: Wooded Tundra
+    [.97, .5, .31],     # 19: Mixed Tundra
+    [.91, .59, .48],    # 20: Barren Tundra
+    [0, 0, .88],        # 21: Lake
+))
 
 LANDUSE_LABELS = [
     'Evergreen Needleleaf Forest',
@@ -61,25 +61,25 @@ LANDUSE_LABELS = [
 ]
 
 
-# Here defines the colormap and labels for soil type
-SOILTYPE_CMAP = ListedColormap([
-    [0, .4, 0],         # 1 Sand
-    [0, .4, .2],        # 2 Loamy Sand
-    [.2, .8, .2],       # 3 Sandy Loam
-    [.2, .8, .4],       # 4 Silt Loam
-    [.2, .6, .2],       # 5 Silt
-    [.3, .7, 0],        # 6 Loam
-    [.82, .41, .12],    # 7 Sandy Clay Loam
-    [.74, .71, .41],    # 8 Silty Clay Loam
-    [1, .84, .0],       # 9 Clay Loam
-    [0, 1, 0],          # 10 Sandy Clay
-    [0, 1, 1],          # 11 Silty Clay
-    [1, 1, 0],          # 12 Clay
-    [1, 0, 0],          # 13 Organic Material
-    [.7, .9, .3],       # 14 Water
-    [1, 1, 1],          # 15 Bedrock
-    [.914, .914, .7]    # 16 Other
-])
+# Here defines the colormap and labels for soil types
+SOILTYPE_CMAP = ListedColormap((
+    [0, .4, 0],         # 1: Sand
+    [0, .4, .2],        # 2: Loamy Sand
+    [.2, .8, .2],       # 3: Sandy Loam
+    [.2, .8, .4],       # 4: Silt Loam
+    [.2, .6, .2],       # 5: Silt
+    [.3, .7, 0],        # 6: Loam
+    [.82, .41, .12],    # 7: Sandy Clay Loam
+    [.74, .71, .41],    # 8: Silty Clay Loam
+    [1, .84, .0],       # 9: Clay Loam
+    [0, 1, 0],          # 10: Sandy Clay
+    [0, 1, 1],          # 11: Silty Clay
+    [1, 1, 0],          # 12: Clay
+    [1, 0, 0],          # 13: Organic Material
+    [.7, .9, .3],       # 14: Water
+    [1, 1, 1],          # 15: Bedrock
+    [.914, .914, .7]    # 16: Other
+))
 
 SOILTYPE_LABELS = [
     "Sand",
@@ -102,13 +102,13 @@ SOILTYPE_LABELS = [
 
 
 def get_cmap_ticks(name: str) -> tuple:
-    """Get corresponding colormap, labels and ticks.
+    """
+    Get corresponding colormap, labels and ticks.
 
-    Args:
-        name (str): Field name.
-
-    Returns:
-        tuple: (colormap, labels, ticks)
+    :param name: File name.
+    :type name: str
+    :return: (colormap, labels, ticks)
+    :rtype: tuple
     """
     # name map
     cmap_ticks_map = {
@@ -141,15 +141,23 @@ def get_cmap_ticks(name: str) -> tuple:
 
 
 def draw_geogrid(data_path: str, field: str, fig: Figure, nrow: int, ncol: int, index: int) -> Tuple[GeoAxes, QuadMesh]:
-    """Draw specific data in geo_em*
+    """
+    Draw specific data in geogrid outputs.
 
-    Args:
-        data_path (str): data path.
-        field (str): Which field you want to draw.
-        fig (Figure): Matplotlib figure object.
-        nrow (int): Row number of axes.
-        ncol (int): Column number of axes.
-        index (int): Index of axes.
+    :param data_path: Data path.
+    :type data_path: str
+    :param field: Which field you want to draw.
+    :type field: str
+    :param fig: Matplotlib figure object.
+    :type fig: Figure
+    :param nrow: Row number of axes.
+    :type nrow: int
+    :param ncol: Column number of axes.
+    :type ncol: int
+    :param index: Index of axes.
+    :type index: int
+    :return: (GeoAxes, QuadMesh)
+    :rtype: tuple
     """
     # take out data
     data: DataArray = getvar(Dataset(data_path), field)     # type: ignore
@@ -159,7 +167,7 @@ def draw_geogrid(data_path: str, field: str, fig: Figure, nrow: int, ncol: int, 
         data = data.argmax(dim="soil_cat", keep_attrs=True)     # type: ignore
         # get data attrs
         data_attrs = data.attrs
-        data = data + 1
+        data = data + 1     # type: ignore
         data.attrs = data_attrs
 
     # get latitude and longitude
