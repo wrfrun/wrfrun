@@ -1,6 +1,10 @@
 wrfrun.core
 ###########
 
+The core functionalities of ``wrfrun`` are all implemented in the submodule ``wrfrun.core``, such as processing namelist files, managing resource files required during model's running (e.g., VTable files), calling the numerical model and process its output and log files, monitoring simulation process via model's log, recording and replaying the simulation.
+
+The functionalities are splited into several submodules, which are listed in the table below.
+
 Submodules
 **********
 

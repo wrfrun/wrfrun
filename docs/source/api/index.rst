@@ -17,6 +17,8 @@ API Reference
 Submodules
 **********
 
+Submodules are listed in the table below. They may also contain submodules which belong to themselves. You can check the sidebar on the *left* or refer to their own page for more information.
+
 ================================= ===========================================================
 :doc:`core </api/core>`           ``wrfrun`` core functionalities.
 :doc:`extension </api/extension>` Extensions provide more functionalities.
