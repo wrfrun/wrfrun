@@ -109,7 +109,9 @@ dx = 9000
 dy = 9000
 
 # Projection.
-map_proj = { name = 'lambert', truelat1 = 34.0, truelat2 = 40.0}
+map_proj = 'lambert'
+truelat1 = 34.0
+truelat2 = 40.0
 
 # Central point of the first area.
 ref_lat = 37.0

@@ -79,17 +79,13 @@ def prepare_wps_namelist():
             "dy": wrf_config["domain"]["dy"],
             "ref_lat": wrf_config["domain"]["ref_lat"],
             "ref_lon": wrf_config["domain"]["ref_lon"],
+            "map_proj": wrf_config["domain"]["map_proj"],
+            "truelat1": wrf_config["domain"]["truelat1"],
+            "truelat2": wrf_config["domain"]["truelat2"],
             "stand_lon": wrf_config["domain"]["stand_lon"],
             "geog_data_path": wrf_config["geog_data_path"]
         }
     }
-
-    # # use loop to process config of map_proj
-    for key in wrf_config["domain"]["map_proj"]:
-        if key == "name":
-            update_value["geogrid"]["map_proj"] = wrf_config["domain"]["map_proj"][key]
-        else:
-            update_value["geogrid"][key] = wrf_config["domain"]["map_proj"][key]
 
     # # update namelist
     WRFRUNConfig.update_namelist(update_value, "wps")
