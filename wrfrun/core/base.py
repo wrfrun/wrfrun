@@ -10,6 +10,8 @@ wrfrun.core.base
     InputFileType
     FileConfigDict
     ExecutableClassConfig
+    ExecutableConfig
+    _ExecutableConfigRecord
     ExecutableBase
 """
 
@@ -179,7 +181,57 @@ class ExecutableClassConfig(TypedDict):
 
 class ExecutableConfig(TypedDict):
     """
-    Executable config template.
+    This dict is used to store all configs of a :class:`ExecutableBase`.
+
+    .. py:attribute:: name
+        :type: str
+
+        Name of the executable. Each type of executable has a unique name.
+
+    .. py:attribute:: cmd
+        :type: str | list[str]
+
+        Command of the executable.
+
+    .. py:attribute:: work_path
+        :type: str | None
+
+        Work path of the executable.
+
+    .. py:attribute:: mpi_use
+        :type: bool
+
+        If the executable will use MPI.
+
+    .. py:attribute:: mpi_cmd
+        :type: str | None
+
+        Command name of the MPI.
+
+    .. py:attribute:: mpi_core_num
+        :type: int | None
+
+        Number of the CPU core to use with MPI.
+
+    .. py:attribute:: class_config
+        :type: ExecutableClassConfig | None
+
+        A dict stores arguments of ``Executable``'s ``__init__`` function.
+
+    .. py:attribute:: input_file_config
+        :type: list[FileConfigDict] | None
+
+        A list stores information about input files of the executable.
+
+    .. py:attribute:: output_file_config
+        :type: list[FileConfigDict] | None
+
+        A list stores information about output files of the executable.
+
+    .. py:attribute:: custom_config
+        :type: dict | None
+
+        A dict that can be used by subclass to store other configs.
     """
     name: str
     cmd: Union[str, list[str]]
@@ -195,17 +247,16 @@ class ExecutableConfig(TypedDict):
 
 class _ExecutableConfigRecord:
     """
-    Record executable configs and export them.
+    A class to helps store configs of various executables and exports them to a file.
     """
     _instance = None
     _initialized = False
 
     def __init__(self, save_path: Optional[str] = None, include_data=False):
         """
-        Record executable configs and export them.
 
         :param save_path: Save path of the exported config file.
-        :type save_path: str
+        :type save_path: str | None
         :param include_data: If includes input data.
         :type include_data: bool
         """
@@ -240,8 +291,8 @@ class _ExecutableConfigRecord:
         """
         Reinitialize this instance.
 
-        :return:
-        :rtype:
+        :return: New instance.
+        :rtype: _ExecutableConfigRecord
         """
         self._initialized = False
         return _ExecutableConfigRecord(save_path, include_data)
@@ -252,8 +303,6 @@ class _ExecutableConfigRecord:
 
         :param exported_config: Executable config.
         :type exported_config: ExecutableConfig
-        :return:
-        :rtype:
         """
         if not self.include_data:
             self._recorded_config.append(exported_config)
@@ -297,19 +346,13 @@ class _ExecutableConfigRecord:
 
     def clear_records(self):
         """
-        Clean old configs.
-
-        :return:
-        :rtype:
+        Clean recorded configs.
         """
         self._recorded_config = []
 
     def export_replay_file(self):
         """
-        Save replay file to the specific save path.
-
-        :return:
-        :rtype:
+        Save replay file to the save path.
         """
         if len(self._recorded_config) == 0:
             logger.warning("No replay config has been recorded.")
@@ -352,19 +395,27 @@ class ExecutableBase:
     
     .. py:attribute:: class_config
         :type: ExecutableClassConfig
-        :value: ``{"class_args": (), "class_kwargs": {}}``
+        :value: {"class_args": (), "class_kwargs": {}}
+
+        A dict stores arguments of ``Executable``'s ``__init__`` function.
 
     .. py:attribute:: custom_config
         :type: dict
-        :value: ``{}``
+        :value: {}
+
+        A dict that can be used by subclass to store other configs.
 
     .. py:attribute:: input_file_config
         :type: list[FileConfigDict]
-        :value: ``[]``
+        :value: []
+
+        A list stores information about input files of the executable.
 
     .. py:attribute:: output_file_config
         :type: list[FileConfigDict]
-        :value: ``[]``
+        :value: []
+
+        A list stores information about output files of the executable.
     """
     _instance = None
 
