@@ -21,3 +21,5 @@ config.yaml
 main.py
 .python-version
 uv.lock
+docs/source/api/generated/
+namelist.wps

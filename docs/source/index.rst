@@ -54,5 +54,6 @@ API reference
 
 .. toctree:: 
    :hidden:
+   :maxdepth: 2
 
    api/index
