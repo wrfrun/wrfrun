@@ -16,10 +16,19 @@ What is wrfrun?
 
 ``wrfrun`` is a comprehensive toolkit for managing and using WRF. ``wrfrun`` wraps the WRF model so that the user only needs to call the corresponding Python function to run the corresponding part of the model. ``wrfrun`` avoids cluttering up the user's working directory with a lot of useless files by creating a temporary directory in which the WRF model would be run. ``wrfrun`` automatically saves mode configurations and wrfrun configurations, which makes it easier to manage the simulation and reproduction of different cases. ``wrfrun`` also provides more features through extensions, which help users to do related research better.
 
+Main features
+*************
+
+* Provide Python functions with the same names as WRF executables.
+* Isolate the entire simulation in a temporary directory, avoid messing up your project directory.
+* Automatically save all configurations (including ``wrfrun`` config file and namelist files) after completing simulation.
+* Record your simulation progress, export simulation configurations and data to a ``.replay`` file.
+* Replay simulations based on your provided ``.replay`` file.
+
 Get started
 ***********
 
-You can check the :doc:`usage/installation` and :doc:`usage/quick_start` page to install and explore ``wrfrun``.
+These sections will teach you how to install ``wrfrun``, and help you explore ``wrfrun`` using the same cases from `WRF–ARW Online Tutorial <https://www2.mmm.ucar.edu/wrf/OnLineTutorial/>`_.
 
 .. toctree::
    :maxdepth: 3
@@ -30,7 +39,7 @@ You can check the :doc:`usage/installation` and :doc:`usage/quick_start` page to
 User guide
 **********
 
-These sections will explain basic concepts of ``wrfrun``. You can also find the documentation of ``wrfrun``'s extensions here.
+These sections will explain important concepts of ``wrfrun`` and help you understand how ``wrfrun`` works.
 
 .. toctree::
    :maxdepth: 3
@@ -45,5 +54,6 @@ API reference
 
 .. toctree:: 
    :hidden:
+   :maxdepth: 2
 
    api/index

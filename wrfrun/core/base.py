@@ -1,3 +1,18 @@
+"""
+wrfrun.core.base
+################
+
+.. autosummary::
+    :toctree: generated/
+
+    check_subprocess_status
+    call_subprocess
+    InputFileType
+    FileConfigDict
+    ExecutableClassConfig
+    ExecutableBase
+"""
+
 import subprocess
 from enum import Enum
 from json import dumps
@@ -15,7 +30,8 @@ from ..utils import check_path, logger
 
 def check_subprocess_status(status: subprocess.CompletedProcess):
     """
-    Check subprocess return code and print log if ``return_code != 0``.
+    Check subprocess return code.
+    An ``RuntimeError`` exception will be raised if ``return_code != 0``, and the ``stdout`` and ``stderr`` of the subprocess will be logged.
 
     :param status: Status from subprocess.
     :type status: CompletedProcess
@@ -39,7 +55,7 @@ def check_subprocess_status(status: subprocess.CompletedProcess):
 
 def call_subprocess(command: list[str], work_path: Optional[str] = None, print_output=False):
     """
-    Execute the given command in system shell.
+    Execute the given command in the system shell.
 
     :param command: A list contains the command and parameters to be executed.
     :type command: list
@@ -48,8 +64,6 @@ def call_subprocess(command: list[str], work_path: Optional[str] = None, print_o
     :type work_path: str | None
     :param print_output: If print standard output and error in the logger.
     :type print_output: bool
-    :return:
-    :rtype:
     """
     if work_path is not None:
         origin_path = getcwd()
@@ -88,9 +102,21 @@ def _json_default(obj):
 
 class InputFileType(Enum):
     """
-    Input file type.
-    ``WRFRUN_RES`` means the input file is from the NWP or wrfrun package.
-    ``CUSTOM_RES`` means the input file is from the user, which may be a customized file.
+    This class is an ``Enum`` class, providing the following values:
+
+    .. py:attribute:: WRFRUN_RES
+        :type: int
+        :value: 1
+
+        Indicating resource files are from the model or ``wrfrun``.
+        ``wrfrun`` won't save these files when recording the simulation.
+
+    .. py:attribute:: CUSTOM_RES
+        :type: int
+        :value: 2
+
+        Indicating resource files are provided by the user.
+        ``wrfrun`` will also save these files to ``.replay`` file when recording the simulation to ensure the simulation is replayable.
     """
     WRFRUN_RES = 1
     CUSTOM_RES = 2
@@ -98,7 +124,32 @@ class InputFileType(Enum):
 
 class FileConfigDict(TypedDict):
     """
-    Dict class to give information to process files.
+    This dict is used to store information about the file, including its path, the path it will be copied or moved to, its new name, etc. This dict contains following keys:
+
+    .. py:attribute:: file_path
+        :type: str
+
+        A real file path or a valid URI which can be converted to a file path.
+
+    .. py:attribute:: save_path
+        :type: str
+
+        Save path of the file.
+
+    .. py:attribute:: save_name
+        :type: str
+
+        Save name of the file.
+
+    .. py:attribute:: is_data
+        :type: bool
+
+        If the file is data. If not, ``wrfrun`` will treat it as a config file, and always save it to ``.replay`` file when recording the simulation.
+
+    .. py:attribute:: is_output
+        :type: bool
+
+        If the file is model's output. Output file will never be saved to ``.replay`` file.
     """
     file_path: str
     save_path: str
@@ -109,7 +160,17 @@ class FileConfigDict(TypedDict):
 
 class ExecutableClassConfig(TypedDict):
     """
-    Executable class initialization config template.
+    This dict is used to store arguments of ``Executable``'s ``__init__`` function.
+
+    .. py:attribute:: class_args
+        :type: tuple
+
+        Positional arguments of the class.
+
+    .. py:attribute:: class_kwargs
+        :type: dict
+
+        Keyword arguments of the class.
     """
     # only list essential config
     class_args: tuple
@@ -288,12 +349,27 @@ ExecConfigRecorder = _ExecutableConfigRecord()
 class ExecutableBase:
     """
     Base class for all executables.
+    
+    .. py:attribute:: class_config
+        :type: ExecutableClassConfig
+        :value: ``{"class_args": (), "class_kwargs": {}}``
+
+    .. py:attribute:: custom_config
+        :type: dict
+        :value: ``{}``
+
+    .. py:attribute:: input_file_config
+        :type: list[FileConfigDict]
+        :value: ``[]``
+
+    .. py:attribute:: output_file_config
+        :type: list[FileConfigDict]
+        :value: ``[]``
     """
     _instance = None
 
     def __init__(self, name: str, cmd: Union[str, list[str]], work_path: str, mpi_use=False, mpi_cmd: Optional[str] = None, mpi_core_num: Optional[int] = None):
         """
-        Base class for all executables.
 
         :param name: Unique name to identify different executables.
         :type name: str
@@ -338,19 +414,19 @@ class ExecutableBase:
 
     def generate_custom_config(self):
         """
-        Generate custom configs.
+        :abstractmethod:
 
-        :return:
-        :rtype:
+        Generate custom configs.
+        This method should be overwritten in the child class, or it will do nothing except print a debug log.
         """
         logger.debug(f"Method 'generate_custom_config' not implemented in '{self.name}'")
 
     def load_custom_config(self):
         """
-        Load custom configs.
+        :abstractmethod:
 
-        :return:
-        :rtype:
+        Load custom configs.
+        This method should be overwritten in the child class, or it will do nothing except print a debug log.
         """
         logger.debug(f"Method 'load_custom_config' not implemented in '{self.name}'")
 
@@ -378,12 +454,10 @@ class ExecutableBase:
 
     def load_config(self, config: ExecutableConfig):
         """
-        Load config from a dict.
+        Load executable config from a dict.
 
         :param config: Config dict. It must contain some essential keys. Check ``ExecutableConfig`` for details.
         :type config: ExecutableConfig
-        :return:
-        :rtype:
         """
         if "name" not in config:
             logger.error("A valid config is required. Please check ``ExecutableConfig``.")
@@ -409,23 +483,21 @@ class ExecutableBase:
         """
         This method will be called when replay the simulation.
         This method should take care every job that will be done when replaying the simulation.
-
-        :return:
-        :rtype:
+        By default, this method will call ``__call__`` method of this instance.
         """
         logger.debug(f"Method 'replay' not implemented in '{self.name}', fall back to default action.")
         self()
 
     def add_input_files(self, input_files: Union[str, list[str], FileConfigDict, list[FileConfigDict]], is_data=True, is_output=True):
         """
-        Add input files the extension will use.
+        Add input files the executable will use.
 
         You can give a single file path or a list contains files' path.
 
         >>> self.add_input_files("data/custom_file")
         >>> self.add_input_files(["data/custom_file_1", "data/custom_file_2"])
 
-        You can give more information with a ``FileConfigDict``, like the path and the name to store, and if it is data.
+        You can give more information with a ``FileConfigDict``.
 
         >>> file_dict: FileConfigDict = {
         ...     "file_path": "data/custom_file.nc",
@@ -452,12 +524,14 @@ class ExecutableBase:
         ... }
         >>> self.add_input_files([file_dict_1, file_dict_2])
 
-        :param input_files: Custom files' path.
+        Please check :class:`FileConfigDict` for more details.
+
+        :param input_files: Custom files.
         :type input_files: str | list | dict
-        :param is_data: If its data. This parameter will be overwritten by the value in ``input_files``.
+        :param is_data: If it is a data file. This parameter will be overwritten by the value in ``input_files``.
         :type is_data: bool
-        :return:
-        :rtype:
+        :param is_output: If it is an output from another executable. This parameter will be overwritten by the value in ``input_files``.
+        :type is_output: bool
         """
         if isinstance(input_files, str):
             self.input_file_config.append(
@@ -496,22 +570,39 @@ class ExecutableBase:
         endswith: Union[None, str, tuple[str, ...]] = None, outputs: Union[None, str, list[str]] = None, no_file_error=True
     ):
         """
-        Add save file rules.
+        Find and save model's outputs to the output save path.
+        An ``OutputFileError`` exception will be raised if no file can be found and ``no_file_error==True``.
 
-        :param output_dir: Output dir paths.
+        You can give the specific path of a file or multiple files.
+
+        >>> self.add_output_files(outputs="wrfout.d01")
+        >>> self.add_output_files(outputs=["wrfout.d01", "wrfout.d02"])
+
+        If you have too many outputs, but they have the same prefix or postfix, you can use ``startswith`` or ``endswith``.
+
+        >>> self.add_output_files(startswith="rsl.out.")
+        >>> self.add_output_files(endswith="log")
+        >>> self.add_output_files(startswith=("rsl", "wrfout"), endswith="log")
+
+        ``startswith``, ``endswith`` and ``outputs`` can be used together.
+
+        ``output_dir`` specify the search path of outputs, by default it is the work path of the executable.
+        You can change its value if the output path of the executable isn't its work path.
+
+        >>> self.add_output_files(output_dir=f"/absolute/dir/path", outputs=...)
+
+        :param output_dir: Search path of outputs.
         :type output_dir: str
-        :param save_path: Save path.
+        :param save_path: New save path of outputs. By default, it is ``f"{WRFRUNConfig.WRFRUN_OUTPUT_PATH}/{self.name}"``.
         :type save_path: str
         :param startswith: Prefix string or prefix list of output files.
         :type startswith: str | list
-        :param endswith: Postfix string or Postfix list of output files.
+        :param endswith: Postfix string or postfix list of output files.
         :type endswith: str | list
         :param outputs: Files name list. All files in the list will be saved.
         :type outputs: str | list
-        :param no_file_error: If True, an error will be raised with the ``error_message``. Defaults to True.
+        :param no_file_error: If True, an OutputFileError will be raised if no output file can be found. Defaults to True.
         :type no_file_error: bool
-        :return:
-        :rtype:
         """
         if WRFRUNConfig.FAKE_SIMULATION_MODE:
             return
@@ -567,10 +658,7 @@ class ExecutableBase:
 
     def before_exec(self):
         """
-        Prepare input files.
-
-        :return:
-        :rtype:
+        Prepare input files before executing the external program.
         """
         if WRFRUNConfig.FAKE_SIMULATION_MODE:
             logger.info(f"We are in fake simulation mode, skip preparing input files for '{self.name}'")
@@ -603,10 +691,7 @@ class ExecutableBase:
 
     def after_exec(self):
         """
-        Save outputs and logs.
-        
-        :return: 
-        :rtype: 
+        Save outputs and logs after executing the external program.
         """
         if WRFRUNConfig.FAKE_SIMULATION_MODE:
             logger.info(f"We are in fake simulation mode, skip saving outputs for '{self.name}'")
@@ -639,9 +724,6 @@ class ExecutableBase:
     def exec(self):
         """
         Execute the given command.
-
-        :return:
-        :rtype:
         """
         work_path = WRFRUNConfig.parse_resource_uri(self.work_path)
 
@@ -664,7 +746,7 @@ class ExecutableBase:
 
     def __call__(self):
         """
-        Execute the given command.
+        Execute the given command by calling ``before_exec``, ``exec`` and ``after_exec``.
 
         :return:
         :rtype:

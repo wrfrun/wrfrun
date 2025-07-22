@@ -10,6 +10,7 @@ wrfrun.egg-info/
 .idea/
 data/
 docs/build
+docs/source/api/generated/
 
 **/*.1
 **/*.input_step1

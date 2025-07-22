@@ -1,16 +1,6 @@
 Usage
 #####
 
-Install wrfrun
-**************
-
-You will find how to install ``wrfrun`` at :doc:`installation`.
-
-Quick start
-***********
-
-With a simple simulation of a marine fog case, :doc:`quick_start` will show you how to use basic functions of ``wrfrun`` to run WRF.
-
 .. toctree::
    :maxdepth: 2
    :caption: Usage
@@ -18,3 +8,13 @@ With a simple simulation of a marine fog case, :doc:`quick_start` will show you 
 
    installation
    quick_start
+
+Installation
+************
+
+:doc:`installation` section shows you the way to install ``wrfrun``.
+
+Quick start
+***********
+
+We will simulate Hurricane Matthew with a single domain in :doc:`quick_start`. You can check the corresponding tutorial page in `WRF–ARW Online Tutorial <https://www2.mmm.ucar.edu/wrf/OnLineTutorial/CASES/SingleDomain/index.php>`_ to learn more about this case.
