@@ -2,6 +2,8 @@
 wrfrun.core.base
 ################
 
+Defines what :class:`ExecutableBase <Executable>` is, how it works and how ``wrfrun`` records simulations.
+
 .. autosummary::
     :toctree: generated/
 
@@ -13,6 +15,21 @@ wrfrun.core.base
     ExecutableConfig
     _ExecutableConfigRecord
     ExecutableBase
+
+Executable
+**********
+
+While ``wrfrun`` aims to provide Python interfaces to various Numerical Weather Prediction model,
+it is important to provide a clear standard about how should a external executable file be implemented in ``wrfrun``.
+``wrfrun`` provides a class called :class:`ExecutableBase`, which is the parent class for all ``Executable`` classes.
+It not only provide the method to execute external programs,
+but also:
+
+* Store all the information about the program (e.g., its inputs and outputs, its configuration).
+* Provide the interface to import and export ``Executable``'s config.
+* Support the ``replay`` functionality of ``wrfrun``.
+
+If you want to use all the ``wrfrun``'s features, you **HAVE TO** implement your code with :class:`ExecutableBase`.
 """
 
 import subprocess
