@@ -30,9 +30,20 @@ but also:
 * Support the ``replay`` functionality of ``wrfrun``.
 
 If you want to use all the ``wrfrun``'s features, you **HAVE TO** implement your code with :class:`ExecutableBase`.
+
+ExecConfigRecorder
+******************
+
+To be able to record the whole simulation, ``wrfrun`` introduces the global variable ``ExecConfigRecorder``, 
+which is an instance of class :class:`_ExecutableConfigRecord`.
+``ExecConfigRecorder`` can store the config of any ``Executable`` in the correct order and export them to a JSON file,
+enabling the precise replay of the simulation. Depending on the internal implementation of the ``Executable``,
+the recorded config may even include the complete namelist values, Vtable config, and more.
+Please check :meth:`ExecutableBase.generate_custom_config` for more details.
 """
 
 import subprocess
+from copy import deepcopy
 from enum import Enum
 from json import dumps
 from os import chdir, getcwd, listdir, makedirs, remove, symlink
@@ -420,7 +431,7 @@ class ExecutableBase:
         :type: dict
         :value: {}
 
-        A dict that can be used by subclass to store other configs.
+        A dict that can be used by subclass to store custom configs.
 
     .. py:attribute:: input_file_config
         :type: list[FileConfigDict]
@@ -433,10 +444,12 @@ class ExecutableBase:
         :value: []
 
         A list stores information about output files of the executable.
+
     """
     _instance = None
 
-    def __init__(self, name: str, cmd: Union[str, list[str]], work_path: str, mpi_use=False, mpi_cmd: Optional[str] = None, mpi_core_num: Optional[int] = None):
+    def __init__(self, name: str, cmd: Union[str, list[str]], work_path: str,
+                 mpi_use=False, mpi_cmd: Optional[str] = None, mpi_core_num: Optional[int] = None):
         """
 
         :param name: Unique name to identify different executables.
@@ -482,19 +495,23 @@ class ExecutableBase:
 
     def generate_custom_config(self):
         """
-        :abstractmethod:
+        Generate custom configs. This method should be overwritten in the child class,
+        and **MUST STORE THE CUSTOM CONFIG IN THE ATTRIBUTE** :attr:`ExecutableBase.custom_config`,
+        or it will do nothing except print a debug log.
 
-        Generate custom configs.
-        This method should be overwritten in the child class, or it will do nothing except print a debug log.
+        You can export various configs in this method, like the complete namelist values of a NWP model binary,
+        or the path of Vtable file this executable will use.
+
+        If you overwrite this method to generate custom configs,
+        you also have to overwrite :meth:`ExecutableBase.load_custom_config` to load your custom configs.
         """
         logger.debug(f"Method 'generate_custom_config' not implemented in '{self.name}'")
 
     def load_custom_config(self):
         """
-        :abstractmethod:
-
         Load custom configs.
-        This method should be overwritten in the child class, or it will do nothing except print a debug log.
+        This method should be overwritten in the child class to process the custom config stored in :attr:`ExecutableBase.custom_config`,
+        or it will do nothing except print a debug log.
         """
         logger.debug(f"Method 'load_custom_config' not implemented in '{self.name}'")
 
@@ -514,10 +531,10 @@ class ExecutableBase:
             "mpi_use": self.mpi_use,
             "mpi_cmd": self.mpi_cmd,
             "mpi_core_num": self.mpi_core_num,
-            "class_config": self.class_config,
-            "custom_config": self.custom_config,
-            "input_file_config": self.input_file_config,
-            "output_file_config": self.output_file_config
+            "class_config": deepcopy(self.class_config),
+            "custom_config": deepcopy(self.custom_config),
+            "input_file_config": deepcopy(self.input_file_config),
+            "output_file_config": deepcopy(self.output_file_config)
         }
 
     def load_config(self, config: ExecutableConfig):
@@ -540,10 +557,10 @@ class ExecutableBase:
         self.mpi_use = config["mpi_use"]
         self.mpi_cmd = config["mpi_cmd"]
         self.mpi_core_num = config["mpi_core_num"]
-        self.class_config = config["class_config"]
-        self.custom_config = config["custom_config"]
-        self.input_file_config = config["input_file_config"]
-        self.output_file_config = config["output_file_config"]
+        self.class_config = deepcopy(config["class_config"])
+        self.custom_config = deepcopy(config["custom_config"])
+        self.input_file_config = deepcopy(config["input_file_config"])
+        self.output_file_config = deepcopy(config["output_file_config"])
 
         self.load_custom_config()
 
@@ -551,12 +568,13 @@ class ExecutableBase:
         """
         This method will be called when replay the simulation.
         This method should take care every job that will be done when replaying the simulation.
-        By default, this method will call ``__call__`` method of this instance.
+        By default, this method will call ``__call__`` method of the instance.
         """
         logger.debug(f"Method 'replay' not implemented in '{self.name}', fall back to default action.")
         self()
 
-    def add_input_files(self, input_files: Union[str, list[str], FileConfigDict, list[FileConfigDict]], is_data=True, is_output=True):
+    def add_input_files(self, input_files: Union[str, list[str], FileConfigDict, list[FileConfigDict]],
+                        is_data=True, is_output=True):
         """
         Add input files the executable will use.
 
