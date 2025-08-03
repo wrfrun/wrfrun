@@ -61,6 +61,13 @@ class NamelistError(WRFRunBasicError):
     pass
 
 
+class NamelistIDError(WRFRunBasicError):
+    """
+    Error about namelist.
+    """
+    pass
+
+
 class ExecRegisterError(WRFRunBasicError):
     pass
 
@@ -77,4 +84,4 @@ class ModelNameError(WRFRunBasicError):
 
 
 __all__ = ["WRFRunBasicError", "ConfigError", "WRFRunContextError", "CommandError", "LoadConfigError", "OutputFileError", "ResourceURIError", "InputFileError",
-           "NamelistError", "ExecRegisterError", "GetExecClassError", "ModelNameError"]
+           "NamelistError", "ExecRegisterError", "GetExecClassError", "ModelNameError", "NamelistIDError"]
