@@ -2,10 +2,22 @@
 wrfrun.core.config
 ##################
 
+All classes in this module is used to manage various configurations of ``wrfrun`` and NWP model.
+
 .. autosummary::
     :toctree: generated/
 
     WRFRunConfig
+    _WRFRunConstants
+    _WRFRunNamelist
+    _WRFRunResources
+
+WRFRunConfig
+************
+
+A comprehensive class which provides interfaces to access various configurations and resources.
+It inherits from three classes: :class:`_WRFRunResources`, :class:`_WRFRunConstants` and :class:`_WRFRunNamelist`.
+Users can use the global variable ``WRFRUNConfig``, which is the instance of this class being created when users import ``wrfrun``.
 """
 
 from copy import deepcopy
@@ -18,22 +30,32 @@ import f90nml
 import tomli
 import tomli_w
 
-from .error import ResourceURIError, WRFRunContextError, ModelNameError
+from .error import ResourceURIError, WRFRunContextError, ModelNameError, NamelistIDError, NamelistError
 from ..utils import logger
 
 
 class _WRFRunResources:
     """
-    This class manage resource files used by wrfrun components.
-
-    These resources include various configuration files from NWP as well as those provided by wrfrun itself.
-
-    Since their actual file paths may vary depending on the wrfrun installation environment, wrfrun maps them using URIs to ensure consistent access regardless of the environment.
-
-    For more information about how to use resource files, please see :class:`WRFRunConfig`.
+    Manage resource files used by wrfrun components
     """
 
     def __init__(self):
+        """
+        This class manage resource files used by wrfrun components.
+
+        These resources include various configuration files from NWP as well as those provided by ``wrfrun`` itself.
+        Since their actual file paths may vary depending on the installation environment,
+        ``wrfrun`` maps them using URIs to ensure consistent access regardless of the environment.
+        The URI always starts with the prefix string ``:WRFRUN_`` and ends with ``:``.
+
+        To register custom URIs, user can use :meth:`_WRFRunResources.register_resource_uri`,
+        which will check if the provided URI is valid.
+
+        To convert any possible URIs in a string, user can use :meth:`_WRFRunResources.parse_resource_uri`
+
+        For more information about how to use resource files, please see :class:`WRFRunConfig`,
+        which inherits this class.
+        """
         self._resource_namespace_db = {}
 
     def check_resource_uri(self, unique_uri: str) -> bool:
@@ -55,14 +77,13 @@ class _WRFRunResources:
 
     def register_resource_uri(self, unique_uri: str, res_space_path: str):
         """
-        Register a resource path with a URI.
+        Register a resource path with a URI. The URI should start with ``:WRFRUN_`` ,end with ``:`` and hasn't been registered yet,
+        otherwise an exception :class:`ResourceURIError` will be raised.
 
         :param unique_uri: Unique URI represents the resource. It must start with ``:WRFRUN_`` and end with ``:``. For example, ``":WRFRUN_WORK_PATH:"``.
         :type unique_uri: str
         :param res_space_path: REAL absolute path of your resource path. For example, "$HOME/.config/wrfrun/res".
         :type res_space_path: str
-        :return:
-        :rtype:
         """
         if not (unique_uri.startswith(":WRFRUN_") and unique_uri.endswith(":")):
             logger.error(f"Can't register resource URI: '{unique_uri}'. It should start with ':WRFRUN_' and end with ':'.")
@@ -77,9 +98,10 @@ class _WRFRunResources:
 
     def parse_resource_uri(self, resource_path: str) -> str:
         """
-        Return the real path by parsing the URI string in it.
-
+        Return the converted string by parsing the URI string in it.
         Normal path will be returned with no change.
+
+        If the URI hasn't been registered, an exception :class:`ResourceURIError` will be raised.
 
         :param resource_path: Resource path string which may contain URI string.
         :type resource_path: str
@@ -114,12 +136,16 @@ class _WRFRunResources:
 
 class _WRFRunConstants:
     """
-    Define all variables that will be used by other wrfrun components.
-    These variables are related to the wrfrun installation environment and configuration files.
-    They are defined either directly or mapped using URIs to ensure consistent access across all components.
+    Define all variables that will be used by other components.
     """
 
     def __init__(self):
+        """
+        Define all variables that will be used by other components.
+
+        These variables are related to ``wrfrun`` installation environments, configuration files and more.
+        They are defined either directly or mapped using URIs to ensure consistent access across all components.
+        """
         # the path we may need to store temp files,
         # don't worry, it will be deleted once the system reboots
         self._WRFRUN_TEMP_PATH = "/tmp/wrfrun"
@@ -168,11 +194,11 @@ class _WRFRunConstants:
 
     def _get_uri_map(self) -> dict[str, str]:
         """
-        Return uri and its value.
-        We will use this to register uri when initialize config.
+        Return URIs and their values.
+        ``wrfrun`` will use this to register uri when initialize config.
 
-        :return:
-        :rtype:
+        :return: A dict in which URIs are keys and their values are dictionary values.
+        :rtype: dict
         """
         return {
             self.WRFRUN_TEMP_PATH: self._WRFRUN_TEMP_PATH,
@@ -186,14 +212,20 @@ class _WRFRunConstants:
 
     @property
     def WRFRUN_REPLAY_WORK_PATH(self) -> str:
+        """
+        Path (URI) to store related files of ``wrfrun``'s replay functionality.
+
+        :return: URI.
+        :rtype: str
+        """
         return ":WRFRUN_REPLAY_WORK_PATH:"
 
     @property
     def WRFRUN_TEMP_PATH(self) -> str:
         """
-        Path of the directory storing temporary files.
+        Path to store ``wrfrun`` temporary files.
 
-        :return: Path of the directory storing temporary files.
+        :return: URI
         :rtype: str
         """
         return ":WRFRUN_TEMP_PATH:"
@@ -201,9 +233,9 @@ class _WRFRunConstants:
     @property
     def WRFRUN_HOME_PATH(self) -> str:
         """
-        Path of the directory storing wrfrun config files.
+        Root path of all others directories. .
 
-        :return: Path of the directory storing temporary files.
+        :return: URI
         :rtype: str
         """
         return ":WRFRUN_HOME_PATH:"
@@ -211,9 +243,9 @@ class _WRFRunConstants:
     @property
     def WRFRUN_WORKSPACE_PATH(self) -> str:
         """
-        Path of the wrfrun workspace.
+        Path of the workspace, in which ``wrfrun`` runs NWP models.
 
-        :return: Path of the wrfrun workspace.
+        :return: URI
         :rtype: str
         """
         return ":WRFRUN_WORKSPACE_PATH:"
@@ -221,9 +253,9 @@ class _WRFRunConstants:
     @property
     def WPS_WORK_PATH(self) -> str:
         """
-        Path of the directory to run WPS.
+        Workspace in which ``wrfrun`` runs WPS.
 
-        :return: Path of the directory to run WPS.
+        :return: URI
         :rtype: str
         """
         return ":WRFRUN_WPS_WORK_PATH:"
@@ -231,9 +263,9 @@ class _WRFRunConstants:
     @property
     def WRF_WORK_PATH(self) -> str:
         """
-        Path of the directory to run WRF.
+        Workspace in which ``wrfrun`` runs WRF.
 
-        :return: Path of the directory to run WRF.
+        :return: URI
         :rtype: str
         """
         return ":WRFRUN_WRF_WORK_PATH:"
@@ -241,9 +273,9 @@ class _WRFRunConstants:
     @property
     def WRFDA_WORK_PATH(self) -> str:
         """
-        Path of the directory to run WRFDA.
+        Workspace in which ``wrfrun`` runs WRFDA.
 
-        :return: Path of the directory to run WRFDA.
+        :return: URI
         :rtype: str
         """
         return ":WRFRUN_WRFDA_WORK_PATH:"
@@ -251,28 +283,49 @@ class _WRFRunConstants:
     @property
     def WRFRUN_WORK_STATUS(self) -> str:
         """
-        wrfrun work status.
+        ``wrfrun`` work status.
 
-        :return: wrfrun work status.
+        This attribute can be changed by ``Executable`` to reflect the current work progress of ``wrfrun``.
+        The returned string is the name of ``Executable``.
+
+        :return: A string reflect the current work progress.
         :rtype: str
         """
         return self._WORK_STATUS
 
     @WRFRUN_WORK_STATUS.setter
     def WRFRUN_WORK_STATUS(self, value: str):
+        """
+        Set ``wrfrun`` work status.
+
+        ``wrfrun`` recommends ``Executable`` set the status string with their name,
+        so to avoid the possible conflicts with other ``Executable`` and the user can easily understand the current work progress.
+
+        :param value: A string represents the work status.
+        :type value: str
+        """
         if not isinstance(value, str):
             value = str(value)
         self._WORK_STATUS = value
 
     @property
-    def UNGRIB_OUT_DIR(self):
+    def UNGRIB_OUT_DIR(self) -> str:
         """
-        Output directory path of ungrib.
+        Output directory path of ``ungrib.exe``.
+
+        :return: URI
+        :rtype: str
         """
         return self._UNGRIB_OUT_DIR
 
     @UNGRIB_OUT_DIR.setter
     def UNGRIB_OUT_DIR(self, value: str):
+        """
+        Set the output directory path of ``ungrib.exe``.
+
+        :param value: A real path or a URI represents the directory path of ``ungrib.exe``'s output.
+        :type value: str
+        """
         if not isinstance(value, str):
             value = str(value)
         self._UNGRIB_OUT_DIR = value
@@ -280,22 +333,28 @@ class _WRFRunConstants:
     @property
     def WRFRUN_OUTPUT_PATH(self) -> str:
         """
-        A marco string represents the save path of output files in wrfrun config.
+        The root path to store all outputs of the ``wrfrun`` and NWP model.
+
+        :return: URI
+        :rtype: str
         """
         return self._WRFRUN_OUTPUT_PATH
 
     @property
     def WRFRUN_RESOURCE_PATH(self) -> str:
         """
-        Return the preserved string used by wrfrun resource files.
+        The root path of all ``wrfrun`` resource files.
+
+        :return: URI
+        :rtype: str
         """
         return self._WRFRUN_RESOURCE_PATH
 
     def check_wrfrun_context(self, error=False) -> bool:
         """
-        Check if we're in WRFRun context or not.
+        Check if in WRFRun context or not.
 
-        :param error: Raise an error if ``error==True`` when we are not in WRFRun context.
+        :param error: An exception :class:`WRFRunContextError` will be raised if ``error==True`` when we are not in WRFRun context.
         :type error: bool
         :return: True or False.
         :rtype: bool
@@ -314,7 +373,7 @@ class _WRFRunConstants:
         """
         Change ``WRFRun`` context status to True or False.
 
-        :param status: ``WRFRun`` context status.
+        :param status: ``True`` or ``False``.
         :type status: bool
         """
         self._WRFRUN_CONTEXT_STATUS = status
@@ -322,10 +381,19 @@ class _WRFRunConstants:
 
 class _WRFRunNamelist:
     """
-    A class to manage namelist config.
+    Manage all namelist configurations of NWP models.
     """
 
     def __init__(self):
+        """
+        Manage all namelist configurations of NWP models.
+
+        This class provides interfaces to read and write various namelist values of NWP model.
+        Namelist values are stored in a dictionary with a unique ``namelist_id`` to avoid being messed up with other namelist.
+
+        If you want to use a new ``namelist_id`` other than the defaults to store namelist,
+        you can register a new ``namelist_id`` with :meth:`_WRFRunNamelist.register_custom_namelist_id`.
+        """
         self._wps_namelist = {}
         self._wrf_namelist = {}
         self._wrfda_namelist = {}
@@ -334,7 +402,7 @@ class _WRFRunNamelist:
 
     def register_custom_namelist_id(self, namelist_id: str) -> bool:
         """
-        Register a namelist with a unique id so you can read, update and write it later.
+        Register a unique ``namelist_id`` so you can read, update and write namelist with it later.
 
         :param namelist_id: A unique namelist id.
         :type namelist_id: str
@@ -350,13 +418,11 @@ class _WRFRunNamelist:
 
     def unregister_custom_namelist_id(self, namelist_id: str):
         """
-        Unregister a specified namelist id.
-        If unregister successfully, all data about this namelist kind will be lost.
+        Unregister a ``namelist_id``.
+        If unregister successfully, all values of this namelist will be deleted.
 
         :param namelist_id: A unique namelist id.
         :type namelist_id: str
-        :return:
-        :rtype:
         """
         if namelist_id not in self._namelist_id_list:
             return
@@ -366,11 +432,11 @@ class _WRFRunNamelist:
 
     def check_namelist_id(self, namelist_id: str) -> bool:
         """
-        Check if a namelist id is registered.
+        Check if a ``namelist_id`` is registered.
 
-        :param namelist_id: Unique namelist ID.
-        :type namelist_id: Unique namelist ID.
-        :return: True if the ID is registered, else False.
+        :param namelist_id: A ``namelist_id``.
+        :type namelist_id: str
+        :return: True if the ``namelist_id`` is registered, else False.
         :rtype: bool
         """
         if namelist_id in self._namelist_id_list:
@@ -380,11 +446,14 @@ class _WRFRunNamelist:
 
     def read_namelist(self, file_path: str, namelist_id: str):
         """
-        Read namelist.
+        Read namelist values from a file and store them with the ``namelist_id``.
+
+        If ``wrfrun`` can't read the file, ``FileNotFoundError`` will be raised.
+        If ``namelist_id`` isn't registered, :class:`NamelistIDError` will be raised.
 
         :param file_path: Namelist file path.
         :type file_path: str
-        :param namelist_id: ``"wps"``, ``"wrf"``, ``"wrfda"``, or any other id you have registered.
+        :param namelist_id: Registered ``namelist_id``.
         :type namelist_id: str
         """
         # check the file path
@@ -394,36 +463,36 @@ class _WRFRunNamelist:
 
         if namelist_id not in self._namelist_id_list:
             logger.error(f"Unknown namelist id: {namelist_id}, register it first.")
-            raise ValueError(f"Unknown namelist id: {namelist_id}, register it first.")
+            raise NamelistIDError(f"Unknown namelist id: {namelist_id}, register it first.")
 
         self._namelist_dict[namelist_id] = f90nml.read(file_path).todict()
 
     def write_namelist(self, save_path: str, namelist_id: str, overwrite=True):
         """
-        Write namelist to file.
+        Write namelist values of a ``namelist_id`` to a file.
 
-        :param save_path: Save path.
+        :param save_path: Target file path.
         :type save_path: str
-        :param namelist_id: ``"wps"``, ``"wrf"``, ``"wrfda"``, or any other id you have registered.
+        :param namelist_id: Registered ``namelist_id``.
         :type namelist_id: str
-        :param overwrite: If overwrite the existed file, defaults to ``True``.
+        :param overwrite: If overwrite the existed file.
         :type overwrite: bool
         """
         if namelist_id not in self._namelist_id_list:
             logger.error(f"Unknown namelist id: {namelist_id}, register it first.")
-            raise ValueError(f"Unknown namelist id: {namelist_id}, register it first.")
+            raise NamelistIDError(f"Unknown namelist id: {namelist_id}, register it first.")
 
         if namelist_id not in self._namelist_dict:
             logger.error(f"Can't found custom namelist '{namelist_id}', maybe you forget to read it first")
-            raise KeyError(f"Can't found custom namelist '{namelist_id}', maybe you forget to read it first")
+            raise NamelistError(f"Can't found custom namelist '{namelist_id}', maybe you forget to read it first")
 
         f90nml.Namelist(self._namelist_dict[namelist_id]).write(save_path, force=overwrite)
 
     def update_namelist(self, new_values: Union[str, dict], namelist_id: str):
         """
-        Update value in namelist data.
+        Update namelist values of a ``namelist_id``.
 
-        You can give your custom namelist file, a whole namelist or a file only contains values you want to change.
+        You can give the path of a whole namelist file or a file only contains values you want to change.
 
         >>> namelist_file = "./namelist.wps"
         >>> WRFRUNConfig.update_namelist(namelist_file, namelist_id="wps")
@@ -431,7 +500,7 @@ class _WRFRunNamelist:
         >>> namelist_file = "./namelist.wrf"
         >>> WRFRUNConfig.update_namelist(namelist_file, namelist_id="wrf")
 
-        Or give a Dict object contains values you want to change.
+        You can also give a dict contains values you want to change.
 
         >>> namelist_values = {"ungrib": {"prefix": "./output/FILE"}}
         >>> WRFRUNConfig.update_namelist(namelist_values, namelist_id="wps")
@@ -439,14 +508,14 @@ class _WRFRunNamelist:
         >>> namelist_values = {"time_control": {"debug_level": 100}}
         >>> WRFRUNConfig.update_namelist(namelist_values, namelist_id="wrf")
 
-        :param new_values: New values.
+        :param new_values: The path of a namelist file, or a dict contains namelist values.
         :type new_values: str | dict
-        :param namelist_id: ``"wps"``, ``"wrf"``, ``"wrfda"``, or any other id you have registered.
+        :param namelist_id: Registered ``namelist_id``.
         :type namelist_id: str
         """
         if namelist_id not in self._namelist_id_list:
             logger.error(f"Unknown namelist id: {namelist_id}, register it first.")
-            raise ValueError(f"Unknown namelist id: {namelist_id}, register it first.")
+            raise NamelistIDError(f"Unknown namelist id: {namelist_id}, register it first.")
 
         elif namelist_id not in self._namelist_dict:
             self._namelist_dict[namelist_id] = new_values
@@ -469,29 +538,28 @@ class _WRFRunNamelist:
 
     def get_namelist(self, namelist_id: str) -> dict:
         """
-        Get specific namelist.
+        Get namelist values of a ``namelist_id``.
 
-        :param namelist_id: ``"wps"``, ``"wrf"``, ``"wrfda"``, or any other id you have registered.
+        :param namelist_id: Registered ``namelist_id``.
         :type namelist_id: str
-        :return: Namelist.
+        :return: A dictionary which contains namelist values.
         :rtype: dict
         """
         if namelist_id not in self._namelist_id_list:
             logger.error(f"Unknown namelist id: {namelist_id}, register it first.")
-            raise ValueError(f"Unknown namelist id: {namelist_id}, register it first.")
+            raise NamelistIDError(f"Unknown namelist id: {namelist_id}, register it first.")
         elif namelist_id not in self._namelist_dict:
-            return {}
+            logger.error(f"Can't found custom namelist '{namelist_id}', maybe you forget to read it first")
+            raise NamelistError(f"Can't found custom namelist '{namelist_id}', maybe you forget to read it first")
         else:
             return deepcopy(self._namelist_dict[namelist_id])
 
     def delete_namelist(self, namelist_id: str):
         """
-        Delete specified namelist values.
+        Delete namelist values of a ``namelist_id``.
 
-        :param namelist_id: ``"wps"``, ``"wrf"``, ``"wrfda"``, or any other id you have registered.
+        :param namelist_id: Registered ``namelist_id``.
         :type namelist_id: str
-        :return:
-        :rtype:
         """
         if namelist_id not in self._namelist_id_list:
             logger.error(f"Unknown namelist id: {namelist_id}, register it first.")
@@ -512,10 +580,12 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
 
     def __init__(self):
         """
-        This class will be initialized when you import ``wrfrun``.
+        This class provides various interfaces to access ``wrfrun``'s config, namelist values of NWP models,
+        runtime constants and resource files by inheriting from:
+        :class:`_WRFRunConstants`, :class:`_WRFRunNamelist` and :class:`_WRFRunResources`.
 
-        Throughout the entire lifecycle of ``wrfrun``, you can access ``wrfrun`` config, runtime constants, namelists and resource files through a global variable called
-        ``WRFRUNConfig``, which is an instance of this class.
+        An instance of this class called ``WRFRUNConfig`` will be created after the user import ``wrfrun``,
+        and you should use the instance to access configs or other things instead of creating another instance.
         """
         if self._initialized:
             return
@@ -542,20 +612,24 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
 
     def set_config_template_path(self, file_path: str):
         """
-        Set the path of template file.
+        Set file path of the config template file.
 
         :param file_path: Template file path.
         :type file_path: str
-        :return:
-        :rtype:
         """
         self._config_template_file_path = file_path
 
     def load_wrfrun_config(self, config_path: Optional[str] = None):
         """
-        Load wrfrun config.
+        Load ``wrfrun`` config from a config file.
 
-        :param config_path: YAML config file. Defaults to None.
+        If the config path is invalid, ``wrfrun`` will create a new config file at the same place,
+        and raise ``FileNotFoundError``.
+
+        If you don't give the config path, ``wrfrun`` will create a new config file under the current directory,
+        and read it.
+
+        :param config_path: TOML config file. Defaults to None.
         :type config_path: str
         """
         config_template_path = self.parse_resource_uri(self._config_template_file_path)
@@ -586,7 +660,7 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
 
     def save_wrfrun_config(self, save_path: str):
         """
-        Save config to a file.
+        Save ``wrfrun``'s config to a file.
 
         :param save_path: Save path of the config.
         :type save_path: str
@@ -600,29 +674,41 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
         with open(save_path, "wb") as f:
             tomli_w.dump(self._config, f)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str):
+        """
+        You can access ``wrfrun`` config like the way to access values in a dictionary.
+
+        For example
+
+        >>> model_config = WRFRUNConfig["model"]    # get all model configs.
+
+        :param item: Keys.
+        :type item: str
+        """
         if len(self._config) == 0:
             logger.error("Attempt to read value before load config")
             raise RuntimeError("Attempt to read value before load config")
 
         return deepcopy(self._config[item])
 
-    def get_input_data_path(self) -> list[str]:
+    def get_input_data_path(self) -> str:
         """
-        Return the path of input data.
+        Get the path of directory in which stores the input data.
 
-        :return: Path list.
-        :rtype: list
+        :return: Directory path.
+        :rtype: str
         """
         return deepcopy(self["input_data_path"])
 
     def get_model_config(self, model_name: str) -> dict:
         """
-        Return the config of a NWP model.
+        Get the config of a NWP model.
 
-        :param model_name: Name of the model. For example, "wrf".
+        An exception :class:`ModelNameError` will be raised if the config can't be found.
+
+        :param model_name: Name of the model. For example, ``wrf``.
         :type model_name: str
-        :return: A dict object.
+        :return: A dictionary.
         :rtype: dict
         """
         if model_name not in self["model"]:
@@ -633,7 +719,7 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
 
     def get_log_path(self) -> str:
         """
-        Return the save path of logs.
+        Get the directory path to save logs.
 
         :return: A directory path.
         :rtype: str
@@ -642,7 +728,7 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
 
     def get_socket_server_config(self) -> Tuple[str, int]:
         """
-        Return settings of the socket server.
+        Get settings of the socket server.
 
         :return: ("host", port)
         :rtype: tuple
@@ -651,7 +737,7 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
 
     def get_job_scheduler_config(self) -> dict:
         """
-        Return the config of job scheduler.
+        Get configs of job scheduler.
 
         :return: A dict object.
         :rtype: dict
@@ -660,9 +746,9 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
 
     def get_core_num(self) -> int:
         """
-        Return the number of CPU cores.
-        :return:
-        :rtype:
+        Get the number of CPU cores to be used.
+        :return: Core numbers
+        :rtype: int
         """
         return self["core_num"]
 
@@ -695,8 +781,6 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
 
         :param prefix: Prefix string of ungrib output (WRF intermediate file).
         :type prefix: str
-        :return:
-        :rtype:
         """
         self.update_namelist(
             {
@@ -717,12 +801,10 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
 
     def set_metgrid_fg_names(self, prefix: Union[str, list[str]]):
         """
-        Set prefix strings from "fg_name" in namelist "metgrid" section.
+        Set prefix strings of "fg_name" in namelist "metgrid" section.
 
         :param prefix: Prefix strings list.
         :type prefix: str | list
-        :return:
-        :rtype:
         """
         if isinstance(prefix, str):
             prefix = [prefix, ]
@@ -734,6 +816,17 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
         )
 
     def write_namelist(self, save_path: str, namelist_id: str, overwrite=True):
+        """
+        Write namelist values of a ``namelist_id`` to a file.
+        This method is overwritten to convert URIs in ``save_path`` first.
+
+        :param save_path: Target file path.
+        :type save_path: str
+        :param namelist_id: Registered ``namelist_id``.
+        :type namelist_id: str
+        :param overwrite: If overwrite the existed file.
+        :type overwrite: bool
+        """
         save_path = self.parse_resource_uri(save_path)
         super().write_namelist(save_path, namelist_id, overwrite)
 
