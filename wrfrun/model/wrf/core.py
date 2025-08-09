@@ -3,7 +3,7 @@ from os.path import abspath, basename, exists
 from shutil import copyfile, move, rmtree
 from typing import Optional
 
-from wrfrun.core import ExecutableBase, FileConfigDict, InputFileError, NamelistError, WRFRUNConfig, WRFRUNExecDB
+from wrfrun.core import ExecutableBase, FileConfigDict, InputFileError, NamelistIDError, WRFRUNConfig, WRFRUNExecDB
 from wrfrun.utils import logger
 from ._metgrid import reconcile_namelist_metgrid
 from ._ndown import process_after_ndown
@@ -626,7 +626,7 @@ class DFI(ExecutableBase):
 
         if not WRFRUNConfig.register_custom_namelist_id("dfi"):
             logger.error("Can't register namelist for DFI.")
-            raise NamelistError("Can't register namelist for DFI.")
+            raise NamelistIDError("Can't register namelist for DFI.")
         WRFRUNConfig.update_namelist(self.custom_config["namelist"], "dfi")
 
     def before_exec(self):
@@ -659,7 +659,7 @@ class DFI(ExecutableBase):
 
             if not WRFRUNConfig.register_custom_namelist_id("dfi"):
                 logger.error("Can't register namelist for DFI.")
-                raise NamelistError("Can't register namelist for DFI.")
+                raise NamelistIDError("Can't register namelist for DFI.")
 
             prepare_dfi_namelist()
 

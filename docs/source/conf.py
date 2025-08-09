@@ -47,7 +47,8 @@ html_sidebars = {
 # Set up autosummary and autodoc
 autosummary_generate = True
 autodoc_default_options = {
-    'inherited-members': None,
+    'members': True,
+    'inherited-members': False,
 }
 autodoc_typehints = 'description'
 

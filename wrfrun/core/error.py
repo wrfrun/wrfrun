@@ -1,87 +1,110 @@
+"""
+wrfrun.core.error
+#################
+
+This module defines all exceptions used in ``wrfrun``.
+
+.. autosummary::
+    :toctree: generated/
+
+    WRFRunBasicError
+    ConfigError
+    WRFRunContextError
+    CommandError
+    OutputFileError
+    ResourceURIError
+    InputFileError
+    NamelistError
+    NamelistIDError
+    ExecRegisterError
+    GetExecClassError
+    ModelNameError
+"""
+
+
 class WRFRunBasicError(Exception):
     """
-    Basic error type.
+    Basic exception class of ``wrfrun``. New exception **MUST** inherit this class.
     """
     pass
 
 
 class ConfigError(WRFRunBasicError):
     """
-    Config cannot be used error.
+    Exception indicates the config of ``wrfrun`` or NWP model can't be used.
     """
     pass
 
 
 class WRFRunContextError(WRFRunBasicError):
     """
-    Need to enter wrfrun context.
+    Exception indicates ``wrfrun`` is running out of the ``wrfrun`` context.
     """
     pass
 
 
 class CommandError(WRFRunBasicError):
     """
-    The command is wrong.
-    """
-    pass
-
-
-class LoadConfigError(WRFRunBasicError):
-    """
-    Failed to load config.
+    Exception indicates the command of ``Executable`` can't be executed successfully.
     """
     pass
 
 
 class OutputFileError(WRFRunBasicError):
     """
-    No output found.
+    Exception indicates ``wrfrun`` can't find any output files with the given rules.
     """
     pass
 
 
 class ResourceURIError(WRFRunBasicError):
     """
-    Error about resource namespace.
+    Exception indicates ``wrfrun`` can't parse the URI.
     """
     pass
 
 
 class InputFileError(WRFRunBasicError):
     """
-    Input file error.
+    Exception indicates ``wrfrun`` can't find specified input files.
     """
     pass
 
 
 class NamelistError(WRFRunBasicError):
     """
-    Error about namelist.
+    Exception indicates ``wrfrun`` can't find the namelist user want to use.
     """
     pass
 
 
 class NamelistIDError(WRFRunBasicError):
     """
-    Error about namelist.
+    Exception indicates ``wrfrun`` can't register the specified namelist id.
     """
     pass
 
 
 class ExecRegisterError(WRFRunBasicError):
+    """
+    Exception indicates ``wrfrun`` can't register the specified ``Executable``.
+    """
     pass
 
 
 class GetExecClassError(WRFRunBasicError):
+    """
+    Exception indicates ``wrfrun`` can't find the specified ``Executable``.
+    """
     pass
 
 
 class ModelNameError(WRFRunBasicError):
     """
-    Name of the model isn't found in the config file.
+    Exception indicates ``wrfrun`` can't find config of the specified NWP model in the config file.
     """
     pass
 
 
-__all__ = ["WRFRunBasicError", "ConfigError", "WRFRunContextError", "CommandError", "LoadConfigError", "OutputFileError", "ResourceURIError", "InputFileError",
+__all__ = ["WRFRunBasicError", "ConfigError", "WRFRunContextError", "CommandError", "OutputFileError", "ResourceURIError", "InputFileError",
            "NamelistError", "ExecRegisterError", "GetExecClassError", "ModelNameError", "NamelistIDError"]
