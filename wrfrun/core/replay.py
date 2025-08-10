@@ -1,6 +1,29 @@
+"""
+wrfrun.core.replay
+##################
+
+This module provides methods to read config from ``.replay`` file and reproduce the simulation.
+
+.. autosummary::
+    :toctree: generated/
+
+    WRFRunExecutableRegisterCenter
+    replay_config_generator
+
+WRFRUNExecDB
+************
+
+In order to load ``Executable`` correctly based on the stored ``name`` in ``.replay`` files,
+``wrfrun`` uses ``WRFRUNExecDB``, which is the instance of :class:`WRFRunExecutableRegisterCenter`,
+to records all ``Executable`` classes and corresponding ``name``.
+When ``wrfrun`` replays the simulation, it gets the right ``Executable`` from ``WRFRUNExecDB`` and executes it.
+"""
+
+from collections.abc import Generator
 from json import loads
 from os.path import exists
 from shutil import unpack_archive
+from typing import Any
 
 from .base import ExecutableBase, ExecutableConfig
 from .config import WRFRUNConfig
@@ -12,7 +35,8 @@ WRFRUN_REPLAY_URI = ":WRFRUN_REPLAY:"
 
 class WRFRunExecutableRegisterCenter:
     """
-    Record all executable class.
+    This class provides the method to records ``Executable``'s class with a unique ``name``.
+    Later you can get the class with the ``name``.
     """
     _instance = None
     _initialized = False
@@ -31,64 +55,73 @@ class WRFRunExecutableRegisterCenter:
 
         return cls._instance
 
-    def register_exec(self, unique_iq: str, cls: type):
+    def register_exec(self, name: str, cls: type):
         """
-        Register an executable class.
+        Register an ``Executable``'s class with a unique ``name``.
 
-        :param unique_iq: Unique ID.
-        :type unique_iq: str
-        :param cls: Class.
+        If the ``name`` has been used, :class:`ExecRegisterError` will be raised.
+
+        :param name: ``Executable``'s unique name.
+        :type name: str
+        :param cls: ``Executable``'s class.
         :type cls: type
-        :return:
-        :rtype:
         """
-        if unique_iq in self._exec_db:
-            logger.error(f"'{unique_iq}' has been registered.")
-            raise ExecRegisterError(f"'{unique_iq}' has been registered.")
+        if name in self._exec_db:
+            logger.error(f"'{name}' has been registered.")
+            raise ExecRegisterError(f"'{name}' has been registered.")
 
-        self._exec_db[unique_iq] = cls
+        self._exec_db[name] = cls
 
-    def is_registered(self, unique_id: str) -> bool:
+    def is_registered(self, name: str) -> bool:
         """
-        Check if an executable class has been registered.
+        Check if an ``Executable``'s class has been registered.
 
-        :param unique_id: Unique ID.
-        :type unique_id: str
+        :param name: ``Executable``'s unique name.
+        :type name: str
         :return: True or False.
         :rtype: bool
         """
-        if unique_id in self._exec_db:
+        if name in self._exec_db:
             return True
         else:
             return False
 
-    def get_cls(self, unique_id: str) -> type:
+    def get_cls(self, name: str) -> type:
         """
-        Get a registered executable class.
+        Get an ``Executable``'s class with the ``name``.
 
-        :param unique_id: Unique ID.
-        :type unique_id: str
-        :return: Executable class.
+        If the ``name`` can't be found, :class:`GetExecClassError` will be raised.
+
+        :param name: ``Executable``'s unique name.
+        :type name: str
+        :return: ``Executable``'s class.
         :rtype: type
         """
-        if unique_id not in self._exec_db:
-            logger.error(f"Executable class '{unique_id}' not found.")
-            raise GetExecClassError(f"Executable class '{unique_id}' not found.")
+        if name not in self._exec_db:
+            logger.error(f"Executable class '{name}' not found.")
+            raise GetExecClassError(f"Executable class '{name}' not found.")
 
-        return self._exec_db[unique_id]
+        return self._exec_db[name]
 
 
 WRFRUNExecDB = WRFRunExecutableRegisterCenter()
 
 
-def replay_config_generator(replay_config_file: str):
+def replay_config_generator(replay_config_file: str) -> Generator[tuple[str, ExecutableBase], Any, None]:
     """
-    Replay the simulations.
+    This method can read the ``.replay`` file and returns a generator which yields ``Executable`` and their names.
+    If this method doesn't find ``config.json`` in the ``.replay`` file, ``FileNotFoundError`` will be raised.
 
-    :param replay_config_file: Replay file path.
+    The ``Executable`` you get from the generator has been initialized so you can execute it directly.
+
+    >>> replay_file = "./example.replay"
+    >>> for name, _exec in replay_config_generator(replay_file):
+    >>>     _exec.replay()
+
+    :param replay_config_file: Path of the ``.replay`` file.
     :type replay_config_file: str
-    :return:
-    :rtype:
+    :return: A generator that yields: ``(name, Executable)``
+    :rtype: Generator
     """
     logger.info(f"Loading replay resources from: {replay_config_file}")
     work_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_REPLAY_WORK_PATH)
