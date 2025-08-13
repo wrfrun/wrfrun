@@ -1,11 +1,4 @@
-wrfrun.extension
-################
-
-.. toctree:: 
-    :maxdepth: 1
-    :hidden:
-
-    goos_sst <extension.goos_sst>
-    littler <extension.littler>
-    micaps <extension.micaps>
-    utils <extension.utils>
+.. automodule:: wrfrun.extension
+    :no-members:
+    :no-inherited-members:
+    :no-special-members:
