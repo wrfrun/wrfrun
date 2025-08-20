@@ -14,3 +14,4 @@ wrf-python
 cfgrib
 tomli
 tomli-w
+seafog

@@ -6,12 +6,11 @@ from typing import Union, List, Tuple
 from pandas import date_range
 # from seafog import goos_sst_find_data
 
-import cdsapi
-
 from .core.config import WRFRUNConfig
 from .utils import logger
 
-CDS_CLIENT = cdsapi.Client()
+# lazy initialize
+CDS_CLIENT = None
 
 
 class ERA5CONFIG:
@@ -214,6 +213,8 @@ def find_era5_data(date: Union[List[str], List[datetime]], area: Tuple[int, int,
     Returns: data path
 
     """
+    global CDS_CLIENT
+
     # check variables and datasets
     if not _check_variables_and_datasets(variables, dataset):
         logger.error(
@@ -281,8 +282,12 @@ def find_era5_data(date: Union[List[str], List[datetime]], area: Tuple[int, int,
             exit(1)
 
     # download data
-    logger.info(
-        f"Downloading data to {save_path}, it may take several tens of minutes, please wait...")
+    logger.info(f"Downloading data to {save_path}, it may take several tens of minutes, please wait...")
+
+    if CDS_CLIENT is None:
+        import cdsapi
+        CDS_CLIENT = cdsapi.Client()
+
     CDS_CLIENT.retrieve(dataset, params_dict, save_path)
 
     return save_path
