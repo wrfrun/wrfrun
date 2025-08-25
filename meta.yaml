@@ -1,0 +1,33 @@
+package:
+  name: wrfrun
+  version: 0.1.7
+
+source:
+  path: ./
+
+build:
+  skip: true  # [not linux]
+
+requirements:
+  build:
+    - 'python <3.13'
+    - meson-python
+  run:
+    - 'python <3.13'
+    - 'numpy <2.0.0'
+    - xarray
+    - netcdf4
+    - rich
+    - pandas
+    - f90nml
+    - cdsapi
+    - matplotlib
+    - cartopy
+    - wrf-python
+    - cfgrib
+    - tomli
+    - 'tomli-w'
+
+about:
+  home: https://github.com/wrfrun/wrfrun
+  license: 'GPL-3.0'
