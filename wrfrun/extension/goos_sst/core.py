@@ -1,3 +1,18 @@
+"""
+wrfrun.extension.goos_sst.core
+##############################
+
+Implementation of ``extension.goos_sst``'s core functionality.
+
+
+.. autosummary::
+    :toctree: generated/
+    
+    merge_era5_goos_sst_grib
+"""
+
+from os.path import dirname
+
 import cfgrib as cf
 import numpy as np
 from pandas import to_datetime
@@ -5,19 +20,25 @@ from seafog import goos_sst_find_data, goos_sst_parser
 from xarray import DataArray
 
 from .utils import create_sst_grib
-from wrfrun.core import WRFRUNConfig
 from wrfrun.utils import logger
 
 
-def merge_era5_goos_sst_grib(surface_grib_path: str, save_path: str, resolution="low"):
+def merge_era5_goos_sst_grib(surface_grib_path: str, save_path: str, sst_data_save_path: str | None = None, resolution="low"):
     """
-    This function can read ERA5 skt data from the surface GRIB file, interpolate it to the same resolution as GOOS sst data, merge them, and save it to a new GRIB file.
+    This function reads ERA5 skin temperature (SKT) data from the GRIB file,
+    interpolates it to the same grib of NEAR-GOOS sea surface temperature (SST) data,
+    merges them and creates a new GRIB file with the new data.
 
-    Args:
-        surface_grib_path: ERA5 surface GRIB file path.
-        save_path: The save path of the new GRIB file.
-        resolution: Resolution of GOOS sst, valid value: ``["low", "high"]``.
-
+    :param surface_grib_path: GRIB file which contains SKT data.
+    :type surface_grib_path: str
+    :param save_path: Save path of the new GRIB file.
+    :type save_path: str
+    :param sst_data_save_path: Save path of downloaded NEAR-GOOS SST data.
+                               If None, save data to the parent directory of ``save_path``.
+    :type sst_data_save_path: str | None
+    :param resolution: Resolution of downloaded NEAR-GOO SST data.
+                       Please check ``seafog.goos_sst_find_data`` for more information.
+    :type resolution: str
     """
     dataset_list = cf.open_datasets(surface_grib_path)
 
@@ -31,18 +52,19 @@ def merge_era5_goos_sst_grib(surface_grib_path: str, save_path: str, resolution=
         logger.error(f"'skt' data not found in {surface_grib_path}")
         raise ValueError
 
-    skt = dataset["skt"]
+    skt: DataArray = dataset["skt"]     # type: ignore
 
-    longitude_start, longitude_end = skt["longitude"][0].data, skt["longitude"][-1].data
-    latitude_start, latitude_end = skt["latitude"][-1].data, skt["latitude"][0].data
+    longitude_start, longitude_end = skt["longitude"][0].data, skt["longitude"][-1].data    # type: ignore
+    latitude_start, latitude_end = skt["latitude"][-1].data, skt["latitude"][0].data    # type: ignore
 
-    data_time = skt["time"].to_numpy()
+    data_time = skt["time"].to_numpy()  # type: ignore
     data_time = to_datetime(data_time).strftime("%Y-%m-%d %H:%M")
 
-    sst_data_path = WRFRUNConfig.get_model_config()["near_goos_data_folder"]
+    if sst_data_save_path is None:
+        sst_data_save_path = dirname(save_path)
 
     # read the first time data, so we can interpolate skt data to the same resolution as sst data.
-    _data = goos_sst_find_data(data_time[0], sst_data_path, resolution=resolution, show_progress=False)
+    _data = goos_sst_find_data(data_time[0], sst_data_save_path, resolution=resolution, show_progress=False)
     _data = goos_sst_parser(_data, resolution=resolution)
     _data = _data.loc[latitude_start:latitude_end, longitude_start:longitude_end]
 
@@ -57,7 +79,7 @@ def merge_era5_goos_sst_grib(surface_grib_path: str, save_path: str, resolution=
 
     # loop other time.
     for time_index, _data_time in enumerate(data_time[1:], start=1):
-        _data = goos_sst_find_data(_data_time, sst_data_path, resolution=resolution, show_progress=False)
+        _data = goos_sst_find_data(_data_time, sst_data_save_path, resolution=resolution, show_progress=False)
         _data = goos_sst_parser(_data, resolution=resolution)
         _data = _data.loc[latitude_start:latitude_end, longitude_start:longitude_end]
 
