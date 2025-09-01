@@ -8,7 +8,7 @@
 
 import sys
 from os.path import abspath
-sys.path.insert(0, abspath("../.."))
+sys.path.insert(len(sys.path), abspath("../.."))
 
 project = 'wrfrun'
 copyright = '2025, Syize'
