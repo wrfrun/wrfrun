@@ -4,11 +4,11 @@ wrfrun.extension.goos_sst
 
 This extension can help you create a GRIB file from ERA5 skin temperature (SKT) data and NEAR-GOOS sea surface temperature (SST) data.
 
-================================================== =============================================
-:doc:`goos_sst </api/extension.goos_sst.goos_sst>` Core functionality submodule.
-:doc:`res </api/extension.goos_sst.res>`           Resource files provided by this extension.
-:doc:`utils </api/extension.goos_sst.utils>`       Utility submodule used by the core submodule.
-================================================== =============================================
+============================================= =============================================
+:doc:`core </api/extension.goos_sst.core>`    Core functionality submodule.
+:doc:`res </api/extension.goos_sst.res>`      Resource files provided by this extension.
+:doc:`utils </api/extension.goos_sst.utils>`  Utility submodule used by the core submodule.
+============================================= =============================================
 
 Important Note
 **************

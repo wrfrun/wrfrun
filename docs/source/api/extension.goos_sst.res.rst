@@ -1,2 +1,4 @@
-wrfrun.extension.goos_sst.res
-#############################
+.. automodule:: wrfrun.extension.goos_sst.res
+    :no-members:
+    :no-inherited-members:
+    :no-special-members:

@@ -1,3 +1,15 @@
+"""
+wrfrun.extension.goos_sst.utils
+###############################
+
+Functions that are used by :doc:`/api/extension.goos_sst`.
+
+.. autosummary::
+    :toctree: generated/
+    
+    create_sst_grib
+"""
+
 from cfgrib.xarray_to_grib import to_grib
 from numpy.dtypes import DateTime64DType
 from pandas import to_datetime
@@ -8,12 +20,16 @@ from wrfrun.utils import logger
 
 def create_sst_grib(data: DataArray, save_path: str):
     """
-    Create a dataset and save it to a GRIB file.
+    Write SST data to a GRIB file.
+    
+    This function creates GRIB file using ``cfgrib`` package.
+    While GRIB write support is experimental in ``cfgrib``,
+    this function may **FAIL TO CREATE GRIB FILE**.
 
-    Args:
-        data: DataArray data, it should at least contain three dimensions: ``["time", "latitude", "longitude"]``.
-        save_path: GRIB file path.
-
+    :param data: ``xarray.DataArray``, which at least has three dimensions: ``["time", "latitude", "longitude"]``.
+    :type data: DataArray
+    :param save_path: Output GRIB file path.
+    :type save_path: str
     """
     # check the data's dimensions.
     for _dim in ["time", "longitude", "latitude"]:
