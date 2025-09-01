@@ -16,7 +16,6 @@ from os.path import dirname
 import cfgrib as cf
 import numpy as np
 from pandas import to_datetime
-from seafog import goos_sst_find_data, goos_sst_parser
 from xarray import DataArray
 
 from .utils import create_sst_grib
@@ -40,6 +39,10 @@ def merge_era5_goos_sst_grib(surface_grib_path: str, save_path: str, sst_data_sa
                        Please check ``seafog.goos_sst_find_data`` for more information.
     :type resolution: str
     """
+    # lazy import seafog to fix libcurl error in readthedocs
+    # T^T
+    from seafog import goos_sst_find_data, goos_sst_parser
+
     dataset_list = cf.open_datasets(surface_grib_path)
 
     dataset = None
