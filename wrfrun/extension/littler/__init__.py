@@ -16,13 +16,13 @@ According to the `WRFDA Online Tutorial <https://www2.mmm.ucar.edu/wrf/users/wrf
 so that WRFDA might be able to assimilate as many observation types as possible in a universal manner.
 
 However, ``LITTLE_R`` is really hard to process elegantly from the point of view of Python.
-To help users create ``LITTLE_R`` file easily, this extension introduces :class:`LittleR`,
+To help users create ``LITTLE_R`` file easily, this extension introduces :class:`LittleR <core.LittleR>`,
 and **Zipped Little R** file.
 
-:class:`LittleR` accepts observation datas, and can generate observation reports in proper format.
+:class:`LittleR <core.LittleR>` accepts observation datas, and can generate observation reports in proper format.
 Besides, it can save an observation report to a Zipped Little R file,
 so you can read the report later or process the observation data with other program.
-Please check :class:`LittleR` for more information.
+Please check :class:`LittleR <core.LittleR>` for more information.
 
 How To Use This Extension?
 **************************

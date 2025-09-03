@@ -1,5 +1,20 @@
+"""
+wrfrun.extension.littler.core
+#############################
+
+Implementation of ``extension.littler``'s core functionality.
+
+.. autosummary::
+    :toctree: generated/
+
+    to_fstring
+    LittleRHead
+    LittleRData
+    LittleR
+"""
+
 from json import loads, dumps
-from typing import Union, Tuple
+from typing import Union, Tuple, Iterable
 from zipfile import ZipFile
 
 from pandas import DataFrame, read_csv
@@ -13,9 +28,24 @@ def to_fstring(var: Union[int, float, bool, str], length: Union[int, Tuple[int, 
     """
     Convert a basic variable to a string following the Fortran standard.
 
+    Convert a float number to a string of length 7 with 3 decimal places:
+
+    >>> to_fstring(0.1, (7, 3))
+    '  0.100'
+
+    Convert an integer to a string of length 3:
+
+    >>> to_fstring(1, 3)
+    '  1'
+
+    Convert a boolean value to a string of length 4:
+    >>> to_fstring(True, 4)
+    '   T'
+
     :param var: Basic variable that can be one of the ``[int, float, bool, str]``.
     :type var: Union[int, float, bool, str]
-    :param length: The length of the output string. If the type of ``var`` is ``float``, the length must contain two parameters ``(total length, decimal length)``.
+    :param length: The length of the output string. If the type of ``var`` is ``float``,
+                   the length must contain two parameters ``(total length, decimal length)``.
     :type length: Union[int, Tuple[int, int]]
     :return: Converted string.
     :rtype: str
@@ -29,7 +59,7 @@ def to_fstring(var: Union[int, float, bool, str], length: Union[int, Tuple[int, 
                 "`length` must be a tuple contain two values `(total length, decimal length)` when `var` is `float`"
             )
 
-        res = f"{var:{length[0]}.{length[1]}}"
+        res = f"{var:{length[0]}.{length[1]}f}"
 
     else:
         if not isinstance(length, int):
@@ -52,7 +82,7 @@ def to_fstring(var: Union[int, float, bool, str], length: Union[int, Tuple[int, 
 
 class LittleRHead(dict):
     """
-    Head info class for LittleR format data.
+    Headers of LITTLE_R observation data.
     """
     def __init__(
         self,
@@ -74,13 +104,14 @@ class LittleRHead(dict):
         quality_control: Union[dict, int] = 0,
         **kwargs
     ) -> None:
-        """Head info of little_r obs data.
+        """
+        Headers of LITTLE_R observation data.
 
         :param longitude: Longitude.
         :type longitude: float
         :param latitude: Latitude.
         :type latitude: float
-        :param fm: Platform code (FM-Code).
+        :param fm: Platform code (FM-Code). Here is the list of `Valid FM Codes <https://www2.mmm.ucar.edu/wrf/users/wrfda/OnlineTutorial/Help/littler.html#FM>`_.
         :type fm: str
         :param elevation: Elevation.
         :type elevation: float
@@ -253,24 +284,117 @@ LITTLE_R_DATA_FIELD = [
 
 
 class LittleRData(DataFrame):
+    """
+    LITTLE_R observation data without headers.
+    """
     def __init__(
         self,
         data=None,
         index=None,
         columns=None,
-        pressure: Union[np.ndarray, float] = 100000.,
-        height: Union[np.ndarray, float] = -888888.,
-        temperature: Union[np.ndarray, float] = 264.,
-        dew_point: Union[np.ndarray, float] = 263.,
-        wind_speed: Union[np.ndarray, float] = -888888.,
-        wind_direction: Union[np.ndarray, float] = -888888.,
-        wind_u: Union[np.ndarray, float] = -888888.,
-        wind_v: Union[np.ndarray, float] = -888888.,
-        relative_humidity: Union[np.ndarray, float] = -888888.,
-        thickness: Union[np.ndarray, float] = -888888.,
-        quality_control_flag: Union[np.ndarray, dict, int] = 0,
+        pressure: Union[Iterable, float] = 100000.,
+        height: Union[Iterable, float] = -888888.,
+        temperature: Union[Iterable, float] = 264.,
+        dew_point: Union[Iterable, float] = 263.,
+        wind_speed: Union[Iterable, float] = -888888.,
+        wind_direction: Union[Iterable, float] = -888888.,
+        wind_u: Union[Iterable, float] = -888888.,
+        wind_v: Union[Iterable, float] = -888888.,
+        relative_humidity: Union[Iterable, float] = -888888.,
+        thickness: Union[Iterable, float] = -888888.,
+        quality_control_flag: Union[Iterable, dict, int] = 0,
         **kwargs
     ) -> None:
+        """
+        LITTLE_R observation data without headers.
+
+        :class:`LittleRData` inherits from ``pandas.DataFrame``, so you have two ways to create a ``LittleRData`` instance:
+
+        1. Create instance like normal ``pandas.DataFrame`` instance:
+
+        >>> obs_data = {
+        ...     "pressure": [100000., 90000.],
+        ...     "pressure_qc": [0, 0],
+        ...     "height": [-888888., -888888.],
+        ...     "height_qc": [0, 0],
+        ...     "temperature": [264., 260.],
+        ...     "temperature_qc": [0, 0],
+        ...     "dew_point": [263., 255.],
+        ...     "dew_point_qc": [0, 0],
+        ...     "wind_speed": [-888888., -888888.],
+        ...     "wind_speed_qc": [0, 0],
+        ...     "wind_direction": [-888888., -888888.],
+        ...     "wind_direction_qc": [0, 0],
+        ...     "wind_u": [-888888., -888888.],
+        ...     "wind_u_qc": [0, 0],
+        ...     "wind_v": [-888888., -888888.],
+        ...     "wind_v_qc": [0, 0],
+        ...     "relative_humidity": [-888888., -888888.],
+        ...     "relative_humidity_qc": [0, 0],
+        ...     "thickness": [-888888., -888888.],
+        ...     "thickness_qc": [0, 0],
+        ... }
+        >>> littler_data = LittleRData(data=data)
+
+        However, you need to give all quality control flags, and make sure the ``data`` has all essential valus.
+
+        2. Create instance by giving each value one after another
+
+        >>> obs_data = LittleRData(
+        ...     pressure=[100000., 90000.],
+        ...     height=[-888888., -888888.],
+        ...     temperature=[264., 260.],
+        ...     dew_point=[263., 255.],
+        ...     wind_speed=[-888888., -888888.],
+        ...     wind_direction=[-888888., -888888.],
+        ...     wind_u=[-888888., -888888.],
+        ...     wind_v=[-888888., -888888.],
+        ...     relative_humidity=[-888888., -888888.],
+        ...     thickness=[-888888., -888888.],
+        ...     quality_control_flag=[0, 0],
+        ... )
+
+        In this way, you can set all quality control flag of one pressure level by giving ``quality_control_flag``.
+
+        If you want to set an invalid value, **USE -888888**.
+
+        To generate a LITTLE_R format record, just use :func:`str`
+
+        >>> str(obs_data)
+
+        :param data: This argument is passed to ``pandas.DataFrame`` directly.
+        :type data: ndarray | Iterable | dict | DataFrame
+        :param index: This argument is passed to ``pandas.DataFrame`` directly.
+        :type index: Index or array-like
+        :param columns: This argument is passed to ``pandas.DataFrame`` directly.
+        :type columns: Index or array-like
+        :param pressure: Pressure in ``Pa``. Default is 100000 Pa.
+        :type pressure: float | Iterable
+        :param height: Elevation in ``meter``. Default is -888888.
+        :type height: float | Iterable
+        :param temperature: Air temperature in ``K``. Default is 264 K.
+        :type temperature: float | Iterable
+        :param dew_point: Dew point temperature in ``K``. Default is 263 K.
+        :type dew_point: float | Iterable
+        :param wind_speed: Wind speed in ``meter / seconds``. Default is -888888.
+        :type wind_speed: float | Iterable
+        :param wind_direction: Wind direction in ``degree``, 0/360 represents the north. Default is -888888.
+        :type wind_direction: float | Iterable
+        :param wind_u: East-west wind speed in ``meter / seconds``. Default is -888888.
+        :type wind_u: float | Iterable
+        :param wind_v: North-south wind speed in ``meter / seconds``. Default is -888888.
+        :type wind_v: float | Iterable
+        :param relative_humidity: Relative humidity in ``percentage``. Default is -888888.
+        :type relative_humidity: float | Iterable
+        :param thickness: Thickness in ``meter``. Default is -888888.
+        :type thickness: float | Iterable
+        :param quality_control_flag: Quality control flag for all data or data in the same line.
+                                     This argument can only be ``0``, ``1`` or array-like object which only contains 0 or 1.
+                                     ``0`` means no quality control, ``1`` means having quality control. Default is 0.
+        :type quality_control_flag: int | Iterable
+        :param kwargs: Other keyword arguments passed to parent class.
+        :type kwargs: dict
+        """
         # check data type
         if data is not None:
             super().__init__(data=data, index=index, columns=columns, **kwargs)  # type: ignore
@@ -356,20 +480,35 @@ class LittleRData(DataFrame):
             super().__init__(data=data)  # type: ignore
 
     @classmethod
-    def from_csv(cls, csv_path):
+    def from_csv(cls, csv_path: str):
         """
-        Read saved LittleR data from a CSV file.
+        Read saved LITTLE_R data from a CSV file.
 
         :param csv_path: CSV file path.
         :type csv_path: str
-        :return:
-        :rtype:
+        :return: ``LittleRData`` instance.
+        :rtype: LittleRData
         """
         data_dict = read_csv(csv_path).to_dict()
         return cls.from_dict(data_dict)
 
     @classmethod
     def from_dict(cls, data: dict, orient='columns', dtype=None, columns=None):
+        """
+        Create ``LittleRData`` instance from a dict.
+        This method inspects all fields in ``data`` and supplements any missing fields with invalid value (-888888).
+
+        :param data: A dict contains all data.
+        :type data: dict
+        :param orient: This argument is passed to ``DataFrame.from_dict`` directly.
+        :type orient: str
+        :param dtype: This argument is passed to ``DataFrame.from_dict`` directly.
+        :type dtype: dtype
+        :param columns: This argument is passed to ``DataFrame.from_dict`` directly.
+        :type columns: Index or array-like
+        :return: ``LittleRData`` instance.
+        :rtype: LittleRData
+        """
         # check fields
         data_key = next(iter(data))
         temp_data = data[data_key]
@@ -436,6 +575,9 @@ class LittleRData(DataFrame):
 
 
 class LittleR(LittleRData):
+    """
+    Manage LITTLE_R observation data.
+    """
 
     _metadata = ["little_r_head"]
 
@@ -445,19 +587,155 @@ class LittleR(LittleRData):
         index=None,
         columns=None,
         data_header: Union[dict, None] = None,
-        pressure: Union[np.ndarray, float] = 100000.,
-        height: Union[np.ndarray, float] = -888888.,
-        temperature: Union[np.ndarray, float] = 264.,
-        dew_point: Union[np.ndarray, float] = 263.,
-        wind_speed: Union[np.ndarray, float] = -888888.,
-        wind_direction: Union[np.ndarray, float] = -888888.,
-        wind_u: Union[np.ndarray, float] = -888888.,
-        wind_v: Union[np.ndarray, float] = -888888.,
-        relative_humidity: Union[np.ndarray, float] = -888888.,
-        thickness: Union[np.ndarray, float] = -888888.,
-        quality_control_flag: Union[np.ndarray, dict, int] = 0,
+        pressure: Union[Iterable, float] = 100000.,
+        height: Union[Iterable, float] = -888888.,
+        temperature: Union[Iterable, float] = 264.,
+        dew_point: Union[Iterable, float] = 263.,
+        wind_speed: Union[Iterable, float] = -888888.,
+        wind_direction: Union[Iterable, float] = -888888.,
+        wind_u: Union[Iterable, float] = -888888.,
+        wind_v: Union[Iterable, float] = -888888.,
+        relative_humidity: Union[Iterable, float] = -888888.,
+        thickness: Union[Iterable, float] = -888888.,
+        quality_control_flag: Union[Iterable, dict, int] = 0,
         **kwargs
     ) -> None:
+        """
+        ``LittleR`` class helps you manage LITTLE_R data easily.
+        You can create a ``LittleR`` instance with your observation data,
+        then generate LITTLE_R format record or save all data to a **Zipped Little R** file (ends with ``.zlr``).
+
+        **Zipped Little R** file is a compressed file having two parts: ``header`` and ``data``.
+        ``header`` is a JSON file that stores LITTLE_R file header,
+        and ``data`` is a CSV file that stores record data.
+        You can even create ``.zlr`` file with other programs and read the file using ``LittleR``,
+        as long as it has all essential data.
+
+        1. Constructing LittleR from a dictionary
+
+        >>> obs_data = {
+        ...     "pressure": [100000., 90000.],
+        ...     "pressure_qc": [0, 0],
+        ...     "height": [-888888., -888888.],
+        ...     "height_qc": [0, 0],
+        ...     "temperature": [264., 260.],
+        ...     "temperature_qc": [0, 0],
+        ...     "dew_point": [263., 255.],
+        ...     "dew_point_qc": [0, 0],
+        ...     "wind_speed": [-888888., -888888.],
+        ...     "wind_speed_qc": [0, 0],
+        ...     "wind_direction": [-888888., -888888.],
+        ...     "wind_direction_qc": [0, 0],
+        ...     "wind_u": [-888888., -888888.],
+        ...     "wind_u_qc": [0, 0],
+        ...     "wind_v": [-888888., -888888.],
+        ...     "wind_v_qc": [0, 0],
+        ...     "relative_humidity": [-888888., -888888.],
+        ...     "relative_humidity_qc": [0, 0],
+        ...     "thickness": [-888888., -888888.],
+        ...     "thickness_qc": [0, 0],
+        ... }
+        >>> obs_header = {
+        ...     "longitude": 120,
+        ...     "latitude": 60,
+        ...     "fm": "FM-19",
+        ...     "elevation": 0,
+        ...     "is_bogus": True,
+        ...     "date": "20250902070000"
+        ...}
+        >>> littler_data = LittleR(data=data, data_header=obs_header)
+
+        You can set header after constructing LittleR
+
+        >>> obs_data = {
+        ...     "pressure": [100000., 90000.],
+        ...     "pressure_qc": [0, 0],
+        ...     "height": [-888888., -888888.],
+        ...     "height_qc": [0, 0],
+        ...     "temperature": [264., 260.],
+        ...     "temperature_qc": [0, 0],
+        ...     "dew_point": [263., 255.],
+        ...     "dew_point_qc": [0, 0],
+        ...     "wind_speed": [-888888., -888888.],
+        ...     "wind_speed_qc": [0, 0],
+        ...     "wind_direction": [-888888., -888888.],
+        ...     "wind_direction_qc": [0, 0],
+        ...     "wind_u": [-888888., -888888.],
+        ...     "wind_u_qc": [0, 0],
+        ...     "wind_v": [-888888., -888888.],
+        ...     "wind_v_qc": [0, 0],
+        ...     "relative_humidity": [-888888., -888888.],
+        ...     "relative_humidity_qc": [0, 0],
+        ...     "thickness": [-888888., -888888.],
+        ...     "thickness_qc": [0, 0],
+        ... }
+        >>> littler_data = LittleR(data=data)
+        >>> littler_data.set_header(longitude=120, latitude=60, fm="FM-19", elevation=0, is_bogus=True, date="20250902070000")
+
+        2. Constructing LittleR by giving observation data one by one
+
+        >>> littler_data = LittleR(
+        ...     pressure=[100000., 90000.],
+        ...     height=[-888888., -888888.],
+        ...     temperature=[264., 260.],
+        ...     dew_point=[263., 255.],
+        ...     wind_speed=[-888888., -888888.],
+        ...     wind_direction=[-888888., -888888.],
+        ...     wind_u=[-888888., -888888.],
+        ...     wind_v=[-888888., -888888.],
+        ...     relative_humidity=[-888888., -888888.],
+        ...     thickness=[-888888., -888888.],
+        ...     quality_control_flag=[0, 0],
+        ...)
+
+        3. Constructing LittleR by reading ``.zlr`` file
+
+        >>> zlr_file_path = "data/test.zlr"
+        >>> littler_data = LittleR.from_zlr(zlr_file_path)
+
+        4. Generating LITTLE_R format record
+
+        >>> str(littler_data)
+
+        5. Saving data to ``.zlr`` file
+
+        >>> littler_data.to_zlr("data/test.zlr")
+
+        :param data: This argument is passed to ``pandas.DataFrame`` directly.
+        :type data: ndarray | Iterable | dict | DataFrame
+        :param index: This argument is passed to ``pandas.DataFrame`` directly.
+        :type index: Index or array-like
+        :param columns: This argument is passed to ``pandas.DataFrame`` directly.
+        :type columns: Index or array-like
+        :param data_header: A dict contains LITTLE_R headers.
+        :type data_header: dict
+        :param pressure: Pressure in ``Pa``. Default is 100000 Pa.
+        :type pressure: float | Iterable
+        :param height: Elevation in ``meter``. Default is -888888.
+        :type height: float | Iterable
+        :param temperature: Air temperature in ``K``. Default is 264 K.
+        :type temperature: float | Iterable
+        :param dew_point: Dew point temperature in ``K``. Default is 263 K.
+        :type dew_point: float | Iterable
+        :param wind_speed: Wind speed in ``meter / seconds``. Default is -888888.
+        :type wind_speed: float | Iterable
+        :param wind_direction: Wind direction in ``degree``, 0/360 represents the north. Default is -888888.
+        :type wind_direction: float | Iterable
+        :param wind_u: East-west wind speed in ``meter / seconds``. Default is -888888.
+        :type wind_u: float | Iterable
+        :param wind_v: North-south wind speed in ``meter / seconds``. Default is -888888.
+        :type wind_v: float | Iterable
+        :param relative_humidity: Relative humidity in ``percentage``. Default is -888888.
+        :type relative_humidity: float | Iterable
+        :param thickness: Thickness in ``meter``. Default is -888888.
+        :type thickness: float | Iterable
+        :param quality_control_flag: Quality control flag for all data or data in the same line.
+                                     This argument can only be ``0``, ``1`` or array-like object which only contains 0 or 1.
+                                     ``0`` means no quality control, ``1`` means having quality control. Default is 0.
+        :type quality_control_flag: int | Iterable
+        :param kwargs: Other keyword arguments passed to parent class.
+        :type kwargs: dict
+        """
         super().__init__(
             data=data,
             pressure=pressure,
@@ -501,13 +779,15 @@ class LittleR(LittleRData):
         quality_control: Union[dict, int] = 0,
         **kwargs
     ):
-        """Head info of little_r obs data.
+        """
+        Set headers of LITTLE_R observation data.
 
         :param longitude: Longitude.
         :type longitude: float
         :param latitude: Latitude.
         :type latitude: float
         :param fm: Platform code (FM-Code).
+                   Here is the list of `Valid FM Codes <https://www2.mmm.ucar.edu/wrf/users/wrfda/OnlineTutorial/Help/littler.html#FM>`_.
         :type fm: str
         :param elevation: Elevation.
         :type elevation: float
@@ -548,17 +828,23 @@ class LittleR(LittleRData):
         return f"{str(self.little_r_head)}\n{data_str}"
 
     @classmethod
-    def from_csv(cls, csv_path):
+    def from_csv(cls, csv_path: str):
+        """
+        Read observation data from CSV file.
+
+        :param csv_path: CSV file path.
+        :type csv_path: str
+        :return: ``LittleR`` instance.
+        :rtype: LittleR
+        """
         return super().from_csv(csv_path)
 
     def to_zlr(self, file_path: str):
         """
-        Save all LittleR data to a ".zlr" file.
+        Save all LittleR data to Zipped Little R file.
 
-        :param file_path: The save path.
+        :param file_path: File save path.
         :type file_path: str
-        :return:
-        :rtype:
         """
         if not file_path.endswith(".zlr"):
             file_path = f"{file_path}.zlr"
@@ -579,8 +865,8 @@ class LittleR(LittleRData):
 
         :param file_path: The file path.
         :type file_path: str
-        :return:
-        :rtype:
+        :return: ``LittleR`` instance.
+        :rtype: LittleR
         """
         file_path = WRFRUNConfig.parse_resource_uri(file_path)
 
