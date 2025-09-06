@@ -1,3 +1,15 @@
+"""
+wrfrun.extension.utils
+######################
+
+Utility functions used by extensions.
+
+.. autosummary::
+    :toctree: generated/
+
+    extension_postprocess
+"""
+
 from os import listdir
 from os.path import exists
 from shutil import copyfile
@@ -9,32 +21,21 @@ from wrfrun.utils import check_path, logger
 
 def extension_postprocess(output_dir: str, extension_id: str, outputs: Optional[List[str]] = None):
     """
-    Apply postprocess after running an extension.
-    This function can help you save all files and logs in ``output_dir`` to the ``output_path/extension_id`` and ``output_path/extension_id/logs``,
-    ``output_path`` is defined in ``config.yaml``.
+    This function provides a unified postprocessing interface for all extensions.
+
+    This function will save outputss and logs in ``output_dir`` to the ``{output_path}/extension_id`` and ``{output_path}/extension_id/logs``,
+    in which ``output_path`` is defined in ``config.toml``.
     Files end with ``.log`` are treated as log files, while others are treated as outputs.
-    You can specify outputs by giving their names through parameter ``outputs``.
-
-    Save all outputs of ungrib.
-
-    >>> from wrfrun.extension.utils import extension_postprocess
-    >>> output_dir_path = "/WPS/outputs"
-    >>> extension_postprocess(output_dir_path, "ungrib")
-
-    Save outputs start with ``SST_FILE`` of ungrib.
-
-    >>> from os import listdir
-    >>> from wrfrun.extension.utils import extension_postprocess
-    >>> output_dir_path = "/WPS/outputs"
-    >>> outputs_name = [x for x in listdir(output_dir_path) if x.startswith("SST_FILE")]    # type: ignore
-    >>> extension_postprocess(output_dir_path, "ungrib", outputs=outputs_name)
+    You can save specific outputs by giving their names through the argument ``outputs``.
 
     :param output_dir: Absolute path of output directory.
+    :type output_dir: str
     :param extension_id: A unique id to distinguish different extensions.
-                         And all files and logs will be saved to ``output_path/extension_id`` and ``output_path/extension_id/logs``,
-                         ``output_path`` is defined in ``config.yaml``.
+                         Outputs and logs will be saved to ``{output_path}/extension_id`` and ``{output_path}/extension_id/logs``,
+                         in which``output_path`` is defined in ``config.toml``.
+    :type extension_id: str
     :param outputs: A list contains multiple filenames. Files in this will be treated as outputs.
-    :return:
+    :type outputs: list
     """
     output_path = WRFRUNConfig.WRFRUN_OUTPUT_PATH
     output_save_path = f"{output_path}/{extension_id}"
