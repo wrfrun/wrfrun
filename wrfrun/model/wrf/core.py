@@ -1,3 +1,24 @@
+"""
+wrfrun.model.wrf.core
+#####################
+
+Core implementation of WRF model. All ``Executable`` of WPS / WRF model are defined here.
+
+If you prefer function interfaces, please see :doc:`function wrapper </api/model.wrf.exec_wrap>` for these ``Executable``.
+
+.. autosummary::
+    :toctree: generated/
+
+    GeoGrid
+    LinkGrib
+    UnGrib
+    MetGrid
+    Real
+    WRF
+    DFI
+    NDown
+"""
+
 from os import listdir
 from os.path import abspath, basename, exists
 from shutil import copyfile, move, rmtree
@@ -25,16 +46,16 @@ def _check_namelist_preparation():
 
 class GeoGrid(ExecutableBase):
     """
-    Execute "geogrid.exe".
+    ``Executable`` for "geogrid.exe".
     """
 
     def __init__(self, geogrid_tbl_file: Optional[str] = None, core_num: Optional[int] = None):
         """
-        Execute "geogrid.exe".
+        ``Executable`` for "geogrid.exe".
 
         :param geogrid_tbl_file: Custom GEOGRID.TBL file path. Defaults to None.
         :type geogrid_tbl_file: str
-        :param core_num: An positive integer number of used core numbers. ``mpirun`` will be used to execute geogrid.exe if ``core_num != None``.
+        :param core_num: An positive integer number. ``mpirun`` will be used to execute geogrid.exe if ``core_num != None``.
         :type core_num: int
         """
         if isinstance(core_num, int) and core_num <= 0:
@@ -59,9 +80,10 @@ class GeoGrid(ExecutableBase):
 
     def generate_custom_config(self):
         """
-        Get and store namelist.
-        :return:
-        :rtype:
+        Store custom configs, including:
+
+        1. Namelist settings.
+        2. Path of custom TBL file.
         """
         self.custom_config.update(
             {
@@ -71,6 +93,9 @@ class GeoGrid(ExecutableBase):
         )
 
     def load_custom_config(self):
+        """
+        Load custom configs.
+        """
         WRFRUNConfig.update_namelist(self.custom_config["namelist"], "wps")
         self.geogrid_tbl_file = self.custom_config["geogrid_tbl_file"]
 
@@ -102,14 +127,14 @@ class GeoGrid(ExecutableBase):
 
 class LinkGrib(ExecutableBase):
     """
-    Run command: "./link_grib.csh".
+    ``Executable`` for "./link_grib.csh".
     """
 
     def __init__(self, grib_dir_path: str):
         """
-        Execute "link_grib.csh".
+        ``Executable`` for "link_grib.csh".
 
-        :param grib_dir_path: GRIB data path. Absolute path is recommended.
+        :param grib_dir_path: GRIB data directory path. Absolute path is recommended.
         :type grib_dir_path: str
         """
         self._link_grib_input_path = "./input_grib_data_dir"
@@ -118,10 +143,12 @@ class LinkGrib(ExecutableBase):
         self.grib_dir_path = grib_dir_path
 
     def generate_custom_config(self):
-        self.class_config["class_args"] = (self.grib_dir_path,)
+        """
+        Store custom configs, including:
 
-    def replay(self):
-        self()
+        1. Positional arguments of this ``Executable``.
+        """
+        self.class_config["class_args"] = (self.grib_dir_path,)
 
     def before_exec(self):
         if not WRFRUNConfig.IS_IN_REPLAY:
@@ -151,16 +178,18 @@ class LinkGrib(ExecutableBase):
 
 class UnGrib(ExecutableBase):
     """
-    Execute "ungrib.exe".
+    ``Executable`` for "ungrib.exe".
     """
 
     def __init__(self, vtable_file: Optional[str] = None, input_data_path: Optional[str] = None):
         """
-        Execute "ungrib.exe".
+        ``Executable`` for "ungrib.exe".
 
-        :param vtable_file: Path of the Vtable file "ungrib.exe" used.
+        :param vtable_file: Path of the Vtable file.
+                            Defaults to :attr:`VtableFiles.ERA_PL <vtable.VtableFiles.ERA_PL>`.
         :type vtable_file: str
-        :param input_data_path: Path of the directory stores input GRIB2 files.
+        :param input_data_path: Directory path of input GRIB files.
+                                Defaults to ``input_data_path`` set in user's config file.
         :type input_data_path: str
         """
         super().__init__(name="ungrib", cmd="./ungrib.exe", work_path=WRFRUNConfig.WPS_WORK_PATH)
@@ -172,10 +201,7 @@ class UnGrib(ExecutableBase):
 
     def call_link_grib(self):
         """
-        Execute "link_grib.csh" if needed.
-
-        :return:
-        :rtype:
+        Call :class:`LinkGrib` if needed.
         """
         if self.input_data_path is None:
             self.input_data_path = WRFRUNConfig.get_input_data_path()
@@ -184,10 +210,10 @@ class UnGrib(ExecutableBase):
 
     def generate_custom_config(self):
         """
-        Get and store namelist.
+        Store custom configs, including:
 
-        :return:
-        :rtype:
+        1. Namelist settings.
+        2. Path of used VTable file.
         """
         self.custom_config.update(
             {
@@ -197,11 +223,11 @@ class UnGrib(ExecutableBase):
         )
 
     def load_custom_config(self):
+        """
+        Load custom configs.
+        """
         self.vtable_file = self.custom_config["vtable_file"]
         WRFRUNConfig.update_namelist(self.custom_config["namelist"], "wps")
-
-    def replay(self):
-        super().__call__()
 
     def before_exec(self):
         WRFRUNConfig.check_wrfrun_context(True)
@@ -241,18 +267,20 @@ class UnGrib(ExecutableBase):
 
 class MetGrid(ExecutableBase):
     """
-    Execute "metgrid.exe".
+    ``Executable`` of "metgrid.exe".
     """
 
     def __init__(self, geogrid_data_path: Optional[str] = None, ungrib_data_path: Optional[str] = None, core_num: Optional[int] = None):
         """
-        Execute "metgrid.exe".
+        ``Executable`` of "metgrid.exe".
 
-        :param geogrid_data_path: Directory path of outputs from geogrid.exe. If None, tries to use the output path specified by config file.
+        :param geogrid_data_path: Directory path of :class:`GeoGrid` outputs.
+                                  If is ``None``, try to use the output path specified by config file.
         :type geogrid_data_path: str
-        :param ungrib_data_path: Directory path of outputs from ungrib.exe. If None, tries to use the output path specified by config file.
+        :param ungrib_data_path: Directory path of :class:`UnGrib` outputs.
+                                 If is ``None``, try to use the output path specified by config file.
         :type ungrib_data_path: str
-        :param core_num: An positive integer number of used core numbers. ``mpirun`` will be used to execute geogrid.exe if ``core_num != None``.
+        :param core_num: An positive integer number. ``mpirun`` will be used to execute geogrid.exe if ``core_num != None``.
         :type core_num: int
         """
         if isinstance(core_num, int) and core_num <= 0:
@@ -278,9 +306,11 @@ class MetGrid(ExecutableBase):
 
     def generate_custom_config(self):
         """
-        Get and store namelist.
-        :return:
-        :rtype:
+        Store custom configs, including:
+
+        1. Directory path of :class:`GeoGrid` outputs.
+        2. Directory path of :class:`UnGrib` outputs.
+        3. Namelist settings.
         """
         self.custom_config.update(
             {
@@ -291,6 +321,9 @@ class MetGrid(ExecutableBase):
         )
 
     def load_custom_config(self):
+        """
+        Load custom configs.
+        """
         self.geogrid_data_path = self.custom_config["geogrid_data_path"]
         self.ungrib_data_path = self.custom_config["ungrib_data_path"]
         WRFRUNConfig.update_namelist(self.custom_config["namelist"], "wps")
@@ -366,16 +399,17 @@ class MetGrid(ExecutableBase):
 
 class Real(ExecutableBase):
     """
-    Execute "real.exe".
+    ``Executable`` of "real.exe".
     """
 
     def __init__(self, metgrid_data_path: Optional[str] = None, core_num: Optional[int] = None):
         """
-        Execute "real.exe".
+        ``Executable`` of "real.exe".
 
-        :param metgrid_data_path: Path of the directory stores outputs from "metgrid.exe".
+        :param metgrid_data_path: Directory path of :class:`MetGrid` outputs.
+                                  If is ``None``, try to use the workspace path or output path in the config file.
         :type metgrid_data_path: str
-        :param core_num: An positive integer number of used core numbers. ``mpirun`` will be used to execute geogrid.exe if ``core_num != None``.
+        :param core_num: An positive integer number. ``mpirun`` will be used to execute geogrid.exe if ``core_num != None``.
         :type core_num: int
         """
         if isinstance(core_num, int) and core_num <= 0:
@@ -399,6 +433,12 @@ class Real(ExecutableBase):
         self.metgrid_data_path = metgrid_data_path
 
     def generate_custom_config(self):
+        """
+        Store custom configs, including:
+
+        1. Namelist settings.
+        2. Directory path of :class:`MetGrid` outputs.
+        """
         self.custom_config["metgrid_data_path"] = self.metgrid_data_path
         self.custom_config.update(
             {
@@ -408,6 +448,9 @@ class Real(ExecutableBase):
         )
 
     def load_custom_config(self):
+        """
+        Load custom configs.
+        """
         self.metgrid_data_path = self.custom_config["metgrid_data_path"]
         WRFRUNConfig.update_namelist(self.custom_config["namelist"], "wrf")
 
@@ -449,20 +492,20 @@ class Real(ExecutableBase):
 
 class WRF(ExecutableBase):
     """
-    Execute "wrf.exe".
+    ``Executable`` of "wrf.exe".
     """
 
     def __init__(self, input_file_dir_path: Optional[str] = None, restart_file_dir_path: Optional[str] = None, save_restarts=False, core_num: Optional[int] = None):
         """
-        Execute "wrf.exe"
+        ``Executable`` of "wrf.exe"
 
-        :param input_file_dir_path: Path of the directory that stores input data for "wrf.exe".
+        :param input_file_dir_path: Directory path of input data.
         :type input_file_dir_path: str
-        :param restart_file_dir_path: Path of the directory that stores restart files for "wrf.exe".
+        :param restart_file_dir_path: Directory path of restart files.
         :type restart_file_dir_path: str
-        :param save_restarts: If saving restart files from "wrf.exe". Defaults to False.
+        :param save_restarts: If saving restart files. Defaults to False.
         :type save_restarts: bool
-        :param core_num: An positive integer number of used core numbers. ``mpirun`` will be used to execute geogrid.exe if ``core_num != None``.
+        :param core_num: An positive integer number. ``mpirun`` will be used to execute geogrid.exe if ``core_num != None``.
         :type core_num: int
         """
         if isinstance(core_num, int) and core_num <= 0:
@@ -488,6 +531,13 @@ class WRF(ExecutableBase):
         self.save_restarts = save_restarts
 
     def generate_custom_config(self):
+        """
+        Store custom configs, including:
+
+        1. Directory path of input datas.
+        2. Directory path of restart files.
+        3. Namelist settings.
+        """
         self.custom_config.update(
             {
                 "input_file_dir_path": self.input_file_dir_path,
@@ -497,6 +547,9 @@ class WRF(ExecutableBase):
         )
 
     def load_custom_config(self):
+        """
+        Load custom configs.
+        """
         self.input_file_dir_path = self.custom_config["input_file_dir_path"]
         self.restart_file_dir_path = self.custom_config["restart_file_dir_path"]
         WRFRUNConfig.update_namelist(self.custom_config["namelist"], "wrf")
@@ -578,18 +631,18 @@ class WRF(ExecutableBase):
 
 class DFI(ExecutableBase):
     """
-    Execute "wrf.exe" to run DFI.
+    ``Executable`` to run DFI.
     """
 
     def __init__(self, input_file_dir_path: Optional[str] = None, update_real_output=True, core_num: Optional[int] = None):
         """
-        Execute "wrf.exe" to run DFI.
+        ``Executable`` to run DFI.
 
-        :param input_file_dir_path: Path of the directory that stores input data for "wrf.exe".
+        :param input_file_dir_path: Directory path of input data.
         :type input_file_dir_path: str
-        :param update_real_output: If update the corresponding file in real.exe output directory.
+        :param update_real_output: If update corresponding files in :class:`Real` outputs.
         :type update_real_output: bool
-        :param core_num: An positive integer number of used core numbers. ``mpirun`` will be used to execute geogrid.exe if ``core_num != None``.
+        :param core_num: An positive integer number. ``mpirun`` will be used to execute geogrid.exe if ``core_num != None``.
         :type core_num: int
         """
         if isinstance(core_num, int) and core_num <= 0:
@@ -612,6 +665,13 @@ class DFI(ExecutableBase):
         self.update_real_output = update_real_output
 
     def generate_custom_config(self):
+        """
+        Store custom configs, including:
+
+        1. Directory path of input datas.
+        2. If update corresponding files in :class:`Real` outputs.
+        3. Namelist settings.
+        """
         self.custom_config.update(
             {
                 "input_file_dir_path": self.input_file_dir_path,
@@ -621,6 +681,9 @@ class DFI(ExecutableBase):
         )
 
     def load_custom_config(self):
+        """
+        Load custom configs.
+        """
         self.input_file_dir_path = self.custom_config["input_file_dir_path"]
         self.update_real_output = self.custom_config["update_real_output"]
 
@@ -686,21 +749,21 @@ class DFI(ExecutableBase):
 
 class NDown(ExecutableBase):
     """
-    Execute "ndown.exe".
+    ``Executable`` of "ndown.exe".
     """
 
     def __init__(self, wrfout_file_path: str, real_output_dir_path: Optional[str] = None, update_namelist=True, core_num: Optional[int] = None):
         """
-        Execute "ndown.exe".
+        ``Executable`` of "ndown.exe".
 
         :param wrfout_file_path: wrfout file path.
         :type wrfout_file_path: str
-        :param real_output_dir_path: Path of the directory that contains output of "real.exe".
+        :param real_output_dir_path: Directory path of :class:`Real` outputs.
         :type real_output_dir_path: str
-        :param update_namelist: If update wrf's namelist for the final integral.
+        :param update_namelist: If update namelist settings for the final integral.
         :type update_namelist: bool
-        :param core_num:
-        :type core_num:
+        :param core_num: An positive integer number. ``mpirun`` will be used to execute geogrid.exe if ``core_num != None``.
+        :type core_num: int
         """
         if isinstance(core_num, int) and core_num <= 0:
             logger.warning(f"`core_num` should be greater than 0")
@@ -725,6 +788,14 @@ class NDown(ExecutableBase):
         self.update_namelist = update_namelist
 
     def generate_custom_config(self):
+        """
+        Store custom configs, including:
+
+        1. Positional arguments of this ``Executable``.
+        2. Directory path of :class:`Real` outputs.
+        3. If update namelist settings.
+        4. Namelist settings.
+        """
         self.class_config["class_args"] = (self.wrfout_file_path,)
         self.custom_config.update(
             {
@@ -735,6 +806,9 @@ class NDown(ExecutableBase):
         )
 
     def load_custom_config(self):
+        """
+        Load custom configs.
+        """
         self.real_output_dir_path = self.custom_config["real_output_dir_path"]
         self.update_namelist = self.custom_config["update_namelist"]
         WRFRUNConfig.update_namelist(self.custom_config["namelist"])

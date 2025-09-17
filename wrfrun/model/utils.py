@@ -1,3 +1,15 @@
+"""
+wrfrun.model.utils
+##################
+
+Utility functions used by models.
+
+.. autosummary::
+    :toctree: generated/
+
+    clear_model_logs
+"""
+
 from os import listdir
 from shutil import move
 
@@ -7,17 +19,13 @@ from ..utils import check_path, logger
 
 def clear_model_logs():
     """
-    This function can automatically collect WRF log files and save them to ``output_path``.
-    This function is used inside the wrfrun package.
-    If you want to do something about the log files, check the corresponding code of interface functions in ``wrfrun.model.run``.
-
-    :return:
-    :rtype:
+    This function can automatically collect unsaved log files,
+    and save them to the corresponding output directory of the ``Executable``.
     """
     work_status = WRFRUNConfig.WRFRUN_WORK_STATUS
     work_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRF_WORK_PATH)
 
-    log_files = [x for x in listdir(work_path) if x.startswith("rsl.")]
+    log_files = [x for x in listdir(work_path) if x.startswith("rsl.") or x.endswith(".log")]
 
     if len(log_files) > 0:
         logger.warning(f"Found unprocessed log files of {work_status}")

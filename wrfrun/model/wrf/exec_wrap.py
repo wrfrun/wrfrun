@@ -1,3 +1,21 @@
+"""
+wrfrun.model.wrf.exec_wrap
+##########################
+
+Function wrapper of WPS / WRF :doc:`Executables </api/model.wrf.core>`.
+
+.. autosummary::
+    :toctree: generated/
+
+    geogrid
+    ungrib
+    metgrid
+    real
+    wrf
+    dfi
+    ndown
+"""
+
 from os.path import basename
 from typing import Optional, Union
 
@@ -7,7 +25,7 @@ from .core import DFI, GeoGrid, MetGrid, Real, UnGrib, WRF, NDown
 
 def geogrid(geogrid_tbl_file: Union[str, None] = None):
     """
-    Interface to execute geogrid.exe.
+    Function interface for :class:`GeoGrid <wrfrun.model.wrf.core.GeoGrid>`.
 
     :param geogrid_tbl_file: Custom GEOGRID.TBL file path. Defaults to None.
     """
@@ -16,13 +34,15 @@ def geogrid(geogrid_tbl_file: Union[str, None] = None):
 
 def ungrib(vtable_file: Union[str, None] = None, input_data_path: Optional[str] = None, prefix="FILE"):
     """
-    Interface to execute ungrib.exe.
+    Function interface for :class:`UnGrib <wrfrun.model.wrf.core.UnGrib>`.
 
-    :param vtable_file: Vtable file used to run ungrib. Defaults to None.
+    :param vtable_file: Path of the Vtable file.
+                        Defaults to :attr:`VtableFiles.ERA_PL <vtable.VtableFiles.ERA_PL>`.
     :type vtable_file: str
-    :param input_data_path: Directory path of the input data. If None, ``wrfrun`` will read its value from the config file.
+    :param input_data_path: Directory path of input GRIB files.
+                            Defaults to ``input_data_path`` set in user's config file.
     :type input_data_path: str
-    :param prefix: Prefix of ungrib output.
+    :param prefix: Prefix of outputs.
     :type prefix: str
     """
     prefix = basename(prefix)
@@ -33,13 +53,15 @@ def ungrib(vtable_file: Union[str, None] = None, input_data_path: Optional[str] 
 
 def metgrid(geogrid_data_path: Optional[str] = None, ungrib_data_path: Optional[str] = None, fg_names: Union[str, list[str]] = "FILE"):
     """
-    Interface to execute metgrid.exe.
+    Function interface for :class:`MetGrid <wrfrun.model.wrf.core.MetGrid>`.
 
-    :param geogrid_data_path: Directory path of outputs from geogrid.exe. If None, tries to use the output path specified by config file.
+    :param geogrid_data_path: Directory path of :class:`GeoGrid <wrfrun.model.wrf.core.GeoGrid>` outputs.
+                              If is ``None``, try to use the output path specified by config file.
     :type geogrid_data_path: str
-    :param ungrib_data_path: Directory path of outputs from ungrib.exe. If None, tries to use the output path specified by config file.
+    :param ungrib_data_path: Directory path of :class:`UnGrib <wrfrun.model.wrf.core.UnGrib>` outputs.
+                             If is ``None``, try to use the output path specified by config file.
     :type ungrib_data_path: str
-    :param fg_names: Set ``fg_name`` of metgrid, a single prefix string or a string list.
+    :param fg_names: ``fg_name`` of metgrid, a single prefix string or a string list.
     :type fg_names: str | list
     """
     if isinstance(fg_names, str):
@@ -52,31 +74,32 @@ def metgrid(geogrid_data_path: Optional[str] = None, ungrib_data_path: Optional[
 
 def real(metgrid_data_path: Union[str, None] = None):
     """
-    Interface to execute real.exe.
+    Function interface for :class:`Real <wrfrun.model.wrf.core.Real>`.
 
-    :param metgrid_data_path: The path store output from metgrid.exe. If it is None, the default output path will be used.
+    :param metgrid_data_path: Directory path of :class:`MetGrid <wrfrun.model.wrf.core.MetGrid>` outputs.
+                              If is ``None``, try to use the workspace path or output path in the config file.
     """
     Real(metgrid_data_path, WRFRUNConfig.get_core_num())()
 
 
 def wrf(input_file_dir_path: Union[str, None] = None, restart_file_dir_path: Optional[str] = None, save_restarts=False):
     """
-    Interface to execute wrf.exe.
+    Function interface for :class:`WRF <wrfrun.model.wrf.core.WRF>`.
 
-    :param input_file_dir_path: The path store input data which will be feed into wrf.exe. Defaults to None.
-    :param restart_file_dir_path: The path store WRF restart files. This parameter will be ignored if ``restart=False`` in your config.
-    :param save_restarts: Also save restart files to the output directory.
+    :param input_file_dir_path: Directory path of input data.
+    :param restart_file_dir_path: Directory path of restart files.
+    :param save_restarts: If saving restart files. Defaults to False.
     """
     WRF(input_file_dir_path, restart_file_dir_path, save_restarts, WRFRUNConfig.get_core_num())()
 
 
 def dfi(input_file_dir_path: Optional[str] = None, update_real_output=True):
     """
-    Execute "wrf.exe" to run DFI.
+    Function interface for :class:`DFI <wrfrun.model.wrf.core.DFI>`.
 
-    :param input_file_dir_path: Path of the directory that stores input data for "wrf.exe".
+    :param input_file_dir_path: Directory path of input data.
     :type input_file_dir_path: str
-    :param update_real_output: If update the corresponding file in real.exe output directory.
+    :param update_real_output: If update corresponding files in :class:`Real <wrfrun.model.wrf.core.Real>` outputs.
     :type update_real_output: bool
     """
     DFI(input_file_dir_path, update_real_output, WRFRUNConfig.get_core_num())()
@@ -84,16 +107,14 @@ def dfi(input_file_dir_path: Optional[str] = None, update_real_output=True):
 
 def ndown(wrfout_file_path: str, real_output_dir_path: Optional[str] = None, update_namelist=True):
     """
-    Execute "ndown.exe".
+    Function interface for :class:`NDown <wrfrun.model.wrf.core.NDown>`.
 
     :param wrfout_file_path: wrfout file path.
     :type wrfout_file_path: str
-    :param real_output_dir_path: Path of the directory that contains output of "real.exe".
+    :param real_output_dir_path: Directory path of :class:`Real <wrfrun.model.wrf.core.Real>` outputs.
     :type real_output_dir_path: str
-    :param update_namelist: If update wrf's namelist for the final integral.
+    :param update_namelist: If update namelist settings for the final integral.
     :type update_namelist: bool
-    :return:
-    :rtype:
     """
     NDown(wrfout_file_path, real_output_dir_path, update_namelist, WRFRUNConfig.get_core_num())()
 
