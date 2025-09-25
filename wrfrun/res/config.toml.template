@@ -18,6 +18,16 @@ core_num = 36
 
 [job_scheduler]
 # Job scheduler settings.
+# Which job scheduler you want to use
+# wrfrun supports following job schedulers:
+# 1. PBS: "pbs"
+# 2. LSF: "lfs"
+# 3. Slurm: "slurm
+job_scheduler = "pbs"
+
+# Which queue should the task be submited to
+queue_name = ""
+
 # How many nodes you will use.
 node_num = 1
 

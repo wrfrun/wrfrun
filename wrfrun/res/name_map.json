@@ -3,8 +3,8 @@
         "name": "EXT",
         "type": "dir"
     },
-    "job_scheduler": {
-        "name": "TASKSYS",
+    "scheduler": {
+        "name": "SCHEDULER",
         "type": "dir"
     },
     "namelist": {
@@ -13,6 +13,10 @@
     },
     "config.toml.template": {
         "name": "CONFIG_TOML_TEMPLATE",
-        "type": "files"
+        "type": "file"
+    },
+    "run.sh.template": {
+        "name": "RUN_SH_TEMPLATE",
+        "type": "file"
     }
 }

@@ -1,4 +1,8 @@
 {
+    "lsf.template": {
+        "name": "LSF_TEMPLATE",
+        "type": "file"
+    },
     "pbs.template": {
         "name": "PBS_TEMPLATE",
         "type": "file"

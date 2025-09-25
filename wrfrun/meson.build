@@ -2,6 +2,7 @@ py3.install_sources(
     [
         '__init__.py',
         'data.py',
+        'job_scheduler.py',
         'pbs.py',
         'run.py',
         'utils.py',
@@ -15,3 +16,4 @@ subdir('extension')
 subdir('model')
 subdir('plot')
 subdir('res')
+subdir('scheduler')

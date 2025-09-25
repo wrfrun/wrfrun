@@ -1,4 +1,4 @@
-#PBS -q batch
+#PBS -q {QUEUE_NAME}
 #PBS -N wrfrun
 #PBS -o {STDOUT_LOG_PATH}
 #PBS -e {STDERR_LOG_PATH}

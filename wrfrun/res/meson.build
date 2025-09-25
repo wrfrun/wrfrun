@@ -9,4 +9,4 @@ py3.install_sources(
 
 subdir('extension')
 subdir('namelist')
-subdir('job_scheduler')
+subdir('scheduler')

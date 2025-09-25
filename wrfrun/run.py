@@ -10,7 +10,8 @@ from typing import Optional, Tuple, Union
 from .core import ExecConfigRecorder, WRFRUNConfig, WRFRunBasicError, WRFRunServer, WRFRunServerHandler, replay_config_generator, stop_server
 from .data import prepare_wps_input_data
 from .model import clear_model_logs, plot_domain_area
-from .pbs import in_pbs, prepare_pbs_script
+from .pbs import prepare_pbs_script
+from .scheduler import in_job_scheduler
 from .utils import call_subprocess, logger, logger_add_file_handler
 from .workspace import prepare_workspace
 
@@ -22,7 +23,7 @@ def confirm_model_area():
     """
     plot_domain_area()
 
-    if not in_pbs():
+    if not in_job_scheduler():
         # ask user
         logger.warning(f"Check the domain image, is it right?")
         answer = input("Is it right? [y/N]: ")
@@ -41,14 +42,14 @@ class WRFRun:
     _instance = None
     _initialized = False
 
-    def __init__(self, config_file: str, init_workspace=True, start_server=False, pbs_mode=False, prepare_wps_data=False, wps_data_area: Optional[Tuple[int, int, int, int]] = None):
+    def __init__(self, config_file: str, init_workspace=True, start_server=False, submit_job=False, prepare_wps_data=False, wps_data_area: Optional[Tuple[int, int, int, int]] = None):
         """
         WRFRun, a context class to achieve some goals before and after running WRF, like save a copy of config file, start and close WRFRunServer.
 
         :param config_file: ``wrfrun`` config file's path.
         :param init_workspace: If True, clean old files in workspace and re-create it.
         :param start_server: Whether to start WRFRunServer, defaults to True.
-        :param pbs_mode: If commit this task to the PBS system, defaults to True.
+        :param submit_job: If commit this task to the PBS system, defaults to True.
         :param prepare_wps_data: If True, download input datas for WPS first.
         :param wps_data_area: If ``prepare_wps_data==True``, you need to give the area range of input data so download function can download data from ERA5.
         :return:
@@ -63,7 +64,7 @@ class WRFRun:
         self._ip = ""
         self._port = -1
 
-        self._pbs_mode = pbs_mode
+        self._submit_job = submit_job
         self._init_workspace = init_workspace
         self._prepare_wps_data = prepare_wps_data
         self._wps_data_area = wps_data_area
@@ -98,9 +99,9 @@ class WRFRun:
                 break
 
         # here is the condition we need to initialize workspace:
-        # 1. pbs_mode = True and init_workspace = True, do prepare_workspace before committing the task to the PBS system.
-        # 2. pbs_mode = False and init_workspace = True, do prepare_workspace.
-        if self._pbs_mode and not in_pbs():
+        # 1. submit_job = True and init_workspace = True, do prepare_workspace before submitting the task to job scheduler.
+        # 2. submit_job = False and init_workspace = True, do prepare_workspace.
+        if self._submit_job and not in_job_scheduler():
             if self._init_workspace:
                 prepare_workspace()
 
@@ -113,7 +114,7 @@ class WRFRun:
             logger.info(f"Work has been submit to PBS system")
             exit(0)
 
-        elif not self._pbs_mode:
+        elif not self._submit_job:
             if self._init_workspace:
                 prepare_workspace()
 
