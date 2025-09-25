@@ -6,8 +6,8 @@ from wrfrun.core import WRFRUNConfig
 RES_PATH = abspath(dirname(__file__))
 WRFRUNConfig.register_resource_uri(WRFRUNConfig.WRFRUN_RESOURCE_PATH, RES_PATH)
 
-CONFIG_TOML_TEMPLATE = ":WRFRUN_RESOURCE_PATH:/config.toml.template"
-RUN_SH_TEMPLATE = ":WRFRUN_RESOURCE_PATH:/run.sh.template"
+CONFIG_TOML_TEMPLATE = ":WRFRUN_RESOURCE_PATH:/config.template.toml"
+RUN_SH_TEMPLATE = ":WRFRUN_RESOURCE_PATH:/run.template.sh"
 EXT_NCL_PLOT_SCRIPT = ":WRFRUN_RESOURCE_PATH:/extension/plotgrids.ncl"
 SCHEDULER_LSF_TEMPLATE = ":WRFRUN_RESOURCE_PATH:/scheduler/lsf.template"
 SCHEDULER_PBS_TEMPLATE = ":WRFRUN_RESOURCE_PATH:/scheduler/pbs.template"

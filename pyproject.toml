@@ -15,7 +15,7 @@ maintainers = [
 keywords = [ "WRF", ]
 description = "wrfrun is a comprehensive toolkit for managing and using WRF"
 dependencies = [
-    "numpy<2.0.0",
+    "numpy",
     "xarray",
     "netCDF4",
     "rich",
@@ -38,3 +38,6 @@ documentation = "https://wrfrun.syize.cn"
 
 [tool.poetry]
 readme = "README.md"
+
+[tool.uv.extra-build-dependencies]
+wrf-python = ["numpy"]

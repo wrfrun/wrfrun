@@ -1,8 +1,8 @@
 py3.install_sources(
     [
         '__init__.py',
-        'config.toml.template',
-        'run.sh.template',
+        'config.template.toml',
+        'run.template.sh',
     ],
     subdir: 'wrfrun/res'
 )

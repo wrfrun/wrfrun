@@ -1,23 +1,23 @@
 """
-wrfrun.scheduler.pbs
+wrfrun.scheduler.lsf
 ####################
 
-Scheduler interface for PBS system.
+Scheduler interface for LSF system.
 
 .. autosummary::
     :toctree: generated/
 
-    pbs_generate_settings
+    lsf_generate_settings
 """
 
 from wrfrun.core import WRFRUNConfig
-from wrfrun.res import SCHEDULER_PBS_TEMPLATE
+from wrfrun.res import SCHEDULER_LSF_TEMPLATE
 from .utils import get_core_num
 
 
-def pbs_generate_settings(scheduler_config: dict) -> str:
+def lsf_generate_settings(scheduler_config: dict) -> str:
     """
-    This function generate bash settings for PBS job scheduler.
+    This function generate bash settings for LSF job scheduler.
 
     :return: Generated settings.
     :rtype: str
@@ -26,23 +26,22 @@ def pbs_generate_settings(scheduler_config: dict) -> str:
     log_path = WRFRUNConfig.get_log_path()
 
     # get scheduler configs
-    stdout_log_path = f"{log_path}/pbs.log"
-    stderr_log_path = f"{log_path}/pbs.err"
+    stdout_log_path = f"{log_path}/lsf.log"
+    stderr_log_path = f"{log_path}/lsf.err"
     node_num = scheduler_config["node_num"]
     queue_name = scheduler_config["queue_name"]
     core_num = get_core_num()
 
-    template_path = WRFRUNConfig.parse_resource_uri(SCHEDULER_PBS_TEMPLATE)
+    template_path = WRFRUNConfig.parse_resource_uri(SCHEDULER_LSF_TEMPLATE)
     with open(template_path, "r") as f:
         template = f.read()
 
     return template.format(
         STDOUT_LOG_PATH=stdout_log_path,
         STDERR_LOG_PATH=stderr_log_path,
-        NODE_NUM=node_num,
-        CORE_NUM=core_num,
+        CORE_NUM=core_num * node_num,
         QUEUE_NAME=queue_name,
     )
 
 
-__all__ = ["pbs_generate_settings"]
+__all__ = ["lsf_generate_settings"]

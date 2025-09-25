@@ -11,11 +11,11 @@
         "name": "NAMELIST",
         "type": "dir"
     },
-    "config.toml.template": {
+    "config.template.toml": {
         "name": "CONFIG_TOML_TEMPLATE",
         "type": "file"
     },
-    "run.sh.template": {
+    "run.template.sh": {
         "name": "RUN_SH_TEMPLATE",
         "type": "file"
     }
