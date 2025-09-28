@@ -2380,10 +2380,10 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "meson-python" },
-    { name = "pydata-sphinx-theme", specifier = "==0.16.1" },
+    { name = "pydata-sphinx-theme" },
     { name = "sphinx-autobuild" },
-    { name = "sphinx-copybutton", specifier = "==0.5.2" },
-    { name = "sphinx-design", specifier = "==0.6.1" },
+    { name = "sphinx-copybutton" },
+    { name = "sphinx-design" },
 ]
 
 [[package]]

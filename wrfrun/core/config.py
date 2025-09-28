@@ -30,7 +30,7 @@ import f90nml
 import tomli
 import tomli_w
 
-from .error import ResourceURIError, WRFRunContextError, ModelNameError, NamelistIDError, NamelistError
+from .error import ModelNameError, NamelistError, NamelistIDError, ResourceURIError, WRFRunContextError
 from ..utils import logger
 
 
@@ -163,7 +163,7 @@ class _WRFRunConstants:
         self._WRFRUN_HOME_PATH = f"{user_home_path}/.config/wrfrun"
         # workspace root path
         self._WRFRUN_WORKSPACE_ROOT = f"{self._WRFRUN_HOME_PATH}/workspace"
-
+        self._WRFRUN_WORKSPACE_MODEL = f"{self._WRFRUN_WORKSPACE_ROOT}/model"
         self._WRFRUN_WORKSPACE_REPLAY = f"{self._WRFRUN_WORKSPACE_ROOT}/replay"
 
         # record WRF progress status
@@ -195,6 +195,7 @@ class _WRFRunConstants:
             self.WRFRUN_TEMP_PATH: self._WRFRUN_TEMP_PATH,
             self.WRFRUN_HOME_PATH: self._WRFRUN_HOME_PATH,
             self.WRFRUN_WORKSPACE_ROOT: self._WRFRUN_WORKSPACE_ROOT,
+            self.WRFRUN_WORKSPACE_MODEL: self._WRFRUN_WORKSPACE_MODEL,
             self.WRFRUN_WORKSPACE_REPLAY: self._WRFRUN_WORKSPACE_REPLAY,
         }
 
@@ -231,12 +232,22 @@ class _WRFRunConstants:
     @property
     def WRFRUN_WORKSPACE_ROOT(self) -> str:
         """
-        Path of the workspace, in which ``wrfrun`` runs NWP models.
+        Path of the root workspace.
 
         :return: URI
         :rtype: str
         """
         return ":WRFRUN_WORKSPACE_ROOT:"
+
+    @property
+    def WRFRUN_WORKSPACE_MODEL(self) -> str:
+        """
+        Path of the model workspace, in which ``wrfrun`` runs numerical models.
+
+        :return: URI
+        :rtype: str
+        """
+        return ":WRFRUN_WORKSPACE_MODEL"
 
     @property
     def WRFRUN_WORK_STATUS(self) -> str:
@@ -586,6 +597,26 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
 
         with open(config_path, "rb") as f:
             self._config = tomli.load(f)
+
+        config_dir_path = abspath(dirname(config_path))
+
+        # merge model config.
+        for model_key in self._config["model"]:
+
+            # skip the key that isn't model.
+            if model_key == "debug_level":
+                continue
+
+            if self._config["model"][model_key]["use"]:
+                include_file = self._config["model"][model_key]["include"]
+                if include_file[0] != "/":
+                    include_file = f"{config_dir_path}/{include_file}"
+
+                with open(include_file, "rb") as f:
+                    self._config["model"]["model_key"] = tomli.load(f)
+
+            else:
+                self._config["model"].pop(model_key)
 
         # register URI for output directory.
         output_path = abspath(self["output_path"])

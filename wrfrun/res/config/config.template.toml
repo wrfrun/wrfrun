@@ -46,6 +46,7 @@ debug_level = 100
 [model.wrf]
 # If you want to use WRF model, set use to true.
 use = false
-# Import configurations from another toml file,
-# wrfrun will merge them.
+# Import configurations from another toml file.
+# You can give both absolute and relative path.
+# The relative path is resolved based on this configuration file.
 include = "./configs/wrf.toml"
