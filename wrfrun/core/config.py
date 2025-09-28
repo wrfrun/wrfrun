@@ -247,7 +247,7 @@ class _WRFRunConstants:
         :return: URI
         :rtype: str
         """
-        return ":WRFRUN_WORKSPACE_MODEL"
+        return ":WRFRUN_WORKSPACE_MODEL:"
 
     @property
     def WRFRUN_WORK_STATUS(self) -> str:
