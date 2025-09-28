@@ -10,8 +10,7 @@ from typing import Optional, Tuple, Union
 from .core import ExecConfigRecorder, WRFRUNConfig, WRFRunBasicError, WRFRunServer, WRFRunServerHandler, replay_config_generator, stop_server
 from .data import prepare_wps_input_data
 from .model import clear_model_logs, plot_domain_area
-from .pbs import prepare_pbs_script
-from .scheduler import in_job_scheduler
+from .scheduler import in_job_scheduler, prepare_scheduler_script
 from .utils import call_subprocess, logger, logger_add_file_handler
 from .workspace import prepare_workspace
 
@@ -108,7 +107,7 @@ class WRFRun:
             # ask user before commit the task
             confirm_model_area()
 
-            prepare_pbs_script(self._entry_file_path)
+            prepare_scheduler_script(self._entry_file_path)
 
             call_subprocess(["qsub", f"{self._entry_file_dir_path}/run.sh"])
             logger.info(f"Work has been submit to PBS system")

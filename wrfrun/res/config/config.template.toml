@@ -1,0 +1,51 @@
+# Config template of wrfrun.
+# Path of the directory which contains input data.
+input_data_path = ""
+
+# Path of the directory to store all outputs.
+output_path = "./outputs"
+log_path = "./logs"
+
+# wrfrun can launch a socket server during NWP execution to report simulation progress.
+# To enable the server, you need to configure the IP address and port on which it will listen to.
+server_host = "localhost"
+server_port = 54321
+
+# How many cores you will use.
+# Note that if you use a job scheduler (like PBS), this value means the number of cores each node you use.
+core_num = 36
+
+
+[job_scheduler]
+# Job scheduler settings.
+# Which job scheduler you want to use
+# wrfrun supports following job schedulers:
+# 1. PBS: "pbs"
+# 2. LSF: "lfs"
+# 3. Slurm: "slurm
+job_scheduler = "pbs"
+
+# Which queue should the task be submited to
+queue_name = ""
+
+# How many nodes you will use.
+node_num = 1
+
+# Custom environment settings
+env_settings = {}
+
+# Path of the python interpreter that will be used to run wrfrun.
+# You can also give its name only.
+python_interpreter = "/usr/bin/python3"     # or just "python3"
+
+
+[model]
+# Model debug level
+debug_level = 100
+
+[model.wrf]
+# If you want to use WRF model, set use to true.
+use = false
+# Import configurations from another toml file,
+# wrfrun will merge them.
+include = "./configs/wrf.toml"

@@ -1,5 +1,28 @@
 """
-This file contains functions to interact with WRF workspace
+wrfrun.workspace
+################
+
+Prepare ``workspace`` for ``wrfrun``. For the ``workspace`` of numerical model, you should head to :doc:`model.workspace <wrfrun.model.workspace>`.
+
+``workspace`` is a collection of several directories where ``wrfrun``, extensions and numerical model works.
+These directories and their purpose are listed below.
+
+===================================         ===========================================================
+Director Path                               Purpose
+===================================         ===========================================================
+``/tmp/wrfrun``                             Store temporary files.
+``$HOME/.config/wrfrun``                    Main work directory.
+``$HOME/.config/wrfrun/replay``             Work directory for :doc:`replay <wrfrun.core.replay>`.
+``$HOME/.config/wrfrun/model``              Work directory for numerical models.
+===================================         ===========================================================
+
+Inside the ``$HOME/.config/wrfrun/model``, ``wrfrun`` may create others directories depending on the model you use.
+Refer to :doc:`model.workspace <wrfrun.model.workspace>` for more information.
+
+.. autosummary::
+    :toctree: generated/
+
+    prepare_workspace
 """
 
 from os import listdir, makedirs, symlink
@@ -10,10 +33,10 @@ from .utils import check_path, logger
 
 
 def prepare_workspace():
-    """Initialize workspace
-
     """
-    logger.info(f"Initialize workspace...")
+    Initialize ``wrfrun`` workspace.
+    """
+    logger.info(f"Initialize main workspace...")
 
     # extract WRF path
     wrf_config = WRFRUNConfig.get_model_config("wrf")
@@ -22,8 +45,8 @@ def prepare_workspace():
     wrfda_path = wrf_config["wrfda_path"]
 
     WRFRUN_TEMP_PATH = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_TEMP_PATH)
-    WORK_PATH = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_PATH)
-    REPLAY_WORK_PATH = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_REPLAY_WORK_PATH)
+    WORK_PATH = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_ROOT)
+    REPLAY_WORK_PATH = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_REPLAY)
     WPS_WORK_PATH = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WPS_WORK_PATH)
     WRF_WORK_PATH = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRF_WORK_PATH)
     WRFDA_WORK_PATH = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFDA_WORK_PATH)

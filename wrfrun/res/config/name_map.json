@@ -1,0 +1,10 @@
+{
+    "config.template.toml": {
+        "name": "MAIN_TOML_TEMPLATE",
+        "type": "file"
+    },
+    "wrf.template.toml": {
+        "name": "WRF_TOML_TEMPLATE",
+        "type": "file"
+    }
+}

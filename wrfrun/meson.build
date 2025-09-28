@@ -2,8 +2,6 @@ py3.install_sources(
     [
         '__init__.py',
         'data.py',
-        'job_scheduler.py',
-        'pbs.py',
         'run.py',
         'utils.py',
         'workspace.py',

@@ -1,56 +1,5 @@
-# Config template of wrfrun.
-# Path of the directory which contains input data.
-input_data_path = ""
-
-# Path of the directory to store all outputs.
-output_path = "./outputs"
-log_path = "./logs"
-
-# wrfrun can launch a socket server during NWP execution to report simulation progress.
-# To enable the server, you need to configure the IP address and port on which it will listen to.
-server_host = "localhost"
-server_port = 54321
-
-# How many cores you will use.
-# Note that if you use a job scheduler (like PBS), this value means the number of cores each node you use.
-core_num = 36
-
-
-[job_scheduler]
-# Job scheduler settings.
-# Which job scheduler you want to use
-# wrfrun supports following job schedulers:
-# 1. PBS: "pbs"
-# 2. LSF: "lfs"
-# 3. Slurm: "slurm
-job_scheduler = "pbs"
-
-# Which queue should the task be submited to
-queue_name = ""
-
-# How many nodes you will use.
-node_num = 1
-
-# Custom environment settings
-env_settings = {}
-
-# Path of the python interpreter that will be used to run wrfrun.
-# You can also give its name only.
-python_interpreter = "/usr/bin/python3"     # or just "python3"
-
-
-[model]
-# Model debug level
-debug_level = 100
-
-# ################################################### Only settings above is necessary ###########################################
-
-
-# ####################################### You can give more settings about the NWP you will use ##################################
-
-[model.wrf]
-# Config for WRF
-# WRF model path
+# Config for WRF model.
+# WRF model path.
 wps_path = '/path/to/your/WPS/folder'
 wrf_path = '/path/to/your/WRF/folder'
 # WRFDA is optional.
@@ -70,7 +19,7 @@ user_wrfda_namelist = ''
 restart_mode = false
 
 
-[model.wrf.time]
+[time]
 # Advance time config for WRF
 # Set the start and end date. It will be used for all domains.
 # You can also provide all the dates as a list, with each date for the corresponding domain.
@@ -97,7 +46,7 @@ parent_time_step_ratio = [1, 3, 4]
 restart_interval = -1
 
 
-[model.wrf.domain]
+[domain]
 # Advance domain config for WRF.
 # Set domain number.
 domain_num = 3
@@ -129,7 +78,7 @@ ref_lon = 120.5
 stand_lon = 120.5
 
 
-[model.wrf.scheme]
+[scheme]
 # Advance physics scheme config for WRF.
 # To loop up the nickname for all physics schemes, please see: https://wrfrun.syize.cn.
 # Option contains many other settings related to the scheme.

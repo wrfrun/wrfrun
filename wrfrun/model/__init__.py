@@ -28,4 +28,3 @@ from .utils import *
 
 # just to register executables
 from . import wrf
-del wrf

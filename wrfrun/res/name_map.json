@@ -11,9 +11,9 @@
         "name": "NAMELIST",
         "type": "dir"
     },
-    "config.template.toml": {
-        "name": "CONFIG_TOML_TEMPLATE",
-        "type": "file"
+    "config": {
+        "name": "CONFIG",
+        "type": "dir"
     },
     "run.template.sh": {
         "name": "RUN_SH_TEMPLATE",

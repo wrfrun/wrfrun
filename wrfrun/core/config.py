@@ -22,7 +22,7 @@ Users can use the global variable ``WRFRUNConfig``, which is the instance of thi
 
 from copy import deepcopy
 from os import environ, makedirs
-from os.path import abspath, basename, dirname, exists
+from os.path import abspath, dirname, exists
 from shutil import copyfile
 from typing import Optional, Tuple, Union
 
@@ -110,7 +110,7 @@ class _WRFRunResources:
 
         For example, you can get the real path of ``wrfrun`` workspace with this method:
 
-        >>> workspace_path = f"{WRFRUNConfig.WRFRUN_WORKSPACE_PATH}/WPS"    # ":WRFRUN_WORKSPACE_PATH:/WPS"
+        >>> workspace_path = f"{WRFRUNConfig.WRFRUN_WORKSPACE_ROOT}/WPS"    # ":WRFRUN_WORKSPACE_PATH:/WPS"
         >>> real_path = WRFRUNConfig.parse_resource_uri(workspace_path)     # should be a valid path like: "/home/syize/.config/wrfrun/workspace/WPS"
 
         """
@@ -153,33 +153,24 @@ class _WRFRunConstants:
         # WRF may need a large disk space to store output, we can't run wrf in /tmp,
         # so we will create a folder in $HOME/.config to run wrf.
         # we need to check if we're running as a root user
-        USER_HOME_PATH = f"{environ['HOME']}"
-        if USER_HOME_PATH in ["/", "/root", ""]:
-            logger.warning(f"User's home path is '{USER_HOME_PATH}', which means you are running this program as a root user")
+        user_home_path = f"{environ['HOME']}"
+        if user_home_path in ["/", "/root", ""]:
+            logger.warning(f"User's home path is '{user_home_path}', which means you are running this program as a root user")
             logger.warning("It's not recommended to use wrfrun as a root user")
-            logger.warning("Set USER_HOME_PATH as /root")
-            USER_HOME_PATH = "/root"
+            logger.warning("Set user_home_path as /root")
+            user_home_path = "/root"
 
-        self._WRFRUN_HOME_PATH = f"{USER_HOME_PATH}/.config/wrfrun"
-        self._WRFRUN_REPLAY_WORK_PATH = f"{self._WRFRUN_HOME_PATH}/replay"
+        self._WRFRUN_HOME_PATH = f"{user_home_path}/.config/wrfrun"
+        # workspace root path
+        self._WRFRUN_WORKSPACE_ROOT = f"{self._WRFRUN_HOME_PATH}/workspace"
 
-        # work path to run WPS, WRF and WRFDA
-        self._WORK_PATH = f"{self._WRFRUN_HOME_PATH}/workspace"
-        self._WPS_WORK_PATH = f"{self._WORK_PATH}/WPS"
-        self._WRF_WORK_PATH = f"{self._WORK_PATH}/WRF"
-        self._WRFDA_WORK_PATH = f"{self._WORK_PATH}/WRFDA"
+        self._WRFRUN_WORKSPACE_REPLAY = f"{self._WRFRUN_WORKSPACE_ROOT}/replay"
 
         # record WRF progress status
-        self._WORK_STATUS = ""
+        self._WRFRUN_WORK_STATUS = ""
 
         # record context status
         self._WRFRUN_CONTEXT_STATUS = False
-
-        # WRFDA is not necessary
-        self.USE_WRFDA: bool = False
-
-        # output directory of ungrib
-        self._UNGRIB_OUT_DIR = "./outputs"
 
         self._WRFRUN_OUTPUT_PATH = ":WRFRUN_OUTPUT_PATH:"
         self._WRFRUN_RESOURCE_PATH = ":WRFRUN_RESOURCE_PATH:"
@@ -203,22 +194,19 @@ class _WRFRunConstants:
         return {
             self.WRFRUN_TEMP_PATH: self._WRFRUN_TEMP_PATH,
             self.WRFRUN_HOME_PATH: self._WRFRUN_HOME_PATH,
-            self.WRFRUN_WORKSPACE_PATH: self._WORK_PATH,
-            self.WPS_WORK_PATH: self._WPS_WORK_PATH,
-            self.WRF_WORK_PATH: self._WRF_WORK_PATH,
-            self.WRFDA_WORK_PATH: self._WRFDA_WORK_PATH,
-            self.WRFRUN_REPLAY_WORK_PATH: self._WRFRUN_REPLAY_WORK_PATH,
+            self.WRFRUN_WORKSPACE_ROOT: self._WRFRUN_WORKSPACE_ROOT,
+            self.WRFRUN_WORKSPACE_REPLAY: self._WRFRUN_WORKSPACE_REPLAY,
         }
 
     @property
-    def WRFRUN_REPLAY_WORK_PATH(self) -> str:
+    def WRFRUN_WORKSPACE_REPLAY(self) -> str:
         """
-        Path (URI) to store related files of ``wrfrun``'s replay functionality.
+        Path (URI) to store related files of ``wrfrun`` replay functionality.
 
         :return: URI.
         :rtype: str
         """
-        return ":WRFRUN_REPLAY_WORK_PATH:"
+        return ":WRFRUN_WORKSPACE_REPLAY:"
 
     @property
     def WRFRUN_TEMP_PATH(self) -> str:
@@ -241,44 +229,14 @@ class _WRFRunConstants:
         return ":WRFRUN_HOME_PATH:"
 
     @property
-    def WRFRUN_WORKSPACE_PATH(self) -> str:
+    def WRFRUN_WORKSPACE_ROOT(self) -> str:
         """
         Path of the workspace, in which ``wrfrun`` runs NWP models.
 
         :return: URI
         :rtype: str
         """
-        return ":WRFRUN_WORKSPACE_PATH:"
-
-    @property
-    def WPS_WORK_PATH(self) -> str:
-        """
-        Workspace in which ``wrfrun`` runs WPS.
-
-        :return: URI
-        :rtype: str
-        """
-        return ":WRFRUN_WPS_WORK_PATH:"
-
-    @property
-    def WRF_WORK_PATH(self) -> str:
-        """
-        Workspace in which ``wrfrun`` runs WRF.
-
-        :return: URI
-        :rtype: str
-        """
-        return ":WRFRUN_WRF_WORK_PATH:"
-
-    @property
-    def WRFDA_WORK_PATH(self) -> str:
-        """
-        Workspace in which ``wrfrun`` runs WRFDA.
-
-        :return: URI
-        :rtype: str
-        """
-        return ":WRFRUN_WRFDA_WORK_PATH:"
+        return ":WRFRUN_WORKSPACE_ROOT:"
 
     @property
     def WRFRUN_WORK_STATUS(self) -> str:
@@ -291,7 +249,7 @@ class _WRFRunConstants:
         :return: A string reflect the current work progress.
         :rtype: str
         """
-        return self._WORK_STATUS
+        return self._WRFRUN_WORK_STATUS
 
     @WRFRUN_WORK_STATUS.setter
     def WRFRUN_WORK_STATUS(self, value: str):
@@ -306,29 +264,7 @@ class _WRFRunConstants:
         """
         if not isinstance(value, str):
             value = str(value)
-        self._WORK_STATUS = value
-
-    @property
-    def UNGRIB_OUT_DIR(self) -> str:
-        """
-        Output directory path of ``ungrib.exe``.
-
-        :return: URI
-        :rtype: str
-        """
-        return self._UNGRIB_OUT_DIR
-
-    @UNGRIB_OUT_DIR.setter
-    def UNGRIB_OUT_DIR(self, value: str):
-        """
-        Set the output directory path of ``ungrib.exe``.
-
-        :param value: A real path or a URI represents the directory path of ``ungrib.exe``'s output.
-        :type value: str
-        """
-        if not isinstance(value, str):
-            value = str(value)
-        self._UNGRIB_OUT_DIR = value
+        self._WRFRUN_WORK_STATUS = value
 
     @property
     def WRFRUN_OUTPUT_PATH(self) -> str:
@@ -394,9 +330,6 @@ class _WRFRunNamelist:
         If you want to use a new ``namelist_id`` other than the defaults to store namelist,
         you can register a new ``namelist_id`` with :meth:`_WRFRunNamelist.register_custom_namelist_id`.
         """
-        self._wps_namelist = {}
-        self._wrf_namelist = {}
-        self._wrfda_namelist = {}
         self._namelist_dict = {}
         self._namelist_id_list = ("param", "geog_static_data", "wps", "wrf", "wrfda")
 
@@ -751,69 +684,6 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
         :rtype: int
         """
         return self["core_num"]
-
-    def get_ungrib_out_dir_path(self) -> str:
-        """
-        Get the output directory of ungrib output (WRF intermediate file).
-
-        :return: URI path.
-        :rtype: str
-        """
-        wif_prefix = self.get_namelist("wps")["ungrib"]["prefix"]
-        wif_path = f"{self.WPS_WORK_PATH}/{dirname(wif_prefix)}"
-
-        return wif_path
-
-    def get_ungrib_out_prefix(self) -> str:
-        """
-        Get the prefix string of ungrib output (WRF intermediate file).
-
-        :return: Prefix string of ungrib output (WRF intermediate file).
-        :rtype: str
-        """
-        wif_prefix = self.get_namelist("wps")["ungrib"]["prefix"]
-        wif_prefix = basename(wif_prefix)
-        return wif_prefix
-
-    def set_ungrib_out_prefix(self, prefix: str):
-        """
-        Set the prefix string of ungrib output (WRF intermediate file).
-
-        :param prefix: Prefix string of ungrib output (WRF intermediate file).
-        :type prefix: str
-        """
-        self.update_namelist(
-            {
-                "ungrib": {"prefix": f"{self.UNGRIB_OUT_DIR}/{prefix}"}
-            }, "wps"
-        )
-
-    def get_metgrid_fg_names(self) -> list[str]:
-        """
-        Get prefix strings from "fg_name" in namelist "metgrid" section.
-
-        :return: Prefix strings list.
-        :rtype: list
-        """
-        fg_names = self.get_namelist("wps")["metgrid"]["fg_name"]
-        fg_names = [basename(x) for x in fg_names]
-        return fg_names
-
-    def set_metgrid_fg_names(self, prefix: Union[str, list[str]]):
-        """
-        Set prefix strings of "fg_name" in namelist "metgrid" section.
-
-        :param prefix: Prefix strings list.
-        :type prefix: str | list
-        """
-        if isinstance(prefix, str):
-            prefix = [prefix, ]
-        fg_names = [f"{self.UNGRIB_OUT_DIR}/{x}" for x in prefix]
-        self.update_namelist(
-            {
-                "metgrid": {"fg_name": fg_names}
-            }, "wps"
-        )
 
     def write_namelist(self, save_path: str, namelist_id: str, overwrite=True):
         """

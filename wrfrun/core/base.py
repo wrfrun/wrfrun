@@ -300,7 +300,7 @@ class _ExecutableConfigRecord:
         self.save_path = save_path
         self.include_data = include_data
 
-        self.work_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_REPLAY_WORK_PATH)
+        self.work_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_REPLAY)
         self.content_path = f"{self.work_path}/config_and_data"
         check_path(self.content_path)
 
@@ -348,7 +348,7 @@ class _ExecutableConfigRecord:
             self._name_count[name] = 1
             index = 1
 
-        data_save_uri = f"{WRFRUNConfig.WRFRUN_REPLAY_WORK_PATH}/{name}/{index}"
+        data_save_uri = f"{WRFRUNConfig.WRFRUN_WORKSPACE_REPLAY}/{name}/{index}"
         data_save_path = f"{self.content_path}/{name}/{index}"
         makedirs(data_save_path)
 
