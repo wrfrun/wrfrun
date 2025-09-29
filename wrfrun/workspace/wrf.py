@@ -8,6 +8,7 @@ Functions to prepare workspace for WPS/WRF model.
     :toctree: generated/
 
     prepare_wrf_workspace
+    check_wrf_workspace
 """
 
 from os import listdir, makedirs, symlink
@@ -87,4 +88,34 @@ def prepare_wrf_workspace(model_config: dict):
         symlink(f"{wrfda_path}/run/LANDUSE.TBL", f"{wrfda_work_path}/LANDUSE.TBL")
 
 
-__all__ = ["prepare_wrf_workspace"]
+def check_wrf_workspace(model_config: dict) -> bool:
+    """
+    Check if WPS/WRF workspace exists.
+
+    :param model_config: Model config.
+    :type model_config: dict
+    :return: ``True`` if WPS/WRF workspace exists, ``False`` otherwise.
+    :rtype: bool
+    """
+    wps_path = model_config["wps_path"]
+    wrf_path = model_config["wrf_path"]
+    wrfda_path = model_config["wrfda_path"]
+
+    flag = True
+
+    if wps_path:
+        wps_work_path = WRFRUNConfig.parse_resource_uri(WORKSPACE_MODEL_WPS)
+        flag = flag & exists(wps_work_path)
+
+    if wrf_path:
+        wrf_work_path = WRFRUNConfig.parse_resource_uri(WORKSPACE_MODEL_WRF)
+        flag = flag & exists(wrf_work_path)
+
+    if wrfda_path:
+        wrfda_work_path = WRFRUNConfig.parse_resource_uri(WORKSPACE_MODEL_WRFDA)
+        flag = flag & exists(wrfda_work_path)
+
+    return flag
+
+
+__all__ = ["prepare_wrf_workspace", "WORKSPACE_MODEL_WRF", "WORKSPACE_MODEL_WPS", "WORKSPACE_MODEL_WRFDA", "check_wrf_workspace"]

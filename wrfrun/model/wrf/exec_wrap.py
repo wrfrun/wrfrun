@@ -20,6 +20,7 @@ from os.path import basename
 from typing import Optional, Union
 
 from wrfrun import WRFRUNConfig
+from .namelist import set_ungrib_out_prefix, set_metgrid_fg_names
 from .core import DFI, GeoGrid, MetGrid, Real, UnGrib, WRF, NDown
 
 
@@ -46,7 +47,7 @@ def ungrib(vtable_file: Union[str, None] = None, input_data_path: Optional[str] 
     :type prefix: str
     """
     prefix = basename(prefix)
-    WRFRUNConfig.set_ungrib_out_prefix(prefix)
+    set_ungrib_out_prefix(prefix)
 
     UnGrib(vtable_file, input_data_path)()
 
@@ -67,7 +68,7 @@ def metgrid(geogrid_data_path: Optional[str] = None, ungrib_data_path: Optional[
     if isinstance(fg_names, str):
         fg_names = [fg_names, ]
     fg_names = [basename(x) for x in fg_names]
-    WRFRUNConfig.set_metgrid_fg_names(fg_names)
+    set_metgrid_fg_names(fg_names)
 
     MetGrid(geogrid_data_path, ungrib_data_path, WRFRUNConfig.get_core_num())()
 

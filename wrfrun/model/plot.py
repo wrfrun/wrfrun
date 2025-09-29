@@ -5,6 +5,7 @@ from shutil import copyfile, move
 from wrfrun.core import WRFRUNConfig
 from wrfrun.res import EXT_NCL_PLOT_SCRIPT
 from wrfrun.utils import call_subprocess, check_path, logger
+from wrfrun.workspace.wrf import WORKSPACE_MODEL_WPS
 from .base import NamelistName
 from .wrf.namelist import prepare_wps_namelist
 
@@ -29,7 +30,7 @@ def plot_domain_area():
     origin_path = getcwd()
 
     # enter WPS WORK PATH
-    chdir(WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WPS_WORK_PATH))
+    chdir(WRFRUNConfig.parse_resource_uri(WORKSPACE_MODEL_WPS))
 
     # save namelist
     WRFRUNConfig.write_namelist(f"./{NamelistName.WPS}", "wps", overwrite=True)

@@ -24,6 +24,7 @@ from copy import deepcopy
 from os import environ, makedirs
 from os.path import abspath, dirname, exists
 from shutil import copyfile
+from sys import platform
 from typing import Optional, Tuple, Union
 
 import f90nml
@@ -146,14 +147,24 @@ class _WRFRunConstants:
         These variables are related to ``wrfrun`` installation environments, configuration files and more.
         They are defined either directly or mapped using URIs to ensure consistent access across all components.
         """
-        # the path we may need to store temp files,
-        # don't worry, it will be deleted once the system reboots
-        self._WRFRUN_TEMP_PATH = "/tmp/wrfrun"
+        # check system
+        if platform != "linux":
+            logger.debug(f"Not Linux system!")
+
+            # set temporary dir path
+            self._WRFRUN_TEMP_PATH = "./tmp/wrfrun"
+            user_home_path = "./tmp/wrfrun"
+
+        else:
+
+            # the path we may need to store temp files,
+            # don't worry, it will be deleted once the system reboots
+            self._WRFRUN_TEMP_PATH = "/tmp/wrfrun"
+            user_home_path = f"{environ['HOME']}"
 
         # WRF may need a large disk space to store output, we can't run wrf in /tmp,
         # so we will create a folder in $HOME/.config to run wrf.
         # we need to check if we're running as a root user
-        user_home_path = f"{environ['HOME']}"
         if user_home_path in ["/", "/root", ""]:
             logger.warning(f"User's home path is '{user_home_path}', which means you are running this program as a root user")
             logger.warning("It's not recommended to use wrfrun as a root user")

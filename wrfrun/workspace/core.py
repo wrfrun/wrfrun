@@ -15,7 +15,7 @@ from shutil import rmtree
 
 from wrfrun import WRFRUNConfig
 from wrfrun.utils import check_path, logger
-from .wrf import prepare_wrf_workspace
+from .wrf import prepare_wrf_workspace, check_wrf_workspace
 
 
 def prepare_workspace():
@@ -36,9 +36,9 @@ def prepare_workspace():
     """
     logger.info(f"Initialize main workspace...")
 
-    WRFRUN_TEMP_PATH = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_TEMP_PATH)
+    wrfrun_temp_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_TEMP_PATH)
     workspace_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_ROOT)
-    REPLAY_WORK_PATH = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_REPLAY)
+    replay_work_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_REPLAY)
     output_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_OUTPUT_PATH)
 
     if exists(workspace_path):
@@ -46,8 +46,8 @@ def prepare_workspace():
         rmtree(workspace_path)
 
     # check folder
-    check_path(WRFRUN_TEMP_PATH)
-    check_path(REPLAY_WORK_PATH)
+    check_path(wrfrun_temp_path)
+    check_path(replay_work_path)
     check_path(output_path)
 
     func_map = {
@@ -59,4 +59,31 @@ def prepare_workspace():
         func_map[model_name](model_configs[model_name])
 
 
-__all__ = ["prepare_workspace"]
+def check_workspace() -> bool:
+    """
+    Check if workspace exists.
+
+    :return: ``True`` if workspace exists, ``False`` otherwise.
+    :rtype: bool
+    """
+
+    wrfrun_temp_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_TEMP_PATH)
+    workspace_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_ROOT)
+    replay_work_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_REPLAY)
+    output_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_OUTPUT_PATH)
+
+    flag = True
+    flag = flag & exists(wrfrun_temp_path) & exists(replay_work_path) & exists(output_path) & exists(workspace_path)
+
+    func_map = {
+        "wrf": check_wrf_workspace
+    }
+    model_configs = WRFRUNConfig["model"]
+
+    for model_name in model_configs:
+        flag = flag & func_map[model_name](model_configs[model_name])
+
+    return True
+
+
+__all__ = ["prepare_workspace", "check_workspace"]

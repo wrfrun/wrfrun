@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from wrfrun.core import WRFRUNConfig
+from wrfrun.workspace.wrf import WORKSPACE_MODEL_WPS
 
 
 VTABLE_URI = ":WRFRUN_VTABLE:"
@@ -59,7 +60,7 @@ class VtableFiles:
 
 # register uri
 if not WRFRUNConfig.check_resource_uri(VTABLE_URI):
-    WRFRUNConfig.register_resource_uri(VTABLE_URI, f"{WRFRUNConfig.WPS_WORK_PATH}/ungrib/Variable_Tables")
+    WRFRUNConfig.register_resource_uri(VTABLE_URI, f"{WORKSPACE_MODEL_WPS}/ungrib/Variable_Tables")
 
 
 __all__ = ["VtableFiles"]

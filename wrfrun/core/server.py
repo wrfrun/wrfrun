@@ -8,7 +8,6 @@ In order to report the progress to user, ``wrfrun`` provides :class:`WRFRunServe
 .. autosummary::
     :toctree: generated/
 
-    get_wrf_simulated_seconds
     WRFRunServer
     WRFRunServerHandler
     stop_server

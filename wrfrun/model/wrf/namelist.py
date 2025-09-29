@@ -1,11 +1,83 @@
 from datetime import datetime, timedelta
-from os.path import exists
+from os.path import exists, dirname, basename
 from typing import Union
 
 from wrfrun.core import WRFRUNConfig
 from wrfrun.res import NAMELIST_DFI, NAMELIST_WPS, NAMELIST_WRF, NAMELIST_WRFDA
 from wrfrun.utils import logger
+from wrfrun.workspace.wrf import WORKSPACE_MODEL_WPS
 from .scheme import *
+
+
+UNGRIB_OUTPUT_DIR = "./outputs"
+
+
+def get_ungrib_out_dir_path() -> str:
+    """
+    Get the output directory of ungrib output (WRF intermediate file).
+
+    :return: URI path.
+    :rtype: str
+    """
+    wif_prefix = WRFRUNConfig.get_namelist("wps")["ungrib"]["prefix"]
+    wif_path = f"{WORKSPACE_MODEL_WPS}/{dirname(wif_prefix)}"
+
+    return wif_path
+
+
+def get_ungrib_out_prefix() -> str:
+    """
+    Get the prefix string of ungrib output (WRF intermediate file).
+
+    :return: Prefix string of ungrib output (WRF intermediate file).
+    :rtype: str
+    """
+    wif_prefix = WRFRUNConfig.get_namelist("wps")["ungrib"]["prefix"]
+    wif_prefix = basename(wif_prefix)
+    return wif_prefix
+
+
+def set_ungrib_out_prefix(prefix: str):
+    """
+    Set the prefix string of ungrib output (WRF intermediate file).
+
+    :param prefix: Prefix string of ungrib output (WRF intermediate file).
+    :type prefix: str
+    """
+    WRFRUNConfig.update_namelist(
+        {
+            "ungrib": {"prefix": f"{UNGRIB_OUTPUT_DIR}/{prefix}"}
+        }, "wps"
+    )
+
+
+def get_metgrid_fg_names() -> list[str]:
+    """
+    Get prefix strings from "fg_name" in namelist "metgrid" section.
+
+    :return: Prefix strings list.
+    :rtype: list
+    """
+    fg_names = WRFRUNConfig.get_namelist("wps")["metgrid"]["fg_name"]
+    fg_names = [basename(x) for x in fg_names]
+    return fg_names
+
+
+def set_metgrid_fg_names(prefix: Union[str, list[str]]):
+    """
+    Set prefix strings of "fg_name" in namelist "metgrid" section.
+
+    :param prefix: Prefix strings list.
+    :type prefix: str | list
+    """
+    if isinstance(prefix, str):
+        prefix = [prefix, ]
+    fg_names = [f"{UNGRIB_OUTPUT_DIR}/{x}" for x in prefix]
+    WRFRUNConfig.update_namelist(
+        {
+            "metgrid": {"fg_name": fg_names}
+        }, "wps"
+    )
 
 
 def _check_start_end_date(max_dom: int, start_date: Union[datetime, list[datetime]], end_date: Union[datetime, list[datetime]]) -> tuple[list[datetime], list[datetime]]:
@@ -84,7 +156,9 @@ def prepare_wps_namelist():
             "truelat2": wrf_config["domain"]["truelat2"],
             "stand_lon": wrf_config["domain"]["stand_lon"],
             "geog_data_path": wrf_config["geog_data_path"]
-        }
+        },
+        "ungrib": {"prefix": f"{UNGRIB_OUTPUT_DIR}/FILE"},
+        "metgrid": {"fg_name": f"{UNGRIB_OUTPUT_DIR}/FILE"}
     }
 
     # # update namelist
@@ -370,4 +444,5 @@ def prepare_wrfda_namelist():
         WRFRUNConfig.update_namelist(user_namelist_data, "wrfda")
 
 
-__all__ = ["prepare_wrf_namelist", "prepare_wps_namelist", "prepare_wrfda_namelist", "prepare_dfi_namelist"]
+__all__ = ["prepare_wrf_namelist", "prepare_wps_namelist", "prepare_wrfda_namelist", "prepare_dfi_namelist", "get_ungrib_out_prefix", "get_ungrib_out_dir_path",
+           "set_ungrib_out_prefix", "get_metgrid_fg_names", "set_metgrid_fg_names"]

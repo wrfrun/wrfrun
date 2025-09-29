@@ -15,6 +15,7 @@ from shutil import move
 
 from ..core import WRFRUNConfig
 from ..utils import check_path, logger
+from ..workspace.wrf import WORKSPACE_MODEL_WRF
 
 
 def clear_model_logs():
@@ -23,7 +24,7 @@ def clear_model_logs():
     and save them to the corresponding output directory of the ``Executable``.
     """
     work_status = WRFRUNConfig.WRFRUN_WORK_STATUS
-    work_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRF_WORK_PATH)
+    work_path = WRFRUNConfig.parse_resource_uri(WORKSPACE_MODEL_WRF)
 
     log_files = [x for x in listdir(work_path) if x.startswith("rsl.") or x.endswith(".log")]
 

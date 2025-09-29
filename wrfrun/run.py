@@ -4,7 +4,7 @@
 
 import sys
 import threading
-from os.path import abspath, dirname, exists
+from os.path import abspath, dirname
 from typing import Optional, Tuple, Union
 
 from .core import ExecConfigRecorder, WRFRUNConfig, WRFRunBasicError, WRFRunServer, WRFRunServerHandler, replay_config_generator, stop_server
@@ -12,7 +12,7 @@ from .data import prepare_wps_input_data
 from .model import clear_model_logs, plot_domain_area
 from .scheduler import in_job_scheduler, prepare_scheduler_script
 from .utils import call_subprocess, logger, logger_add_file_handler
-from .workspace import prepare_workspace
+from .workspace import prepare_workspace, check_workspace
 
 
 def confirm_model_area():
@@ -89,13 +89,9 @@ class WRFRun:
 
     def __enter__(self):
         # check workspace
-        check_list = [WRFRUNConfig.WPS_WORK_PATH, WRFRUNConfig.WRF_WORK_PATH, WRFRUNConfig.WRFDA_WORK_PATH]
-        check_list = [WRFRUNConfig.parse_resource_uri(x) for x in check_list]
-        for _path in check_list:
-            if not exists(_path) and not self._init_workspace:
-                logger.info(f"Force re-create workspace because it is broken.")
-                self._init_workspace = True
-                break
+        if not check_workspace():
+            logger.info(f"Force re-create workspace because it is broken.")
+            self._init_workspace = True
 
         # here is the condition we need to initialize workspace:
         # 1. submit_job = True and init_workspace = True, do prepare_workspace before submitting the task to job scheduler.
