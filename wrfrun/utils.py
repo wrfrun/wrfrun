@@ -45,7 +45,7 @@ def set_logger(logger_list: List[str], logger_level: Optional[Dict] = None):
                 
 # init wrfrun logger
 logger = logging.getLogger("wrfrun")
-set_logger(["wrfrun", ], {"wrfrun": logging.DEBUG})
+set_logger(["wrfrun", ], {"wrfrun": logging.INFO})
 
 
 def unify_logger_format():

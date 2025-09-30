@@ -36,6 +36,9 @@ repository = "https://github.com/Syize/wrfrun"
 documentation = "https://wrfrun.syize.cn"
 "Bug Tracker" = "https://github.com/Syize/wrfrun/issues"
 
+[project.scripts]
+wrfrun = "wrfrun.cli:main_entry"
+
 [tool.poetry]
 readme = "README.md"
 

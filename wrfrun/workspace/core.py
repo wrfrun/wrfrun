@@ -81,6 +81,9 @@ def check_workspace() -> bool:
     model_configs = WRFRUNConfig["model"]
 
     for model_name in model_configs:
+        if model_name == "debug_level":
+            continue
+
         flag = flag & func_map[model_name](model_configs[model_name])
 
     return True

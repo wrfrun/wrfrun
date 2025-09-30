@@ -612,10 +612,14 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
         config_dir_path = abspath(dirname(config_path))
 
         # merge model config.
-        for model_key in self._config["model"]:
+        keys_list = list(self._config["model"].keys())
+        for model_key in keys_list:
 
             # skip the key that isn't model.
             if model_key == "debug_level":
+                continue
+
+            if "use" not in self._config["model"][model_key]:
                 continue
 
             if self._config["model"][model_key]["use"]:
