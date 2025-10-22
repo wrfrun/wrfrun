@@ -652,6 +652,11 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
         output_path = abspath(self["output_path"])
         self.register_resource_uri(self.WRFRUN_OUTPUT_PATH, output_path)
 
+        # some additional check
+        if self._config["input_data_path"] == "":
+            logger.warning("It seems you forget to set 'input_data_path', set it to 'data'.")
+            self._config["input_data_path"] = "data"
+
     def save_wrfrun_config(self, save_path: str):
         """
         Save ``wrfrun``'s config to a file.

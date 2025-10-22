@@ -41,16 +41,29 @@ class WRFRun:
     _instance = None
     _initialized = False
 
-    def __init__(self, config_file: str, init_workspace=True, start_server=False, submit_job=False, prepare_wps_data=False, wps_data_area: Optional[Tuple[int, int, int, int]] = None):
+    def __init__(
+        self, config_file: str, init_workspace=True,
+        start_server=False, submit_job=False, prepare_wps_data=False,
+        wps_data_area: Optional[Tuple[int, int, int, int]] = None,
+        skip_domain_confirm=False
+    ):
         """
         WRFRun, a context class to achieve some goals before and after running WRF, like save a copy of config file, start and close WRFRunServer.
 
         :param config_file: ``wrfrun`` config file's path.
+        :type config_file: str
         :param init_workspace: If True, clean old files in workspace and re-create it.
+        :type init_workspace: bool
         :param start_server: Whether to start WRFRunServer, defaults to True.
+        :type start_server: bool
         :param submit_job: If commit this task to the PBS system, defaults to True.
+        :type submit_job: bool
         :param prepare_wps_data: If True, download input datas for WPS first.
+        :type prepare_wps_data: bool
         :param wps_data_area: If ``prepare_wps_data==True``, you need to give the area range of input data so download function can download data from ERA5.
+        :type wps_data_area: tuple
+        :param skip_domain_confirm: If ``True``, skip domain confirm.
+        :type skip_domain_confirm: bool
         :return:
         """
         if self._initialized:
@@ -67,6 +80,7 @@ class WRFRun:
         self._init_workspace = init_workspace
         self._prepare_wps_data = prepare_wps_data
         self._wps_data_area = wps_data_area
+        self._skip_domain_confirm = skip_domain_confirm
         self._entry_file_path = abspath(sys.argv[0])
         self._entry_file_dir_path = dirname(self._entry_file_path)
         self._replay_configs = None
@@ -101,7 +115,8 @@ class WRFRun:
                 prepare_workspace()
 
             # ask user before commit the task
-            confirm_model_area()
+            if not self._skip_domain_confirm:
+                confirm_model_area()
 
             prepare_scheduler_script(self._entry_file_path)
 
@@ -113,7 +128,8 @@ class WRFRun:
             if self._init_workspace:
                 prepare_workspace()
 
-            confirm_model_area()
+            if not self._skip_domain_confirm:
+                confirm_model_area()
 
         # save a copy of config to the output path
         WRFRUNConfig.save_wrfrun_config(f"{WRFRUNConfig.WRFRUN_OUTPUT_PATH}/config.toml")

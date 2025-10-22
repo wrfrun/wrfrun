@@ -264,8 +264,7 @@ def find_era5_data(date: Union[List[str], List[datetime]], area: Tuple[int, int,
     # check if we need to add pressure_level to params dict
     if dataset == ERA5CONFIG.DATASET_ERA5_PRESSURE_LEVEL:
         if pressure_level is None:
-            logger.error(
-                f"You need to provide pressure levels to download data")
+            logger.error("You need to provide pressure levels to download data")
             exit(1)
         # convert value to str
         if not isinstance(pressure_level, list):
@@ -277,12 +276,11 @@ def find_era5_data(date: Union[List[str], List[datetime]], area: Tuple[int, int,
         if _check_pressure_level(pressure_level):   # type: ignore
             params_dict["pressure_level"] = pressure_level
         else:
-            logger.error(
-                f"You have passed wrong pressure level to download data, check it")
+            logger.error("You have passed wrong pressure level to download data, check it")
             exit(1)
 
     # download data
-    logger.info(f"Downloading data to {save_path}, it may take several tens of minutes, please wait...")
+    logger.info(f"Downloading data to '{save_path}', it may take several tens of minutes, please wait...")
 
     if CDS_CLIENT is None:
         import cdsapi
@@ -305,23 +303,22 @@ def prepare_wps_input_data(area: Tuple[int, int, int, int]):
     end_date = wrf_config["time"]["end_date"]
 
     # remove second part
-    start_date = start_date[:-3]
-    end_date = end_date[:-3]
+    start_date = start_date.strftime("%Y-%m-%d %H:%M")
+    end_date = end_date.strftime("%Y-%m-%d %H:%M")
 
     # get hour step
     hour_step = wrf_config["time"]["input_data_interval"] // 3600
 
     # get data save path
-    bg_save_path = wrf_config["wps_input_data_folder"]
-    sst_save_path = wrf_config["near_goos_data_folder"]
+    data_save_path = WRFRUNConfig.get_input_data_path()
 
     # download data
     logger.info(f"Download background data of surface level...")
-    download_data(start_date, end_date, hour_step, area, f"{bg_save_path}/surface.grib",
+    download_data(start_date, end_date, hour_step, area, f"{data_save_path}/surface.grib",
                   data_format="grib", data_type="surface", overwrite=True)
 
     logger.info(f"Download background data of pressure level...")
-    download_data(start_date, end_date, hour_step, area, f"{bg_save_path}/pressure.grib",
+    download_data(start_date, end_date, hour_step, area, f"{data_save_path}/pressure.grib",
                   data_format="grib", data_type="pressure", overwrite=True)
 
     # logger.info(f"Download NearGOOS data...")
