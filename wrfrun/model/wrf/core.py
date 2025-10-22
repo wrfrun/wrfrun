@@ -22,25 +22,31 @@ If you prefer function interfaces, please see :doc:`function wrapper </api/model
 from os import listdir
 from os.path import abspath, basename, exists
 from shutil import copyfile, move, rmtree
-from typing import Optional
+from typing import Optional, Union
 
 from wrfrun.core import ExecutableBase, FileConfigDict, InputFileError, NamelistIDError, WRFRUNConfig, WRFRUNExecDB
 from wrfrun.workspace.wrf import WORKSPACE_MODEL_WPS, WORKSPACE_MODEL_WRF
 from wrfrun.utils import logger
 from .utils import reconcile_namelist_metgrid, process_after_ndown
-from .namelist import prepare_dfi_namelist, prepare_wps_namelist, prepare_wrf_namelist, prepare_wrfda_namelist
+from .namelist import (prepare_dfi_namelist, prepare_wps_namelist, prepare_wrf_namelist,
+                       prepare_wrfda_namelist, get_ungrib_out_dir_path, get_ungrib_out_prefix,
+                       set_ungrib_out_prefix, set_metgrid_fg_names)
 from .vtable import VtableFiles
 from ..base import NamelistName
 
 
-def _check_namelist_preparation():
-    if len(WRFRUNConfig.get_namelist("wps")) == 0:
+def _check_and_prepare_namelist():
+    """
+    This function check if namelists needed by WPS/WRF have been loaded,
+    and prepare namelist if check fails.
+    """
+    if not WRFRUNConfig.check_namelist("wps"):
         prepare_wps_namelist()
 
-    if len(WRFRUNConfig.get_namelist("wrf")) == 0:
+    if not WRFRUNConfig.check_namelist("wrf"):
         prepare_wrf_namelist()
 
-    if len(WRFRUNConfig.get_namelist("wrfda")) == 0:
+    if not WRFRUNConfig.check_namelist("wrfda"):
         prepare_wrfda_namelist()
 
 
@@ -76,7 +82,7 @@ class GeoGrid(ExecutableBase):
 
         self.geogrid_tbl_file = geogrid_tbl_file
 
-        _check_namelist_preparation()
+        _check_and_prepare_namelist()
 
     def generate_custom_config(self):
         """
@@ -114,6 +120,10 @@ class GeoGrid(ExecutableBase):
         super().before_exec()
 
         WRFRUNConfig.write_namelist(f"{WORKSPACE_MODEL_WPS}/{NamelistName.WPS}", "wps")
+
+        # print debug logs
+        logger.debug("Namelist settings of 'geogrid':")
+        logger.debug(WRFRUNConfig.get_namelist("wps"))
 
     def after_exec(self):
         if not WRFRUNConfig.IS_IN_REPLAY:
@@ -197,7 +207,7 @@ class UnGrib(ExecutableBase):
         self.vtable_file = vtable_file
         self.input_data_path = input_data_path
 
-        _check_namelist_preparation()
+        _check_and_prepare_namelist()
 
     def call_link_grib(self):
         """
@@ -207,6 +217,20 @@ class UnGrib(ExecutableBase):
             self.input_data_path = WRFRUNConfig.get_input_data_path()
 
         LinkGrib(self.input_data_path)()
+
+    def set_ungrib_output_prefix(self, prefix="FILE") -> "UnGrib":
+        """
+        This method is the same as :func:`set_ungrib_output_prefix <wrfrun.model.wrf.namelist.set_ungrib_output_prefix>`.
+        ``wrfrun`` provide this method to avoid changing namelist before loading it.
+
+        :param prefix: Prefix of outputs.
+        :type prefix: str
+        :return: This instance itself.
+        :rtype: UnGrib
+        """
+        prefix = basename(prefix)
+        set_ungrib_out_prefix(prefix)
+        return self
 
     def generate_custom_config(self):
         """
@@ -250,9 +274,13 @@ class UnGrib(ExecutableBase):
 
         WRFRUNConfig.write_namelist(f"{WORKSPACE_MODEL_WPS}/{NamelistName.WPS}", "wps")
 
+        # print debug logs
+        logger.debug("Namelist settings of 'ungrib':")
+        logger.debug(WRFRUNConfig.get_namelist("wps"))
+
     def after_exec(self):
         if not WRFRUNConfig.IS_IN_REPLAY:
-            self.add_output_files(output_dir=WRFRUNConfig.get_ungrib_out_dir_path(), save_path=self._output_save_path, startswith=WRFRUNConfig.get_ungrib_out_prefix())
+            self.add_output_files(output_dir=get_ungrib_out_dir_path(), save_path=self._output_save_path, startswith=get_ungrib_out_prefix())
             self.add_output_files(save_path=self._log_save_path, outputs=["ungrib.log", "namelist.wps"])
 
         super().after_exec()
@@ -302,7 +330,21 @@ class MetGrid(ExecutableBase):
         self.geogrid_data_path = geogrid_data_path
         self.ungrib_data_path = ungrib_data_path
 
-        _check_namelist_preparation()
+        _check_and_prepare_namelist()
+
+    def set_metgrid_fg_names(self, fg_names: Union[str, list[str]] = "FILE") -> "MetGrid":
+        """
+        This method
+        :param fg_names: ``fg_name`` of metgrid, a single prefix string or a string list.
+        :type fg_names: str | list
+        :return: This instance itself.
+        :rtype: MetGrid
+        """
+        if isinstance(fg_names, str):
+            fg_names = [fg_names, ]
+        fg_names = [basename(x) for x in fg_names]
+        set_metgrid_fg_names(fg_names)
+        return self
 
     def generate_custom_config(self):
         """
@@ -359,7 +401,7 @@ class MetGrid(ExecutableBase):
                         }
                         self.add_input_files(_file_config)
 
-            ungrib_output_dir = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.get_ungrib_out_dir_path())
+            ungrib_output_dir = WRFRUNConfig.parse_resource_uri(get_ungrib_out_dir_path())
             if basename(ungrib_output_dir) not in file_list or len(listdir(ungrib_output_dir)) == 0:
 
                 if self.ungrib_data_path is None:
@@ -376,7 +418,7 @@ class MetGrid(ExecutableBase):
                     for _file in ungrib_file_list:
                         _file_config: FileConfigDict = {
                             "file_path": f"{self.ungrib_data_path}/{_file}",
-                            "save_path": WRFRUNConfig.get_ungrib_out_dir_path(),
+                            "save_path": get_ungrib_out_dir_path(),
                             "save_name": _file,
                             "is_data": True,
                             "is_output": True
@@ -426,7 +468,7 @@ class Real(ExecutableBase):
             mpi_cmd = "mpirun"
             mpi_core_num = core_num
 
-        _check_namelist_preparation()
+        _check_and_prepare_namelist()
 
         super().__init__(name="real", cmd="./real.exe", work_path=WORKSPACE_MODEL_WRF, mpi_use=mpi_use, mpi_cmd=mpi_cmd, mpi_core_num=mpi_core_num)
 
@@ -522,7 +564,7 @@ class WRF(ExecutableBase):
             mpi_cmd = "mpirun"
             mpi_core_num = core_num
 
-        _check_namelist_preparation()
+        _check_and_prepare_namelist()
 
         super().__init__(name="wrf", cmd="./wrf.exe", work_path=WORKSPACE_MODEL_WRF, mpi_use=mpi_use, mpi_cmd=mpi_cmd, mpi_core_num=mpi_core_num)
 
@@ -779,7 +821,7 @@ class NDown(ExecutableBase):
             mpi_cmd = "mpirun"
             mpi_core_num = core_num
 
-        _check_namelist_preparation()
+        _check_and_prepare_namelist()
 
         super().__init__(name="ndown", cmd="./ndown.exe", work_path=WORKSPACE_MODEL_WRF, mpi_use=mpi_use, mpi_cmd=mpi_cmd, mpi_core_num=mpi_core_num)
 

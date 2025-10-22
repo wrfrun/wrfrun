@@ -37,13 +37,13 @@ def prepare_wrf_workspace(model_config: dict):
     :param model_config: Model config.
     :type model_config: dict
     """
-    logger.info(f"Initialize workspace for WPS/WRF ...")
+    logger.info(f"Initialize workspace for WPS/WRF.")
 
     wps_path = model_config["wps_path"]
     wrf_path = model_config["wrf_path"]
     wrfda_path = model_config["wrfda_path"]
 
-    if not (wps_path and wrf_path and wrfda_path):
+    if not (wps_path and wrf_path):
         logger.warning(f"No WPS/WRF model installation path given, skip initialization.")
         return
 

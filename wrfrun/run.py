@@ -9,7 +9,7 @@ from typing import Optional, Tuple, Union
 
 from .core import ExecConfigRecorder, WRFRUNConfig, WRFRunBasicError, WRFRunServer, WRFRunServerHandler, replay_config_generator, stop_server
 from .data import prepare_wps_input_data
-from .model import clear_model_logs, plot_domain_area
+from .model import clear_model_logs, generate_domain_area
 from .scheduler import in_job_scheduler, prepare_scheduler_script
 from .utils import call_subprocess, logger, logger_add_file_handler
 from .workspace import prepare_workspace, check_workspace
@@ -20,7 +20,7 @@ def confirm_model_area():
     Ask user to check domain area.
 
     """
-    plot_domain_area()
+    generate_domain_area()
 
     if not in_job_scheduler():
         # ask user
@@ -135,7 +135,7 @@ class WRFRun:
             else:
                 prepare_wps_input_data(self._wps_data_area)
 
-        logger.info(r"Enter wrfrun context")
+        logger.debug(r"Enter wrfrun context")
 
         return self
 
@@ -153,7 +153,7 @@ class WRFRun:
 
         clear_model_logs()
 
-        logger.info(r"Exit wrfrun context")
+        logger.debug(r"Exit wrfrun context")
 
     def _start_wrfrun_server(self):
         """

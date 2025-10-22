@@ -18,6 +18,8 @@ user_wrfda_namelist = ''
 # If you make a restart run?
 restart_mode = false
 
+# debug level for WRF model
+debug_level = 100
 
 [time]
 # Advance time config for WRF

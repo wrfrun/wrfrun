@@ -19,6 +19,11 @@ Submodules
 :doc:`vtable </api/model.wrf.vtable>`        Vtable files ``dataclass``.
 ============================================ ==================================================================================
 
+.. autosummary::
+    :toctree: generated/
+
+    prepare_namelist
+
 .. toctree::
     :maxdepth: 1
     :hidden:

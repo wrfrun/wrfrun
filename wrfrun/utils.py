@@ -1,7 +1,7 @@
 import logging
 import subprocess
 from datetime import datetime
-from os import chdir, getcwd, makedirs
+from os import chdir, getcwd, makedirs, environ
 from os.path import exists
 from shutil import rmtree
 from time import time
@@ -45,7 +45,12 @@ def set_logger(logger_list: List[str], logger_level: Optional[Dict] = None):
                 
 # init wrfrun logger
 logger = logging.getLogger("wrfrun")
-set_logger(["wrfrun", ], {"wrfrun": logging.INFO})
+# check environment variables and set logger level
+if "WRFRUN_DEBUG_MODE" in environ and environ["WRFRUN_DEBUG_MODE"]:
+    _logger_level = logging.DEBUG
+else:
+    _logger_level = logging.INFO
+set_logger(["wrfrun", ], {"wrfrun": _logger_level})
 
 
 def unify_logger_format():
@@ -218,7 +223,7 @@ def check_subprocess_status(status: subprocess.CompletedProcess):
         logger.error(f"====== ====== ======")
 
         # raise error
-        raise RuntimeError
+        raise RuntimeError(f"Failed to exec command: '{command}'. Please check the log above.")
 
 
 def call_subprocess(command: list[str], work_path: Optional[str] = None, print_output=False):

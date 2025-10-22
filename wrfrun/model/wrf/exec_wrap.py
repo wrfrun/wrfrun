@@ -16,12 +16,10 @@ Function wrapper of WPS / WRF :doc:`Executables </api/model.wrf.core>`.
     ndown
 """
 
-from os.path import basename
 from typing import Optional, Union
 
 from wrfrun import WRFRUNConfig
-from .namelist import set_ungrib_out_prefix, set_metgrid_fg_names
-from .core import DFI, GeoGrid, MetGrid, Real, UnGrib, WRF, NDown
+from .core import DFI, GeoGrid, MetGrid, NDown, Real, UnGrib, WRF
 
 
 def geogrid(geogrid_tbl_file: Union[str, None] = None):
@@ -46,10 +44,7 @@ def ungrib(vtable_file: Union[str, None] = None, input_data_path: Optional[str] 
     :param prefix: Prefix of outputs.
     :type prefix: str
     """
-    prefix = basename(prefix)
-    set_ungrib_out_prefix(prefix)
-
-    UnGrib(vtable_file, input_data_path)()
+    UnGrib(vtable_file, input_data_path).set_ungrib_output_prefix(prefix)()
 
 
 def metgrid(geogrid_data_path: Optional[str] = None, ungrib_data_path: Optional[str] = None, fg_names: Union[str, list[str]] = "FILE"):
@@ -65,12 +60,9 @@ def metgrid(geogrid_data_path: Optional[str] = None, ungrib_data_path: Optional[
     :param fg_names: ``fg_name`` of metgrid, a single prefix string or a string list.
     :type fg_names: str | list
     """
-    if isinstance(fg_names, str):
-        fg_names = [fg_names, ]
-    fg_names = [basename(x) for x in fg_names]
-    set_metgrid_fg_names(fg_names)
-
-    MetGrid(geogrid_data_path, ungrib_data_path, WRFRUNConfig.get_core_num())()
+    MetGrid(
+        geogrid_data_path, ungrib_data_path, WRFRUNConfig.get_core_num()
+    ).set_metgrid_fg_names(fg_names)()
 
 
 def real(metgrid_data_path: Union[str, None] = None):

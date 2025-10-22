@@ -27,7 +27,8 @@ dependencies = [
     "wrf-python",
     "cfgrib",
     "tomli",
-    "tomli-w"
+    "tomli-w",
+    "haversine"
 ]
 
 [project.urls]

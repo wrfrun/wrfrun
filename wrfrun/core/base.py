@@ -20,7 +20,7 @@ Executable
 **********
 
 While ``wrfrun`` aims to provide Python interfaces to various Numerical Weather Prediction model,
-it is important to provide a clear standard about how should a external executable file be implemented in ``wrfrun``.
+it is important to provide a clear standard about how should an external executable file be implemented in ``wrfrun``.
 ``wrfrun`` provides a class called :class:`ExecutableBase`, which is the parent class for all ``Executable`` classes.
 It not only provide the method to execute external programs,
 but also:
@@ -154,7 +154,9 @@ class InputFileType(Enum):
 
 class FileConfigDict(TypedDict):
     """
-    This dict is used to store information about the file, including its path, the path it will be copied or moved to, its new name, etc. This dict contains following keys:
+    This dict is used to store information about the file, including its path,
+    the path it will be copied or moved to, its new name, etc.
+    This dict contains following keys:
 
     .. py:attribute:: file_path
         :type: str
@@ -174,7 +176,8 @@ class FileConfigDict(TypedDict):
     .. py:attribute:: is_data
         :type: bool
 
-        If the file is data. If not, ``wrfrun`` will treat it as a config file, and always save it to ``.replay`` file when recording the simulation.
+        If the file is data. If not, ``wrfrun`` will treat it as a config file,
+        and always save it to ``.replay`` file when recording the simulation.
 
     .. py:attribute:: is_output
         :type: bool

@@ -181,7 +181,7 @@ def prepare_wrf_namelist():
     wrf_config = WRFRUNConfig.get_model_config("wrf")
 
     # get debug level
-    debug_level = WRFRUNConfig["model"]["debug_level"]
+    debug_level = wrf_config["debug_level"]
 
     # get domain number, start_date and end_date
     max_dom = wrf_config["domain"]["domain_num"]

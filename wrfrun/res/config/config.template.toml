@@ -40,8 +40,6 @@ python_interpreter = "/usr/bin/python3"     # or just "python3"
 
 
 [model]
-# Model debug level
-debug_level = 100
 
 [model.wrf]
 # If you want to use WRF model, set use to true.

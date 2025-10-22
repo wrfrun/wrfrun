@@ -525,6 +525,21 @@ class _WRFRunNamelist:
 
         self._namelist_dict.pop(namelist_id)
 
+    def check_namelist(self, namelist_id: str) -> bool:
+        """
+        Check if a namelist has been registered and loaded.
+
+        :param namelist_id: Registered ``namelist_id``.
+        :type namelist_id: str
+        :return: ``True`` if it is registered and loaded, else ``False``.
+        :rtype: bool
+        """
+        if namelist_id in self._namelist_id_list and self._namelist_dict:
+            return True
+
+        else:
+            return False
+
 
 class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
     """
@@ -628,7 +643,7 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
                     include_file = f"{config_dir_path}/{include_file}"
 
                 with open(include_file, "rb") as f:
-                    self._config["model"]["model_key"] = tomli.load(f)
+                    self._config["model"][model_key] = tomli.load(f)
 
             else:
                 self._config["model"].pop(model_key)
