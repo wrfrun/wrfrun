@@ -241,6 +241,10 @@ def plot_domain_area(
             end_lat, _ = inverse_haversine((ref_lat, ref_lon), false_northing, direction=Direction.NORTH, unit=Unit.METERS)
             ax.set_extent([start_lon, end_lon, start_lat, end_lat])
 
+        case crs.LambertConformal:
+            false_easting, false_northing = _calculate_x_y_offset(domain_settings)
+            ax.set_extent([0, false_easting * 2, 0, false_northing * 2], crs=proj)
+
         case _:
             logger.error(f"Unsupported project type: {type(proj)}")
 
