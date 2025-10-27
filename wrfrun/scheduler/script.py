@@ -1,6 +1,6 @@
-from os.path import exists, abspath, dirname
+from os.path import abspath, dirname, exists
 
-from wrfrun import WRFRUNConfig
+from wrfrun import get_wrfrun_config
 from wrfrun.res import RUN_SH_TEMPLATE
 from wrfrun.utils import logger
 from .lsf import lsf_generate_settings
@@ -15,6 +15,8 @@ def prepare_scheduler_script(main_file_path: str):
     :param main_file_path: Path of the main entry file.
     :type main_file_path: str
     """
+    WRFRUNConfig = get_wrfrun_config()
+
     # check main file path
     if not exists(main_file_path):
         logger.error(f"Wrong path of main entry file: {main_file_path}")

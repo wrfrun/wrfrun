@@ -1,4 +1,11 @@
 # Config template of wrfrun.
+
+# Work directory.
+# By setting work directory, you can let wrfrun work and save runtime files in a single directory.
+# You can also set work_dir="" to let wrfrun work in the standard path.
+work_dir = "./.wrfrun"
+
+
 # Path of the directory which contains input data.
 input_data_path = ""
 

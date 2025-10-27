@@ -1,4 +1,4 @@
-from wrfrun import WRFRUNConfig
+from wrfrun.core import get_wrfrun_config
 
 
 def get_core_num() -> int:
@@ -8,7 +8,7 @@ def get_core_num() -> int:
     :return: Core number.
     :rtype: int
     """
-    return WRFRUNConfig["core_num"]
+    return get_wrfrun_config()["core_num"]
 
 
 __all__ = ["get_core_num"]

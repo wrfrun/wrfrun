@@ -13,9 +13,9 @@ Core functions to prepare ``wrfrun`` workspace.
 from os.path import exists
 from shutil import rmtree
 
-from wrfrun import WRFRUNConfig
+from wrfrun.core import get_wrfrun_config
 from wrfrun.utils import check_path, logger
-from .wrf import prepare_wrf_workspace, check_wrf_workspace
+from .wrf import check_wrf_workspace, prepare_wrf_workspace
 
 
 def prepare_workspace():
@@ -34,6 +34,7 @@ def prepare_workspace():
 
     1. :doc:`WPS/WRF model </api/workspace.wrf>`
     """
+    WRFRUNConfig = get_wrfrun_config()
     logger.info(f"Initialize main workspace.")
 
     wrfrun_temp_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_TEMP_PATH)
@@ -66,6 +67,7 @@ def check_workspace() -> bool:
     :return: ``True`` if workspace exists, ``False`` otherwise.
     :rtype: bool
     """
+    WRFRUNConfig = get_wrfrun_config()
 
     wrfrun_temp_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_TEMP_PATH)
     workspace_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_ROOT)

@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 
-from wrfrun.core import WRFRUNConfig
-from wrfrun.workspace.wrf import WORKSPACE_MODEL_WPS
-
+from wrfrun.core import WRFRunConfig, set_register_func
+from wrfrun.workspace.wrf import get_wrf_workspace_path
 
 VTABLE_URI = ":WRFRUN_VTABLE:"
 
@@ -58,9 +57,13 @@ class VtableFiles:
     UKMO_NO_HEIGHTS = f"{VTABLE_URI}/Vtable.UKMO_no_heights"
 
 
-# register uri
-if not WRFRUNConfig.check_resource_uri(VTABLE_URI):
-    WRFRUNConfig.register_resource_uri(VTABLE_URI, f"{WORKSPACE_MODEL_WPS}/ungrib/Variable_Tables")
+def _register_vtable_uri(wrfrun_config: WRFRunConfig):
+    # register uri
+    if not wrfrun_config.check_resource_uri(VTABLE_URI):
+        wrfrun_config.register_resource_uri(VTABLE_URI, f"{get_wrf_workspace_path('wps')}/ungrib/Variable_Tables")
+
+
+set_register_func(_register_vtable_uri)
 
 
 __all__ = ["VtableFiles"]

@@ -10,7 +10,7 @@ Scheduler interface for Slurm system.
     slurm_generate_settings
 """
 
-from wrfrun.core import WRFRUNConfig
+from wrfrun.core import get_wrfrun_config
 from wrfrun.res import SCHEDULER_SLURM_TEMPLATE
 from .utils import get_core_num
 
@@ -22,6 +22,8 @@ def slurm_generate_settings(scheduler_config: dict) -> str:
     :return: Generated settings.
     :rtype: str
     """
+    WRFRUNConfig = get_wrfrun_config()
+
     # get log path and job scheduler config
     log_path = WRFRUNConfig.get_log_path()
 

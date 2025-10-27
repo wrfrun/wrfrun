@@ -8,6 +8,7 @@ In order to report the progress to user, ``wrfrun`` provides :class:`WRFRunServe
 .. autosummary::
     :toctree: generated/
 
+    set_log_parse_func
     WRFRunServer
     WRFRunServerHandler
     stop_server
@@ -15,6 +16,7 @@ In order to report the progress to user, ``wrfrun`` provides :class:`WRFRunServe
 
 import socket
 import socketserver
+import threading
 from collections.abc import Callable
 from datetime import datetime
 from json import dumps
@@ -26,6 +28,24 @@ from ..utils import logger
 
 WRFRUN_SERVER_INSTANCE = None
 WRFRUN_SERVER_THREAD = None
+
+
+SET_LOG_PARSER_LOCK = threading.Lock()
+LOG_PARSER: Callable[[datetime], int] | None = None
+
+
+def set_log_parse_func(func: Callable[[datetime], int]):
+    """
+    Set log parse function used by socket server.
+
+    :param func: Function used to get simulated seconds from model's log file.
+                 If the function can't parse the simulated seconds, it should return ``-1``.
+    :type func: Callable[[datetime], int]
+    """
+    global SET_LOG_PARSER_LOCK, LOG_PARSER
+
+    with SET_LOG_PARSER_LOCK:
+        LOG_PARSER = func
 
 
 class WRFRunServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
@@ -155,7 +175,7 @@ class WRFRunServerHandler(socketserver.StreamRequestHandler):
     ``status`` represents work status,
     ``progress`` represents simulation progress of the status in percentage.
     """
-    def __init__(self, request, client_address, server: WRFRunServer, log_parse_func: Callable[[datetime], int] | None) -> None:
+    def __init__(self, request, client_address, server: WRFRunServer) -> None:
         """
         :class:`WRFRunServer` handler.
 
@@ -165,15 +185,11 @@ class WRFRunServerHandler(socketserver.StreamRequestHandler):
         :type client_address:
         :param server: :class:`WRFRunServer` instance.
         :type server: WRFRunServer
-        :param log_parse_func: Function used to get simulated seconds from model's log file.
-                               If the function can't parse the simulated seconds, it should return ``-1``.
-        :type log_parse_func: Callable[[datetime], int]
         """
         super().__init__(request, client_address, server)
 
         # get server
         self.server: WRFRunServer = server
-        self.log_parse_func = log_parse_func
 
     def calculate_time_usage(self) -> int:
         """
@@ -202,10 +218,11 @@ class WRFRunServerHandler(socketserver.StreamRequestHandler):
         """
         start_date, simulate_seconds = self.server.get_model_simulate_settings()
 
-        if self.log_parse_func is None:
-            simulated_seconds = -1
-        else:
-            simulated_seconds = self.log_parse_func(start_date)
+        with SET_LOG_PARSER_LOCK:
+            if LOG_PARSER is None:
+                simulated_seconds = -1
+            else:
+                simulated_seconds = LOG_PARSER(start_date)
 
         if simulated_seconds > 0:
             progress = simulated_seconds * 100 // simulate_seconds
@@ -269,4 +286,4 @@ def stop_server(socket_ip: str, socket_port: int):
         logger.warning("Fail to stop WRFRunServer, maybe it doesn't start at all.")
 
 
-__all__ = ["WRFRunServer", "WRFRunServerHandler", "stop_server"]
+__all__ = ["WRFRunServer", "WRFRunServerHandler", "stop_server", "set_log_parse_func"]

@@ -13,7 +13,8 @@ Defines what :class:`ExecutableBase <Executable>` is, how it works and how ``wrf
     FileConfigDict
     ExecutableClassConfig
     ExecutableConfig
-    _ExecutableConfigRecord
+    ExecutableConfigRecord
+    create_recorder
     ExecutableBase
 
 Executable
@@ -54,7 +55,7 @@ from typing import Optional, TypedDict, Union
 import numpy as np
 
 from .config import WRFRUNConfig
-from .error import CommandError, ConfigError, OutputFileError
+from .error import CommandError, ConfigError, OutputFileError, RecordError
 from ..utils import check_path, logger
 
 
@@ -276,14 +277,14 @@ class ExecutableConfig(TypedDict):
     custom_config: Optional[dict]
 
 
-class _ExecutableConfigRecord:
+class ExecutableConfigRecord:
     """
     A class to helps store configs of various executables and exports them to a file.
     """
     _instance = None
     _initialized = False
 
-    def __init__(self, save_path: Optional[str] = None, include_data=False):
+    def __init__(self, save_path: str, include_data=False):
         """
 
         :param save_path: Save path of the exported config file.
@@ -305,7 +306,6 @@ class _ExecutableConfigRecord:
 
         self.work_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_REPLAY)
         self.content_path = f"{self.work_path}/config_and_data"
-        check_path(self.content_path)
 
         self._recorded_config = []
         self._name_count = {}
@@ -318,15 +318,20 @@ class _ExecutableConfigRecord:
 
         return cls._instance
 
-    def reinit(self, save_path: Optional[str] = None, include_data=False):
+    @classmethod
+    def reinit(cls, save_path: str, include_data=False):
         """
         Reinitialize this instance.
 
+        :param save_path: Save path of the exported config file.
+        :type save_path: str
+        :param include_data: If includes input data.
+        :type include_data: bool
         :return: New instance.
-        :rtype: _ExecutableConfigRecord
+        :rtype: ExecutableConfigRecord
         """
-        self._initialized = False
-        return _ExecutableConfigRecord(save_path, include_data)
+        cls._initialized = False
+        return cls(save_path, include_data)
 
     def record(self, exported_config: ExecutableConfig):
         """
@@ -417,7 +422,25 @@ class _ExecutableConfigRecord:
         logger.info(f"Replay config exported to {self.save_path}")
 
 
-ExecConfigRecorder = _ExecutableConfigRecord()
+ExecConfigRecorder: Optional[ExecutableConfigRecord] = None
+
+
+def create_recorder(save_path: str, include_data=False) -> ExecutableConfigRecord:
+    """
+    Create a recorder to record simulations.
+
+    :param save_path: Save path of the exported config file.
+    :type save_path: str
+    :param include_data: If includes input data.
+    :type include_data: bool
+    :return: Recorder instance.
+    :rtype: ExecutableConfigRecord
+    """
+    global ExecConfigRecorder
+
+    ExecConfigRecorder = ExecutableConfigRecord.reinit(save_path, include_data)
+
+    return ExecConfigRecorder
 
 
 class ExecutableBase:
@@ -588,25 +611,27 @@ class ExecutableBase:
 
         You can give more information with a ``FileConfigDict``.
 
+        >>> from wrfrun.workspace.wrf import get_wrf_workspace_path
         >>> file_dict: FileConfigDict = {
         ...     "file_path": "data/custom_file.nc",
-        ...     "save_path": f"{WRFRUNConfig.WPS_WORK_PATH}",
+        ...     "save_path": get_wrf_workspace_path("wps"),
         ...     "save_name": "custom_file.nc",
         ...     "is_data": True,
         ...     "is_output": False
         ... }
         >>> self.add_input_files(file_dict)
 
+        >>> from wrfrun.workspace.wrf import get_wrf_workspace_path
         >>> file_dict_1: FileConfigDict = {
         ...     "file_path": "data/custom_file",
-        ...     "save_path": f"{WRFRUNConfig.WPS_WORK_PATH}/geogrid",
+        ...     "save_path": f"{get_wrf_workspace_path('wps')}/geogrid",
         ...     "save_name": "GEOGRID.TBL",
         ...     "is_data": False,
         ...     "is_output": False
         ... }
         >>> file_dict_2: FileConfigDict = {
         ...     "file_path": "data/custom_file",
-        ...     "save_path": f"{WRFRUNConfig.WPS_WORK_PATH}/outputs",
+        ...     "save_path": f"{get_wrf_workspace_path('wps')}/outputs",
         ...     "save_name": "test_file",
         ...     "is_data": True,
         ...     "is_output": True
@@ -845,7 +870,12 @@ class ExecutableBase:
         self.after_exec()
 
         if not WRFRUNConfig.IS_IN_REPLAY and WRFRUNConfig.IS_RECORDING:
+            global ExecConfigRecorder
+            if ExecConfigRecorder is None:
+                logger.error(f"Trying to record simulation before create the recorder.")
+                raise RecordError(f"Trying to record simulation before create the recorder.")
+
             ExecConfigRecorder.record(self.export_config())
 
 
-__all__ = ["ExecutableBase", "FileConfigDict", "InputFileType", "ExecutableConfig", "ExecutableClassConfig", "ExecConfigRecorder"]
+__all__ = ["ExecutableBase", "FileConfigDict", "InputFileType", "ExecutableConfig", "ExecutableClassConfig", "ExecConfigRecorder", "create_recorder"]

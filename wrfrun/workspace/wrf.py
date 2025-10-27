@@ -7,20 +7,60 @@ Functions to prepare workspace for WPS/WRF model.
 .. autosummary::
     :toctree: generated/
 
+    get_wrf_workspace_path
     prepare_wrf_workspace
     check_wrf_workspace
 """
 
 from os import listdir, makedirs, symlink
 from os.path import exists
+from typing import Literal
 
-from wrfrun.core import WRFRUNConfig
-from wrfrun.utils import logger, check_path
+from wrfrun.core import WRFRunConfig, get_wrfrun_config, set_register_func
+from wrfrun.utils import check_path, logger
+
+WORKSPACE_MODEL_WPS = ""
+WORKSPACE_MODEL_WRF = ""
+WORKSPACE_MODEL_WRFDA = ""
 
 
-WORKSPACE_MODEL_WPS = f"{WRFRUNConfig.WRFRUN_WORKSPACE_MODEL}/WPS"
-WORKSPACE_MODEL_WRF = f"{WRFRUNConfig.WRFRUN_WORKSPACE_MODEL}/WRF"
-WORKSPACE_MODEL_WRFDA = f"{WRFRUNConfig.WRFRUN_WORKSPACE_MODEL}/WRFDA"
+def _register_wrf_workspace_uri(wrfrun_config: WRFRunConfig):
+    """
+    This function doesn't register any URI.
+
+    This is a hook to initializes some global strings.
+
+    :param wrfrun_config: ``WRFRunConfig`` instance.
+    :type wrfrun_config: WRFRunConfig
+    """
+    global WORKSPACE_MODEL_WPS, WORKSPACE_MODEL_WRF, WORKSPACE_MODEL_WRFDA
+
+    WORKSPACE_MODEL_WPS = f"{wrfrun_config.WRFRUN_WORKSPACE_MODEL}/WPS"
+    WORKSPACE_MODEL_WRF = f"{wrfrun_config.WRFRUN_WORKSPACE_MODEL}/WRF"
+    WORKSPACE_MODEL_WRFDA = f"{wrfrun_config.WRFRUN_WORKSPACE_MODEL}/WRFDA"
+
+
+set_register_func(_register_wrf_workspace_uri)
+
+
+def get_wrf_workspace_path(name: Literal["wps", "wrf", "wrfda"]) -> str:
+    """
+    Get workspace path of WRF model.
+
+    :param name: Model part name.
+    :type name: str
+    :return: Workspace path.
+    :rtype: str
+    """
+    match name:
+        case "wps":
+            return WORKSPACE_MODEL_WPS
+
+        case "wrf":
+            return WORKSPACE_MODEL_WRF
+
+        case "wrfda":
+            return WORKSPACE_MODEL_WRFDA
 
 
 def prepare_wrf_workspace(model_config: dict):
@@ -38,6 +78,8 @@ def prepare_wrf_workspace(model_config: dict):
     :type model_config: dict
     """
     logger.info(f"Initialize workspace for WPS/WRF.")
+
+    WRFRUNConfig = get_wrfrun_config()
 
     wps_path = model_config["wps_path"]
     wrf_path = model_config["wrf_path"]
@@ -97,6 +139,8 @@ def check_wrf_workspace(model_config: dict) -> bool:
     :return: ``True`` if WPS/WRF workspace exists, ``False`` otherwise.
     :rtype: bool
     """
+    WRFRUNConfig = get_wrfrun_config()
+
     wps_path = model_config["wps_path"]
     wrf_path = model_config["wrf_path"]
     wrfda_path = model_config["wrfda_path"]
@@ -118,4 +162,4 @@ def check_wrf_workspace(model_config: dict) -> bool:
     return flag
 
 
-__all__ = ["prepare_wrf_workspace", "WORKSPACE_MODEL_WRF", "WORKSPACE_MODEL_WPS", "WORKSPACE_MODEL_WRFDA", "check_wrf_workspace"]
+__all__ = ["get_wrf_workspace_path", "prepare_wrf_workspace", "check_wrf_workspace"]

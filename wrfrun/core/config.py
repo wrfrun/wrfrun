@@ -11,6 +11,9 @@ All classes in this module is used to manage various configurations of ``wrfrun`
     _WRFRunConstants
     _WRFRunNamelist
     _WRFRunResources
+    init_wrfrun_config
+    get_wrfrun_config
+    set_register_func
 
 WRFRunConfig
 ************
@@ -20,18 +23,24 @@ It inherits from three classes: :class:`_WRFRunResources`, :class:`_WRFRunConsta
 Users can use the global variable ``WRFRUNConfig``, which is the instance of this class being created when users import ``wrfrun``.
 """
 
+# TODO:
+#   1. NEW FEATURE: Allow reading work directory from config file.
+#   2. The first one will be a break change, fix the following errors.
+#   3. The structure of wrfrun may need to be changed again.
+
+import threading
 from copy import deepcopy
 from os import environ, makedirs
 from os.path import abspath, dirname, exists
 from shutil import copyfile
 from sys import platform
-from typing import Optional, Tuple, Union
+from typing import Callable, Optional, Tuple, Union
 
 import f90nml
 import tomli
 import tomli_w
 
-from .error import ModelNameError, NamelistError, NamelistIDError, ResourceURIError, WRFRunContextError
+from .error import ModelNameError, NamelistError, NamelistIDError, ResourceURIError, WRFRunContextError, ConfigError
 from ..utils import logger
 
 
@@ -140,38 +149,42 @@ class _WRFRunConstants:
     Define all variables that will be used by other components.
     """
 
-    def __init__(self):
+    def __init__(self, work_dir: str):
         """
         Define all variables that will be used by other components.
 
         These variables are related to ``wrfrun`` installation environments, configuration files and more.
         They are defined either directly or mapped using URIs to ensure consistent access across all components.
+
+        :param work_dir: ``wrfrun`` work directory path.
+        :type work_dir: str
         """
         # check system
         if platform != "linux":
             logger.debug(f"Not Linux system!")
 
+        if work_dir != "" or platform != "linux":
             # set temporary dir path
-            self._WRFRUN_TEMP_PATH = "./tmp/wrfrun"
-            user_home_path = "./tmp/wrfrun"
+            self._WRFRUN_TEMP_PATH = abspath(f"{work_dir}/tmp")
+            self._WRFRUN_HOME_PATH = abspath(work_dir)
 
         else:
-
             # the path we may need to store temp files,
             # don't worry, it will be deleted once the system reboots
             self._WRFRUN_TEMP_PATH = "/tmp/wrfrun"
             user_home_path = f"{environ['HOME']}"
 
-        # WRF may need a large disk space to store output, we can't run wrf in /tmp,
-        # so we will create a folder in $HOME/.config to run wrf.
-        # we need to check if we're running as a root user
-        if user_home_path in ["/", "/root", ""]:
-            logger.warning(f"User's home path is '{user_home_path}', which means you are running this program as a root user")
-            logger.warning("It's not recommended to use wrfrun as a root user")
-            logger.warning("Set user_home_path as /root")
-            user_home_path = "/root"
+            # WRF may need a large disk space to store output, we can't run wrf in /tmp,
+            # so we will create a folder in $HOME/.config to run wrf.
+            # we need to check if we're running as a root user
+            if user_home_path in ["/", "/root", ""]:
+                logger.warning(f"User's home path is '{user_home_path}', which means you are running this program as a root user")
+                logger.warning("It's not recommended to use wrfrun as a root user")
+                logger.warning("Set user_home_path as /root")
+                user_home_path = "/root"
 
-        self._WRFRUN_HOME_PATH = f"{user_home_path}/.config/wrfrun"
+            self._WRFRUN_HOME_PATH = f"{user_home_path}/.config/wrfrun"
+
         # workspace root path
         self._WRFRUN_WORKSPACE_ROOT = f"{self._WRFRUN_HOME_PATH}/workspace"
         self._WRFRUN_WORKSPACE_MODEL = f"{self._WRFRUN_WORKSPACE_ROOT}/model"
@@ -534,11 +547,14 @@ class _WRFRunNamelist:
         :return: ``True`` if it is registered and loaded, else ``False``.
         :rtype: bool
         """
-        if namelist_id in self._namelist_id_list and self._namelist_dict:
+        if namelist_id in self._namelist_id_list and namelist_id in self._namelist_dict:
             return True
 
         else:
             return False
+
+
+_URI_REGISTER_FUNC_LIST: list[Callable[["WRFRunConfig"], None]] = []
 
 
 class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
@@ -547,8 +563,9 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
     """
     _instance = None
     _initialized = False
+    _lock = threading.Lock()
 
-    def __init__(self):
+    def __init__(self, work_dir: str):
         """
         This class provides various interfaces to access ``wrfrun``'s config, namelist values of NWP models,
         runtime constants and resource files by inheriting from:
@@ -556,29 +573,71 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
 
         An instance of this class called ``WRFRUNConfig`` will be created after the user import ``wrfrun``,
         and you should use the instance to access configs or other things instead of creating another instance.
+
+        :param work_dir: ``wrfrun`` work directory path.
+        :type work_dir: str
         """
         if self._initialized:
             return
 
-        _WRFRunConstants.__init__(self)
-        _WRFRunNamelist.__init__(self)
-        _WRFRunResources.__init__(self)
+        with self._lock:
+            global _URI_REGISTER_FUNC_LIST
 
-        self._config = {}
+            self._initialized = True
 
-        # register uri for wrfrun constants
-        for key, value in self._get_uri_map().items():
-            self.register_resource_uri(key, value)
+            _WRFRunConstants.__init__(self, work_dir)
+            _WRFRunNamelist.__init__(self)
+            _WRFRunResources.__init__(self)
 
-        self._config_template_file_path = None
+            self._config = {}
 
-        self._initialized = True
+            self._config_template_file_path = None
+
+            self._register_wrfrun_uris()
+
+            for _fun in _URI_REGISTER_FUNC_LIST:
+                _fun(self)
+
+            _URI_REGISTER_FUNC_LIST = []
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
 
         return cls._instance
+
+    def __getattribute__(self, item):
+        if item not in ("_initialized", "_instance", "_lock", "__class__"):
+            if not object.__getattribute__(self, "_initialized"):
+                logger.error(f"`WRFRUNConfig` hasn't been initialized.")
+                logger.error(f"Use `WRFRun` to load config automatically, or use function `init_wrfrun_config` to load config manually.")
+                raise ConfigError(f"`WRFRUNConfig` hasn't been initialized.")
+
+        return object.__getattribute__(self, item)
+
+    @classmethod
+    def from_config_file(cls, config_file: str) -> "WRFRunConfig":
+        """
+        Read the config file and reinitialize.
+
+        :param config_file: Config file path.
+        :type config_file: str
+        :return: New instance
+        :rtype: WRFRunConfig
+        """
+        cls._initialized = False
+
+        with open(config_file, "rb") as f:
+            config = tomli.load(f)
+
+        instance = cls(work_dir=config["work_dir"])
+        instance.load_wrfrun_config(config_file)
+
+        return instance
+
+    def _register_wrfrun_uris(self):
+        for key, value in self._get_uri_map().items():
+            self.register_resource_uri(key, value)
 
     def set_config_template_path(self, file_path: str):
         """
@@ -690,6 +749,18 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
 
         return deepcopy(self._config[item])
 
+    def __setitem__(self, key: str, value):
+        if key == "model":
+            logger.error(f"Use `update_model_config` to change model configurations.")
+            raise KeyError(f"Use `update_model_config` to change model configurations.")
+
+        if key in self._config:
+            self._config[key] = value
+
+        else:
+            logger.error(f"Can't find key '{key}' in your config.")
+            raise KeyError(f"Can't find key '{key}' in your config.")
+
     def get_input_data_path(self) -> str:
         """
         Get the path of directory in which stores the input data.
@@ -715,6 +786,23 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
             raise ModelNameError(f"Config of model '{model_name}' isn't found in your config file.")
 
         return deepcopy(self["model"][model_name])
+
+    def update_model_config(self, model_name: str, value: dict):
+        """
+        Update the config of a NWP model.
+
+        An exception :class:`ModelNameError` will be raised if the config can't be found.
+
+        :param model_name: Name of the model. For example, ``wrf``.
+        :type model_name: str
+        :param value: Dictionary contains new values.
+        :type value: dict
+        """
+        if model_name not in self["model"]:
+            logger.error(f"Config of model '{model_name}' isn't found in your config file.")
+            raise ModelNameError(f"Config of model '{model_name}' isn't found in your config file.")
+
+        self["model"][model_name] = self["model"][model_name] | value
 
     def get_log_path(self) -> str:
         """
@@ -767,6 +855,69 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
         super().write_namelist(save_path, namelist_id, overwrite)
 
 
-WRFRUNConfig = WRFRunConfig()
+WRFRUNConfig = WRFRunConfig.__new__(WRFRunConfig)
 
-__all__ = ["WRFRUNConfig"]
+
+def set_register_func(func: Callable[["WRFRunConfig"], None]):
+    """
+    Set the function to register URIs.
+
+    These functions should accept ``WRFRUNConfig`` instance,
+    and will be called when initializing ``WRFRUNConfig``.
+
+    If ``WRFRUNConfig`` has been initialized, ``func`` will be called immediately.
+
+    Normal users should use :meth:`WRFRunConfig.register_resource_uri`,
+    because ``WRFRUNConfig`` should (and must) be initialized.
+
+    :param func: Functions to register URIs.
+    :type func: Callable
+    """
+    global _URI_REGISTER_FUNC_LIST
+
+    if object.__getattribute__(WRFRUNConfig, "_initialized"):
+        func(WRFRUNConfig)
+
+    else:
+        if func not in _URI_REGISTER_FUNC_LIST:
+            _URI_REGISTER_FUNC_LIST.append(func)
+
+
+def init_wrfrun_config(config_file: str) -> WRFRunConfig:
+    """
+    Initialize ``WRFRUNConfig`` with the given config file.
+
+    :param config_file: Config file path.
+    :type config_file: str
+    :return: ``WRFRUNConfig`` instance.
+    :rtype: WRFRunConfig
+    """
+    global WRFRUNConfig
+
+    logger.info(f"Initialize `WRFRUNConfig` with config: {config_file}")
+
+    WRFRUNConfig = WRFRunConfig.from_config_file(config_file)
+
+    return WRFRUNConfig
+
+
+def get_wrfrun_config() -> WRFRunConfig:
+    """
+    Get ``WRFRUNConfig`` instance.
+
+    An exception :class:`ConfigError` will be raised if you haven't initialized it.
+
+    :return: ``WRFRUNConfig`` instance.
+    :rtype: WRFRunConfig
+    """
+    global WRFRUNConfig
+
+    if WRFRUNConfig is None:
+        logger.error(f"`WRFRUNConfig` hasn't been initialized.")
+        logger.error(f"Use `WRFRun` to load config automatically, or use function `init_wrfrun_config` to load config manually.")
+        raise ConfigError(f"`WRFRUNConfig` hasn't been initialized.")
+
+    return WRFRUNConfig
+
+
+__all__ = ["WRFRunConfig", "WRFRUNConfig", "init_wrfrun_config", "get_wrfrun_config", "set_register_func"]

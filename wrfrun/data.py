@@ -1,13 +1,14 @@
 from datetime import datetime
 from os import makedirs
-from os.path import exists, dirname
-from typing import Union, List, Tuple
+from os.path import dirname, exists
+from typing import List, Tuple, Union
 
 from pandas import date_range
-# from seafog import goos_sst_find_data
 
-from .core.config import WRFRUNConfig
+from .core import get_wrfrun_config
 from .utils import logger
+
+# from seafog import goos_sst_find_data
 
 # lazy initialize
 CDS_CLIENT = None
@@ -297,7 +298,7 @@ def prepare_wps_input_data(area: Tuple[int, int, int, int]):
     Args:
         area (Tuple[int, int, int, int]): Range of longitude and latitude, `[lon1, lon2, lat1, lat2]`.
     """
-    wrf_config = WRFRUNConfig.get_model_config("wrf")
+    wrf_config = get_wrfrun_config().get_model_config("wrf")
     # get start and end date from config
     start_date = wrf_config["time"]["start_date"]
     end_date = wrf_config["time"]["end_date"]
@@ -310,7 +311,7 @@ def prepare_wps_input_data(area: Tuple[int, int, int, int]):
     hour_step = wrf_config["time"]["input_data_interval"] // 3600
 
     # get data save path
-    data_save_path = WRFRUNConfig.get_input_data_path()
+    data_save_path = get_wrfrun_config().get_input_data_path()
 
     # download data
     logger.info(f"Download background data of surface level...")

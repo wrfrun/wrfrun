@@ -6,15 +6,30 @@ from typing import Union
 
 HEADER_CODE = """from os.path import abspath, dirname
 
-from wrfrun.core import WRFRUNConfig
+from wrfrun.core import set_register_func, WRFRunConfig
 
 
 RES_PATH = abspath(dirname(__file__))
-WRFRUNConfig.register_resource_uri(WRFRUNConfig.WRFRUN_RESOURCE_PATH, RES_PATH)
+
+
+def _register_res_uri(wrfrun_config: WRFRunConfig):
+    wrfrun_config.register_resource_uri(wrfrun_config.WRFRUN_RESOURCE_PATH, RES_PATH)
+
+
+set_register_func(_register_res_uri)
+
 
 """
 
-FOOT_CODE = """\nWRFRUNConfig.set_config_template_path(CONFIG_MAIN_TOML_TEMPLATE)\n"""
+
+FOOT_CODE = """
+
+def _set_config_template_path(wrfrun_config: WRFRunConfig):
+    wrfrun_config.set_config_template_path(CONFIG_MAIN_TOML_TEMPLATE)
+
+
+set_register_func(_set_config_template_path)
+"""
 
 
 def _generate_init():

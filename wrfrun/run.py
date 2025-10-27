@@ -7,7 +7,7 @@ import threading
 from os.path import abspath, dirname
 from typing import Optional, Tuple, Union
 
-from .core import ExecConfigRecorder, WRFRUNConfig, WRFRunBasicError, WRFRunServer, WRFRunServerHandler, replay_config_generator, stop_server
+from .core import ExecConfigRecorder, WRFRUNConfig, init_wrfrun_config, WRFRunBasicError, WRFRunServer, WRFRunServerHandler, replay_config_generator, stop_server
 from .data import prepare_wps_input_data
 from .model import clear_model_logs, generate_domain_area
 from .scheduler import in_job_scheduler, prepare_scheduler_script
@@ -87,7 +87,7 @@ class WRFRun:
 
         # make sure we can read the config file, because sometimes the user may run the Python script in a different path.
         abs_config_path = f"{self._entry_file_dir_path}/{config_file}"
-        WRFRUNConfig.load_wrfrun_config(abs_config_path)
+        init_wrfrun_config(abs_config_path)
 
         self._record_output_path = None
         self._record_include_data = False

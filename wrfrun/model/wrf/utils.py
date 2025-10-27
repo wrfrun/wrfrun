@@ -4,7 +4,7 @@ from typing import Dict
 
 from xarray import open_dataset
 
-from wrfrun import WRFRUNConfig
+from wrfrun import get_wrfrun_config
 from wrfrun.utils import logger
 
 
@@ -65,7 +65,7 @@ def reconcile_namelist_metgrid(metgrid_path: str):
         }
     }
 
-    WRFRUNConfig.update_namelist(update_values, "wrf")
+    get_wrfrun_config().update_namelist(update_values, "wrf")
 
 
 def process_after_ndown():
@@ -77,6 +77,7 @@ def process_after_ndown():
 
     :return:
     """
+    WRFRUNConfig = get_wrfrun_config()
     namelist_data = WRFRUNConfig.get_namelist("wrf")
 
     for section in namelist_data:

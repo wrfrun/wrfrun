@@ -106,5 +106,12 @@ class ModelNameError(WRFRunBasicError):
     pass
 
 
+class RecordError(WRFRunBasicError):
+    """
+    Exception indicates ``wrfrun`` can't record simulations.
+    """
+    pass
+
+
 __all__ = ["WRFRunBasicError", "ConfigError", "WRFRunContextError", "CommandError", "OutputFileError", "ResourceURIError", "InputFileError",
-           "NamelistError", "ExecRegisterError", "GetExecClassError", "ModelNameError", "NamelistIDError"]
+           "NamelistError", "ExecRegisterError", "GetExecClassError", "ModelNameError", "NamelistIDError", "RecordError"]

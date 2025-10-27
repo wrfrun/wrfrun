@@ -13,9 +13,9 @@ Utility functions used by models.
 from os import listdir
 from shutil import move
 
-from ..core import WRFRUNConfig
+from ..core import get_wrfrun_config
 from ..utils import check_path, logger
-from ..workspace.wrf import WORKSPACE_MODEL_WRF
+from ..workspace.wrf import get_wrf_workspace_path
 
 
 def clear_model_logs():
@@ -23,8 +23,9 @@ def clear_model_logs():
     This function can automatically collect unsaved log files,
     and save them to the corresponding output directory of the ``Executable``.
     """
+    WRFRUNConfig = get_wrfrun_config()
     work_status = WRFRUNConfig.WRFRUN_WORK_STATUS
-    work_path = WRFRUNConfig.parse_resource_uri(WORKSPACE_MODEL_WRF)
+    work_path = WRFRUNConfig.parse_resource_uri(get_wrf_workspace_path("wrf"))
 
     log_files = [x for x in listdir(work_path) if x.startswith("rsl.") or x.endswith(".log")]
 

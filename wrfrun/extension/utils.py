@@ -15,7 +15,7 @@ from os.path import exists
 from shutil import copyfile
 from typing import List, Optional
 
-from wrfrun.core import WRFRUNConfig
+from wrfrun.core import get_wrfrun_config
 from wrfrun.utils import check_path, logger
 
 
@@ -23,7 +23,7 @@ def extension_postprocess(output_dir: str, extension_id: str, outputs: Optional[
     """
     This function provides a unified postprocessing interface for all extensions.
 
-    This function will save outputss and logs in ``output_dir`` to the ``{output_path}/extension_id`` and ``{output_path}/extension_id/logs``,
+    This function will save outputs and logs in ``output_dir`` to the ``{output_path}/extension_id`` and ``{output_path}/extension_id/logs``,
     in which ``output_path`` is defined in ``config.toml``.
     Files end with ``.log`` are treated as log files, while others are treated as outputs.
     You can save specific outputs by giving their names through the argument ``outputs``.
@@ -37,6 +37,7 @@ def extension_postprocess(output_dir: str, extension_id: str, outputs: Optional[
     :param outputs: A list contains multiple filenames. Files in this will be treated as outputs.
     :type outputs: list
     """
+    WRFRUNConfig = get_wrfrun_config()
     output_path = WRFRUNConfig.WRFRUN_OUTPUT_PATH
     output_save_path = f"{output_path}/{extension_id}"
     log_save_path = f"{output_path}/{extension_id}/logs"

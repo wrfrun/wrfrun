@@ -2,8 +2,8 @@ import subprocess
 from datetime import datetime
 from typing import Optional
 
-from wrfrun import WRFRUNConfig
-from wrfrun.workspace.wrf import WORKSPACE_MODEL_WRF
+from wrfrun import get_wrfrun_config
+from wrfrun.workspace.wrf import get_wrf_workspace_path
 
 
 def get_wrf_simulated_seconds(start_datetime: datetime, log_file_path: Optional[str] = None) -> int:
@@ -19,7 +19,7 @@ def get_wrf_simulated_seconds(start_datetime: datetime, log_file_path: Optional[
     """
     # use linux cmd to get the latest line of wrf log files
     if log_file_path is None:
-        log_file_path = WRFRUNConfig.parse_resource_uri(f"{WORKSPACE_MODEL_WRF}/rsl.out.0000")
+        log_file_path = get_wrfrun_config().parse_resource_uri(f"{get_wrf_workspace_path('wrf')}/rsl.out.0000")
     res = subprocess.run(["tail", "-n", "1", log_file_path], capture_output=True)
     log_text = res.stdout.decode()
 

@@ -1,13 +1,12 @@
 from datetime import datetime, timedelta
-from os.path import exists, dirname, basename
+from os.path import basename, dirname, exists
 from typing import Union
 
 from wrfrun.core import WRFRUNConfig
 from wrfrun.res import NAMELIST_DFI, NAMELIST_WPS, NAMELIST_WRF, NAMELIST_WRFDA
 from wrfrun.utils import logger
-from wrfrun.workspace.wrf import WORKSPACE_MODEL_WPS
+from wrfrun.workspace.wrf import get_wrf_workspace_path
 from .scheme import *
-
 
 UNGRIB_OUTPUT_DIR = "./outputs"
 
@@ -20,7 +19,7 @@ def get_ungrib_out_dir_path() -> str:
     :rtype: str
     """
     wif_prefix = WRFRUNConfig.get_namelist("wps")["ungrib"]["prefix"]
-    wif_path = f"{WORKSPACE_MODEL_WPS}/{dirname(wif_prefix)}"
+    wif_path = f"{get_wrf_workspace_path('wps')}/{dirname(wif_prefix)}"
 
     return wif_path
 

@@ -7,13 +7,16 @@ from shutil import copyfile
 import tomli
 import tomli_w
 
-from .core import WRFRUNConfig
+from .core import WRFRunConfig
 from .res import CONFIG_MAIN_TOML_TEMPLATE, CONFIG_WRF_TOML_TEMPLATE
 from .utils import logger
 
 MODEL_MAP = {
     "wrf": CONFIG_WRF_TOML_TEMPLATE
 }
+
+
+wrfrun_config = WRFRunConfig("./.wrfrun")
 
 
 def _entry_init(args: argparse.Namespace):
@@ -35,11 +38,11 @@ def _entry_init(args: argparse.Namespace):
     makedirs(f"{project_name}/configs")
     makedirs(f"{project_name}/data")
 
-    copyfile(WRFRUNConfig.parse_resource_uri(CONFIG_MAIN_TOML_TEMPLATE), f"{project_name}/config.toml")
+    copyfile(wrfrun_config.parse_resource_uri(CONFIG_MAIN_TOML_TEMPLATE), f"{project_name}/config.toml")
 
     if models is not None:
         for _model in models:
-            src_path = WRFRUNConfig.parse_resource_uri(MODEL_MAP[_model])
+            src_path = wrfrun_config.parse_resource_uri(MODEL_MAP[_model])
             copyfile(src_path, f"{project_name}/configs/{_model}.toml")
 
     logger.info(f"Created project {project_name}.")
@@ -95,7 +98,7 @@ def _entry_model(args: argparse.Namespace):
                 }
 
     for _new_model in new_models:
-        copyfile(WRFRUNConfig.parse_resource_uri(model_config_map[_new_model]), f"{config_dir_path}/{_new_model}.toml")
+        copyfile(wrfrun_config.parse_resource_uri(model_config_map[_new_model]), f"{config_dir_path}/{_new_model}.toml")
 
     with open(config_path, "wb") as f:
         tomli_w.dump(main_config, f)

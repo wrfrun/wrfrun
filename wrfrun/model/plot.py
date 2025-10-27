@@ -9,7 +9,7 @@ from cartopy.mpl.geoaxes import GeoAxes
 from cartopy.mpl.gridliner import LATITUDE_FORMATTER, LONGITUDE_FORMATTER
 from haversine.haversine import Direction, Unit, inverse_haversine
 
-from wrfrun.core import WRFRUNConfig
+from wrfrun.core import get_wrfrun_config
 from wrfrun.utils import check_path, logger
 
 
@@ -183,7 +183,7 @@ def plot_domain_area(
             logger.error("You need to give 'model_name' if `domain_settings == None`")
             raise ValueError("You need to give 'model_name' if `domain_settings == None`")
 
-        user_settings = WRFRUNConfig.get_model_config(model_name)["domain"]
+        user_settings = get_wrfrun_config().get_model_config(model_name)["domain"]
         domain_settings: DomainSetting = {
             "dx": user_settings["dx"],
             "dy": user_settings["dy"],
@@ -257,6 +257,7 @@ def generate_domain_area():
     :return:
     :rtype:
     """
+    WRFRUNConfig = get_wrfrun_config()
     save_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_OUTPUT_PATH)
     check_path(save_path)
     save_path = abspath(save_path)
