@@ -1,7 +1,7 @@
 project(
     'wrfrun',
     'c',
-    version: '0.1.9',
+    version: '0.2.0',
     license: 'BSD-3',
     meson_version: '>=0.64.0',
     default_options: ['warning_level=2'],
