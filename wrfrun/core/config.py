@@ -106,6 +106,16 @@ class _WRFRunResources:
         logger.debug(f"Register URI '{unique_uri}' to '{res_space_path}'")
         self._resource_namespace_db[unique_uri] = res_space_path
 
+    def unregister_resource_uri(self, unique_uri: str):
+        """
+        Unregister a resource URI.
+
+        :param unique_uri: Unique URI represents the resource.
+        :type unique_uri: str
+        """
+        if unique_uri in self._resource_namespace_db:
+            self._resource_namespace_db.pop(unique_uri)
+
     def parse_resource_uri(self, resource_path: str) -> str:
         """
         Return the converted string by parsing the URI string in it.
@@ -709,6 +719,7 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
 
         # register URI for output directory.
         output_path = abspath(self["output_path"])
+        self.unregister_resource_uri(self.WRFRUN_OUTPUT_PATH)
         self.register_resource_uri(self.WRFRUN_OUTPUT_PATH, output_path)
 
         # some additional check
