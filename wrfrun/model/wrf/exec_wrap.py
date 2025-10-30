@@ -83,6 +83,7 @@ def wrf(input_file_dir_path: Union[str, None] = None, restart_file_dir_path: Opt
     :param restart_file_dir_path: Directory path of restart files.
     :param save_restarts: If saving restart files. Defaults to False.
     """
+    print("test")
     WRF(input_file_dir_path, restart_file_dir_path, save_restarts, WRFRUNConfig.get_core_num())()
 
 

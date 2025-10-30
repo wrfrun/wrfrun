@@ -1,3 +1,39 @@
+# 🌀 wrfrun
+
+> A modern, unified framework for running and managing numerical models.
+>
+> Designed for researchers who want to focus on science — not on the details of model execution.
+
+## 📖 Introduction
+
+`wrfrun` is a Python package that provides a general-purpose, reproducible, and extensible framework for running numerical models.
+
+It automates the tedious parts of model execution — preparing input data, handling `namelist` configurations, organizing logs, and submitting jobs — so that you can spend your time on research, not on managing model runs.
+
+## 🌟 Core Features
+
+### 🧩 Unified Interface Architecture
+
+`wrfrun` enforces a unified interface specification for all numerical models. Specifically, each model interface must inherit from a provided base class, ensuring a consistent structure and behavior across different models.
+
+This design makes model execution intuitive — any supported model can be launched simply by calling a Python function or class method, while `wrfrun` automatically handles all background tasks such as data preparation and configuration file management.
+
+```python
+from wrfrun import WRFRun
+from wrfrun.model.wrf import geogrid, metgrid, real, ungrib, wrf
+
+# wrfrun will prepare input data, generate namelist file, 
+# save outputs and logs automatically.
+with WRFRun("./config.toml", init_workspace=True) as wrf_run:
+    geogrid()
+    ungrib()
+    metgrid()
+    real()
+    wrf()
+```
+
+
+
 # wrfrun: A toolkit to control WRF
 
 ##  What is wrfrun？
