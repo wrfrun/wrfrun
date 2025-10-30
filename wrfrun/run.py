@@ -38,9 +38,6 @@ class WRFRun:
     """
     ``WRFRun`` is a context class to use all functions in ``wrfrun`` package.
     """
-    _instance = None
-    _initialized = False
-
     def __init__(
         self, config_file: str, init_workspace=True,
         start_server=False, submit_job=False, prepare_wps_data=False,
@@ -66,9 +63,6 @@ class WRFRun:
         :type skip_domain_confirm: bool
         :return:
         """
-        if self._initialized:
-            return
-
         # variables for running WRFRunServer
         self._start_server = start_server
         self._wrfrun_server: Union[WRFRunServer, None] = None
@@ -92,14 +86,6 @@ class WRFRun:
         self._record_output_path = None
         self._record_include_data = False
         self._WRFRUNReplay = ExecConfigRecorder
-
-        self._initialized = True
-
-    def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-
-        return cls._instance
 
     def __enter__(self):
         # check workspace
