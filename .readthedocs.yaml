@@ -7,8 +7,6 @@ build:
 
 python:
   install:
-    - method: pip
-      path: "git+https://github.com/NCAR/wrf-python.git@v1.4.0"
     - requirements: docs/requirements.txt
 
 sphinx:

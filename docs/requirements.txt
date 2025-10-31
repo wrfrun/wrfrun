@@ -1,6 +1,7 @@
 pydata-sphinx-theme==0.16.1
 sphinx-copybutton==0.5.2
 sphinx-design==0.6.1
+wrf-python @ git+https://github.com/NCAR/wrf-python.git@v1.4.0
 xarray
 netCDF4
 rich
