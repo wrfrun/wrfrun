@@ -7,6 +7,8 @@ build:
 
 python:
   install:
+    - method: pip
+      path: "numpy<2.0.0"
     - requirements: docs/requirements.txt
 
 sphinx:

@@ -35,12 +35,13 @@ def prepare_workspace():
     1. :doc:`WPS/WRF model </api/workspace.wrf>`
     """
     WRFRUNConfig = get_wrfrun_config()
-    logger.info(f"Initialize main workspace.")
 
     wrfrun_temp_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_TEMP_PATH)
     workspace_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_ROOT)
     replay_work_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_REPLAY)
     output_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_OUTPUT_PATH)
+
+    logger.info(f"Initialize main workspace at: {workspace_path}")
 
     if exists(workspace_path):
         logger.info(f"Remove old files in workspace.")

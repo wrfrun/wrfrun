@@ -796,7 +796,7 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
             logger.error(f"Config of model '{model_name}' isn't found in your config file.")
             raise ModelNameError(f"Config of model '{model_name}' isn't found in your config file.")
 
-        return deepcopy(self["model"][model_name])
+        return self["model"][model_name]
 
     def update_model_config(self, model_name: str, value: dict):
         """
@@ -813,7 +813,7 @@ class WRFRunConfig(_WRFRunConstants, _WRFRunNamelist, _WRFRunResources):
             logger.error(f"Config of model '{model_name}' isn't found in your config file.")
             raise ModelNameError(f"Config of model '{model_name}' isn't found in your config file.")
 
-        self["model"][model_name] = self["model"][model_name] | value
+        self._config["model"][model_name].update(value)
 
     def get_log_path(self) -> str:
         """
