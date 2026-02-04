@@ -176,7 +176,13 @@ def draw_geogrid(data_path: str, field: str, fig: Figure, nrow: int, ncol: int, 
     :rtype: tuple
     """
     # lazy import
-    from wrf import get_cartopy, getvar, latlon_coords, to_np
+    try:
+        from wrf import get_cartopy, getvar, latlon_coords, to_np
+
+    except ImportError:
+        logger.error("Currently `wrf-python` isn't list as `wrfrun` dependency.")
+        logger.error("You need to install `wrf-python` package to use this feature.")
+        exit(1)
 
     # take out data
     data: DataArray = getvar(Dataset(data_path), field)  # type: ignore
