@@ -6,5 +6,9 @@
     "wrf.template.toml": {
         "name": "WRF_TOML_TEMPLATE",
         "type": "file"
+    },
+    "palm.template.toml": {
+        "name": "PALM_TOML_TEMPLATE",
+        "type": "file"
     }
 }

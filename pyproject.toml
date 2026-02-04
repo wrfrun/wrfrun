@@ -24,11 +24,11 @@ dependencies = [
     "cdsapi",
     "matplotlib",
     "Cartopy",
-    "wrf-python",
-    "cfgrib",
     "tomli",
     "tomli-w",
-    "haversine"
+    "haversine",
+    "wrf-python>=1.3.1",
+    "cfgrib>=0.9.15.1",
 ]
 
 [project.urls]
@@ -53,4 +53,19 @@ dev = [
     "sphinx-design",
     "meson-python",
     "sphinx-autobuild",
+    "ruff>=0.14.3",
+    "pyright>=1.1.407",
 ]
+
+[tool.ruff]
+line-length = 130
+
+[tool.ruff.lint]
+select = ["D", "E", "F", "I"]
+ignore = ["F403", "D211", "D212", "D200", "D203", "D401", "D404", "D205", "D400", "D415"]
+
+[tool.pyright]
+include = ["wrfrun"]
+pythonVersion = "3.10"
+pythonPlatform = "Linux"
+reportArgumentType = false

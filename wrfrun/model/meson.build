@@ -1,11 +1,13 @@
 py3.install_sources(
     [
         '__init__.py',
-        'base.py',
+        'constants.py',
         'plot.py',
+        'type.py',
         'utils.py',
     ],
     subdir: 'wrfrun/model'
 )
 
+subdir('palm')
 subdir('wrf')

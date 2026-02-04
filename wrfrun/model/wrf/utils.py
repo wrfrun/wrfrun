@@ -1,21 +1,35 @@
+"""
+wrfrun.model.wrf.utils
+######################
+
+Utility functions used by wrf model part.
+
+.. autosummary::
+    :toctree: generated/
+
+    get_metgrid_levels
+    reconcile_namelist_metgrid
+    process_after_ndown
+"""
+
 from os import listdir
 from os.path import exists
 from typing import Dict
 
 from xarray import open_dataset
 
-from wrfrun import get_wrfrun_config
-from wrfrun.utils import logger
+from wrfrun.core import WRFRUN
+from wrfrun.log import logger
 
 
 def get_metgrid_levels(nc_file: str) -> Dict[str, int]:
-    """Read metgrid output file and get metgrid levels, land cat and metgrid soil levels
+    """
+    Read metgrid output file and get metgrid levels, land cat and metgrid soil levels.
 
-    Args:
-        nc_file (str): Output nc file path
-
-    Returns:
-        Dict[str, int]: {num_metgrid_levels: number, num_land_cat: number, num_metgrid_soil_level: number}
+    :param nc_file: Output nc file path.
+    :type nc_file: str
+    :return: {num_metgrid_levels: number, num_land_cat: number, num_metgrid_soil_level: number}
+    :rtype: Dict[str, int]
     """
     # check file
     if not exists(nc_file):
@@ -30,11 +44,7 @@ def get_metgrid_levels(nc_file: str) -> Dict[str, int]:
     num_land_cat = dataset.attrs["NUM_LAND_CAT"]
     num_metgrid_soil_levels = dataset.attrs["NUM_METGRID_SOIL_LEVELS"]
 
-    return dict(
-        num_metgrid_levels=num_metgrid_levels,
-        num_land_cat=num_land_cat,
-        num_metgrid_soil_levels=num_metgrid_soil_levels
-    )
+    return dict(num_metgrid_levels=num_metgrid_levels, num_land_cat=num_land_cat, num_metgrid_soil_levels=num_metgrid_soil_levels)
 
 
 def reconcile_namelist_metgrid(metgrid_path: str):
@@ -48,7 +58,7 @@ def reconcile_namelist_metgrid(metgrid_path: str):
     :return:
     :rtype:
     """
-    logger.info(f"Checking values in WRF namelist and metgrid output ...")
+    logger.info("Checking values in WRF namelist and metgrid output ...")
     metgrid_output_name = [x for x in listdir(metgrid_path) if x.endswith(".nc")]
     metgrid_output_name.sort()
     metgrid_output_name = metgrid_output_name[0]
@@ -60,24 +70,21 @@ def reconcile_namelist_metgrid(metgrid_path: str):
             "num_metgrid_levels": metgrid_levels["num_metgrid_levels"],
             "num_metgrid_soil_levels": metgrid_levels["num_metgrid_soil_levels"],
         },
-        "physics": {
-            "num_land_cat": metgrid_levels["num_land_cat"]
-        }
+        "physics": {"num_land_cat": metgrid_levels["num_land_cat"]},
     }
 
-    get_wrfrun_config().update_namelist(update_values, "wrf")
+    WRFRUN.config.update_namelist(update_values, "wrf")
 
 
 def process_after_ndown():
     """
     After running ndown.exe, namelist settings are supposed to be changed,
     so WRF can simulate a higher resolution domain according to `WRF User's Guide <https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/running_wrf.html#wrf-nesting>`_.
-    `wrfrun` provide this function to help you change these settings which have multiple values for each domain.
-    The first value will be removed to ensure the value of higher resolution domain is the first value.
 
-    :return:
+    ``wrfrun`` provide this function to help you change these settings which have multiple values for each domain.
+    The first value will be removed to ensure the value of higher resolution domain is the first value.
     """
-    WRFRUNConfig = get_wrfrun_config()
+    WRFRUNConfig = WRFRUN.config
     namelist_data = WRFRUNConfig.get_namelist("wrf")
 
     for section in namelist_data:
@@ -85,11 +92,18 @@ def process_after_ndown():
             continue
 
         for key in namelist_data[section]:
-            if key in ["grid_id", "parent_id", "i_parent_start", "j_parent_start", "parent_grid_ratio", "parent_time_step_ratio", "eta_levels"]:
+            if key in [
+                "grid_id",
+                "parent_id",
+                "i_parent_start",
+                "j_parent_start",
+                "parent_grid_ratio",
+                "parent_time_step_ratio",
+                "eta_levels",
+            ]:
                 continue
 
             if isinstance(namelist_data[section][key], list):
-
                 if len(namelist_data[section][key]) > 1:
                     namelist_data[section][key] = namelist_data[section][key][1:]
 
@@ -100,7 +114,7 @@ def process_after_ndown():
 
     WRFRUNConfig.update_namelist(namelist_data, "wrf")
 
-    logger.info(f"Update namelist after running ndown.exe")
+    logger.info("Update namelist after running ndown.exe")
 
 
 __all__ = ["reconcile_namelist_metgrid", "get_metgrid_levels", "process_after_ndown"]

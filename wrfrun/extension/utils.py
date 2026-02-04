@@ -15,8 +15,9 @@ from os.path import exists
 from shutil import copyfile
 from typing import List, Optional
 
-from wrfrun.core import get_wrfrun_config
-from wrfrun.utils import check_path, logger
+from wrfrun.core import WRFRUN
+from wrfrun.log import logger
+from wrfrun.utils import check_path
 
 
 def extension_postprocess(output_dir: str, extension_id: str, outputs: Optional[List[str]] = None):
@@ -37,7 +38,7 @@ def extension_postprocess(output_dir: str, extension_id: str, outputs: Optional[
     :param outputs: A list contains multiple filenames. Files in this will be treated as outputs.
     :type outputs: list
     """
-    WRFRUNConfig = get_wrfrun_config()
+    WRFRUNConfig = WRFRUN.config
     output_path = WRFRUNConfig.WRFRUN_OUTPUT_PATH
     output_save_path = f"{output_path}/{extension_id}"
     log_save_path = f"{output_path}/{extension_id}/logs"

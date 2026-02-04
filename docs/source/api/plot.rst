@@ -1,8 +1,4 @@
-wrfrun.plot
-###########
-
-.. toctree:: 
-    :maxdepth: 1
-    :hidden:
-
-    wps <plot.wps>
+.. automodule:: wrfrun.plot
+    :no-members:
+    :no-inherited-members:
+    :no-special-members:

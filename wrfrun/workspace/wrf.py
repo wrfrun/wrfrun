@@ -16,8 +16,9 @@ from os import listdir, makedirs, symlink
 from os.path import exists
 from typing import Literal
 
-from wrfrun.core import WRFRunConfig, get_wrfrun_config, set_register_func
-from wrfrun.utils import check_path, logger
+from wrfrun.core import WRFRUN, WRFRunConfig
+from wrfrun.log import logger
+from wrfrun.utils import check_path
 
 WORKSPACE_MODEL_WPS = ""
 WORKSPACE_MODEL_WRF = ""
@@ -30,8 +31,8 @@ def _register_wrf_workspace_uri(wrfrun_config: WRFRunConfig):
 
     This is a hook to initializes some global strings.
 
-    :param wrfrun_config: ``WRFRunConfig`` instance.
-    :type wrfrun_config: WRFRunConfig
+    :param wrfrun_config: ``WRFRUNProxy`` instance.
+    :type wrfrun_config: WRFRUNProxy
     """
     global WORKSPACE_MODEL_WPS, WORKSPACE_MODEL_WRF, WORKSPACE_MODEL_WRFDA
 
@@ -40,7 +41,7 @@ def _register_wrf_workspace_uri(wrfrun_config: WRFRunConfig):
     WORKSPACE_MODEL_WRFDA = f"{wrfrun_config.WRFRUN_WORKSPACE_MODEL}/WRFDA"
 
 
-set_register_func(_register_wrf_workspace_uri)
+WRFRUN.set_config_register_func(_register_wrf_workspace_uri)
 
 
 def get_wrf_workspace_path(name: Literal["wps", "wrf", "wrfda"]) -> str:
@@ -77,22 +78,22 @@ def prepare_wrf_workspace(model_config: dict):
     :param model_config: Model config.
     :type model_config: dict
     """
-    logger.info(f"Initialize workspace for WPS/WRF.")
+    logger.info("Initialize workspace for WPS/WRF.")
 
-    WRFRUNConfig = get_wrfrun_config()
+    WRFRUNConfig = WRFRUN.config
 
     wps_path = model_config["wps_path"]
     wrf_path = model_config["wrf_path"]
     wrfda_path = model_config["wrfda_path"]
 
     if not (wps_path and wrf_path):
-        logger.warning(f"No WPS/WRF model installation path given, skip initialization.")
+        logger.warning("No WPS/WRF model installation path given, skip initialization.")
         return
 
     if wps_path:
         if not exists(wps_path):
-            logger.error(f"Your WPS path is wrong.")
-            raise FileNotFoundError(f"Your WPS path is wrong.")
+            logger.error("Your WPS path is wrong.")
+            raise FileNotFoundError("Your WPS path is wrong.")
 
         wps_work_path = WRFRUNConfig.parse_resource_uri(WORKSPACE_MODEL_WPS)
         check_path(wps_work_path, f"{wps_work_path}/outputs", force=True)
@@ -104,8 +105,8 @@ def prepare_wrf_workspace(model_config: dict):
 
     if wrf_path:
         if not exists(wrf_path):
-            logger.error(f"Your WRF path is wrong.")
-            raise FileNotFoundError(f"Your WRF path is wrong.")
+            logger.error("Your WRF path is wrong.")
+            raise FileNotFoundError("Your WRF path is wrong.")
 
         wrf_work_path = WRFRUNConfig.parse_resource_uri(WORKSPACE_MODEL_WRF)
         check_path(wrf_work_path, force=True)
@@ -115,8 +116,8 @@ def prepare_wrf_workspace(model_config: dict):
 
     if wrfda_path:
         if not exists(wrfda_path):
-            logger.error(f"Your WRFDA path is wrong.")
-            raise FileNotFoundError(f"Your WRFDA path is wrong.")
+            logger.error("Your WRFDA path is wrong.")
+            raise FileNotFoundError("Your WRFDA path is wrong.")
 
         wrfda_work_path = WRFRUNConfig.parse_resource_uri(WORKSPACE_MODEL_WRFDA)
         check_path(wrfda_work_path, force=True)
@@ -139,7 +140,7 @@ def check_wrf_workspace(model_config: dict) -> bool:
     :return: ``True`` if WPS/WRF workspace exists, ``False`` otherwise.
     :rtype: bool
     """
-    WRFRUNConfig = get_wrfrun_config()
+    WRFRUNConfig = WRFRUN.config
 
     wps_path = model_config["wps_path"]
     wrf_path = model_config["wrf_path"]

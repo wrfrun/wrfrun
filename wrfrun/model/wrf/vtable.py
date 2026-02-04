@@ -1,6 +1,33 @@
+"""
+wrfrun.model.wrf.vtable
+#######################
+
+Dataclasses to represents VTable files in WRF.
+
+.. autosummary::
+    :toctree: generated/
+
+    VtableFiles
+
+How to use
+**********
+
+Attributes of :class:`VtableFiles` is a ``wrfrun`` URI, parse it will get the real path of VTable files.
+
+**For example**
+
+.. code-block:: python
+    :caption: main.py
+
+    from wrfrun.core import WRFRUN
+    from wrfrun.model.wrf import VtableFiles
+
+    vtable_real_file_path = WRFRUN.config.parse_resource_uri(VtableFiles.ERA_PL)
+"""
+
 from dataclasses import dataclass
 
-from wrfrun.core import WRFRunConfig, set_register_func
+from wrfrun.core import WRFRUN, WRFRunConfig
 from wrfrun.workspace.wrf import get_wrf_workspace_path
 
 VTABLE_URI = ":WRFRUN_VTABLE:"
@@ -10,8 +37,13 @@ VTABLE_URI = ":WRFRUN_VTABLE:"
 class VtableFiles:
     """
     Represent WPS Vtable files (v4.5).
-    With the ":/" we can tell from user custom Vtable files.
+
+    **NOTE**
+
+    This class doesn't have method to check if the VTable file exists.
+    User need to check the VTable file when use it.
     """
+
     AFWAICE = f"{VTABLE_URI}/Vtable.AFWAICE"
     AGRMETSNOW = f"{VTABLE_URI}/Vtable.AGRMETSNOW"
     AGRMETSOIL = f"{VTABLE_URI}/Vtable.AGRMETSOIL"
@@ -63,7 +95,7 @@ def _register_vtable_uri(wrfrun_config: WRFRunConfig):
         wrfrun_config.register_resource_uri(VTABLE_URI, f"{get_wrf_workspace_path('wps')}/ungrib/Variable_Tables")
 
 
-set_register_func(_register_vtable_uri)
+WRFRUN.set_config_register_func(_register_vtable_uri)
 
 
 __all__ = ["VtableFiles"]

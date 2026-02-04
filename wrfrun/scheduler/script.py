@@ -1,8 +1,21 @@
+"""
+wrfrun.scheduler.script
+#######################
+
+Function to prepare bash script to commit job to scheduler.
+
+.. autosummary::
+    :toctree: generated/
+
+    prepare_scheduler_script
+"""
+
 from os.path import abspath, dirname, exists
 
-from wrfrun import get_wrfrun_config
+from wrfrun.core import WRFRUN
+from wrfrun.log import logger
 from wrfrun.res import RUN_SH_TEMPLATE
-from wrfrun.utils import logger
+
 from .lsf import lsf_generate_settings
 from .pbs import pbs_generate_settings
 from .slurm import slurm_generate_settings
@@ -15,7 +28,7 @@ def prepare_scheduler_script(main_file_path: str):
     :param main_file_path: Path of the main entry file.
     :type main_file_path: str
     """
-    WRFRUNConfig = get_wrfrun_config()
+    WRFRUNConfig = WRFRUN.config
 
     # check main file path
     if not exists(main_file_path):
@@ -43,7 +56,7 @@ def prepare_scheduler_script(main_file_path: str):
             raise ValueError(f"Unknown scheduler name: {scheduler_configs['job_scheduler']}")
 
     # generate environment settings
-    env_settings = 'export WRFRUN_ENV_JOB_SCHEDULER=1\n'
+    env_settings = "export WRFRUN_ENV_JOB_SCHEDULER=1\n"
     if len(scheduler_configs["env_settings"]) > 0:
         for key in scheduler_configs["env_settings"]:
             env_settings += f"export {key}={scheduler_configs['env_settings'][key]}\n"
@@ -54,7 +67,6 @@ def prepare_scheduler_script(main_file_path: str):
     # generate shell script
     shell_template_path = WRFRUNConfig.parse_resource_uri(RUN_SH_TEMPLATE)
     with open(f"{dir_path}/run.sh", "w") as f:
-
         with open(shell_template_path, "r") as f_template:
             template = f_template.read()
 

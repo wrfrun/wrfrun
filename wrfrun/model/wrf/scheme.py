@@ -1,9 +1,43 @@
 """
-This file contains function to determine schemes for WRF
+wrfrun.model.wrf.scheme
+#######################
+
+This file contains dataclasses to determine schemes for WRF.
+
+.. autosummary::
+    :toctree: generated/
+
+    SchemeCumulus
+    SchemeLandSurfaceModel
+    SchemeLongWave
+    SchemePBL
+    SchemeShortWave
+    SchemeSurfaceLayer
+    SchemeMicrophysics
+
+How to use
+**********
+
+All dataclasses have class method ``get_scheme_id``, which accepts the name of scheme and return the corresponding index.
+You can also use attributes of dataclasses.
+
+**For example**
+
+.. code-block:: python
+    :caption: main.py
+
+    from wrfrun.model.wrf import SchemeLongWave
+
+    # 1. Use function get_scheme_id.
+    scheme_id = SchemeLongWave.get_scheme_id("rrtmg")
+    # 2. Access attributes.
+    scheme_id = SchemeLongWave.RRTMG
+
 """
+
 from dataclasses import dataclass
 
-from wrfrun.utils import logger
+from wrfrun.log import logger
 
 
 @dataclass()
@@ -11,6 +45,7 @@ class SchemeLongWave:
     """
     Long wave physics schemes.
     """
+
     OFF = 0
     RRTM = 1
     CAM = 3
@@ -18,16 +53,19 @@ class SchemeLongWave:
     NEW_GODDARD = 5
     FLG = 7
     RRTMG_K = 14
-    FAST_RRTMG = 24     # for GPU and MIC
+    FAST_RRTMG = 24  # for GPU and MIC
     HELD_SUAREZ = 31
     GFDL = 99
 
     @classmethod
     def get_scheme_id(cls, key: str = "rrtm"):
-        """Get the corresponding integer label for long wave radiation scheme
+        """
+        Get the corresponding integer label for long wave radiation scheme.
 
-        Args:
-            key (str, optional): Name of long wave radiation scheme. Defaults to "rrtm".
+        Reference link: `longwave-radiation-schemes <https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/physics.html#longwave-radiation-schemes>`_.
+
+        :param key: Name of long wave radiation scheme. Defaults to "rrtm".
+        :type key: str
         """
         # Here is the map of scheme name and integer label in WRF
         # Reference link: https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/physics.html#longwave-radiation-schemes
@@ -41,14 +79,12 @@ class SchemeLongWave:
             "rrtmg-k": cls.RRTMG_K,
             "fast-rrtmg": cls.FAST_RRTMG,
             "held-suarez": cls.HELD_SUAREZ,
-            "gfdl": cls.GFDL
+            "gfdl": cls.GFDL,
         }
 
         # check if key is in map
         if key not in integer_label_map:
-            logger.error(
-                f"Key error: {key}. Valid key: {list(integer_label_map.keys())}"
-            )
+            logger.error(f"Key error: {key}. Valid key: {list(integer_label_map.keys())}")
             raise KeyError
 
         return integer_label_map[key]
@@ -59,6 +95,7 @@ class SchemeShortWave:
     """
     Short wave physics schemes.
     """
+
     OFF = 0
     DUDHIA = 1
     GODDARD = 2
@@ -73,10 +110,13 @@ class SchemeShortWave:
 
     @classmethod
     def get_scheme_id(cls, key: str = "rrtmg"):
-        """Get corresponding integer label for short wave radiation scheme
+        """
+        Get corresponding integer label for short wave radiation scheme.
 
-        Args:
-            key (str, optional): Name of short wave radiation scheme. Defaults to "rrtmg".
+        Reference link: `shortwave-radiation-schemes <https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/physics.html#shortwave-radiation-schemes>`_.
+
+        :param key: Name of short wave radiation scheme. Defaults to "rrtmg".
+        :type key: str
         """
         # Here is the map of scheme name and integer label in WRF
         # Reference link: https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/physics.html#shortwave-radiation-schemes
@@ -91,14 +131,12 @@ class SchemeShortWave:
             "rrtmg-k": cls.RRTMG_K,
             "fast-rrtmg": cls.FAST_RRTMG,
             "earth-hs-force": cls.EARTH_HELD_SUAREZ_FORCING,
-            "gfdl": cls.GODDARD
+            "gfdl": cls.GODDARD,
         }
 
         # check if key is in map
         if key not in integer_label_map:
-            logger.error(
-                f"Key error: {key}. Valid key: {list(integer_label_map.keys())}"
-            )
+            logger.error(f"Key error: {key}. Valid key: {list(integer_label_map.keys())}")
             raise KeyError
 
         return integer_label_map[key]
@@ -109,6 +147,7 @@ class SchemeCumulus:
     """
     Cumulus parameterization schemes.
     """
+
     OFF = 0
     KAIN_FRITSCH = 1
     BMJ = 2
@@ -127,10 +166,13 @@ class SchemeCumulus:
 
     @classmethod
     def get_scheme_id(cls, key: str = "kf"):
-        """Get corresponding integer label for cumulus parameterization scheme
+        """
+        Get corresponding integer label for cumulus parameterization scheme.
 
-        Args:
-            key (str, optional): Name of cumulus parameterization scheme. Defaults to "kf".
+        Reference link: `cumulus-parameterization <https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/physics.html#cumulus-parameterization>`_.
+
+        :param key: Name of cumulus parameterization scheme. Defaults to "kf".
+        :type key: str
         """
         # Here is the map of scheme name and integer label in WRF
         # Reference link: https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/physics.html#cumulus-parameterization
@@ -149,14 +191,12 @@ class SchemeCumulus:
             "nt": cls.NEW_TIEDTKE,
             "gd": cls.GRELL_DEVENYI,
             "nsas": cls.NSAS,
-            "old-kf": cls.OLD_KF
+            "old-kf": cls.OLD_KF,
         }
 
         # check if key is in map
         if key not in integer_label_map:
-            logger.error(
-                f"Key error: {key}. Valid key: {list(integer_label_map.keys())}"
-            )
+            logger.error(f"Key error: {key}. Valid key: {list(integer_label_map.keys())}")
             raise KeyError
 
         return integer_label_map[key]
@@ -167,6 +207,7 @@ class SchemePBL:
     """
     PBL physics schemes.
     """
+
     OFF = 0
     YSU = 1
     MYJ = 2
@@ -185,10 +226,13 @@ class SchemePBL:
 
     @classmethod
     def get_scheme_id(cls, key: str = "ysu"):
-        """Get corresponding integer label for PBL scheme
+        """
+        Get corresponding integer label for PBL scheme.
 
-        Args:
-            key (str, optional): Name of PBL scheme. Defaults to "ysu".
+        Reference link: `pbl-scheme-options <https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/physics.html#pbl-scheme-options>`_.
+
+        :param key: Name of PBL scheme. Defaults to "ysu".
+        :type key: str
         """
         # Here is the map of scheme name and integer label in WRF
         # Reference link: https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/physics.html#pbl-scheme-options
@@ -207,14 +251,12 @@ class SchemePBL:
             "gbm": cls.GBM,
             "eeps": cls.EEPS,
             "keps": cls.KEPS,
-            "mrf": cls.MRF
+            "mrf": cls.MRF,
         }
 
         # check if key is in map
         if key not in integer_label_map:
-            logger.error(
-                f"Key error: {key}. Valid key: {list(integer_label_map.keys())}"
-            )
+            logger.error(f"Key error: {key}. Valid key: {list(integer_label_map.keys())}")
             raise KeyError
 
         return integer_label_map[key]
@@ -225,6 +267,7 @@ class SchemeLandSurfaceModel:
     """
     Land surface model physics schemes.
     """
+
     OFF = 0
     SLAB = 1
     NOAH = 2
@@ -236,10 +279,13 @@ class SchemeLandSurfaceModel:
 
     @classmethod
     def get_scheme_id(cls, key: str = "noah"):
-        """Get corresponding integer label for land surface scheme
+        """
+        Get corresponding integer label for land surface scheme.
 
-        Args:
-            key (str, optional): Name of land surface scheme. Defaults to "noah".
+        Reference link: `lsm-scheme-details-and-references <https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/physics.html#lsm-scheme-details-and-references>`_.
+
+        :param key: Name of land surface scheme. Defaults to "noah".
+        :type key: str
         """
         # Here is the map of scheme name and integer label in WRF
         # Reference link: https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/physics.html#lsm-scheme-details-and-references
@@ -251,14 +297,12 @@ class SchemeLandSurfaceModel:
             "noah-mp": cls.NOAH_MP,
             "clm4": cls.CLM4,
             "px": cls.PLEIM_XIU,
-            "ssib": cls.SSIB
+            "ssib": cls.SSIB,
         }
 
         # check if key is in map
         if key not in integer_label_map:
-            logger.error(
-                f"Key error: {key}. Valid key: {list(integer_label_map.keys())}"
-            )
+            logger.error(f"Key error: {key}. Valid key: {list(integer_label_map.keys())}")
             raise KeyError
 
         return integer_label_map[key]
@@ -269,6 +313,7 @@ class SchemeSurfaceLayer:
     """
     Surface layer physics schemes.
     """
+
     OFF = 0
     MM5 = 1
     MONIN_OBUKHOV = 2
@@ -280,10 +325,13 @@ class SchemeSurfaceLayer:
 
     @classmethod
     def get_scheme_id(cls, key: str = "mm5"):
-        """Get corresponding integer label for surface layer scheme
+        """
+        Get corresponding integer label for surface layer scheme.
 
-        Args:
-            key (str, optional): Name of surface layer scheme. Defaults to "mo".
+        Reference link: `sf_sfclay_physics <https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/namelist_variables.html#:~:text=this%20Users%E2%80%99%20Guide.-,sf_sfclay_physics,-surface%20layer%20physics>`_.
+
+        :param key: Name of surface layer scheme. Defaults to "mo".
+        :type key: str
         """
         # Here is the map of scheme name and integer label in WRF
         # Reference link: https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/namelist_variables.html
@@ -295,14 +343,12 @@ class SchemeSurfaceLayer:
             "mynn": cls.MYNN,
             "px": cls.PLEIM_XIU,
             "temf": cls.TEMF,
-            "old-mm5": cls.OLD_MM5
+            "old-mm5": cls.OLD_MM5,
         }
 
         # check if key is in map
         if key not in integer_label_map:
-            logger.error(
-                f"Key error: {key}. Valid key: {list(integer_label_map.keys())}"
-            )
+            logger.error(f"Key error: {key}. Valid key: {list(integer_label_map.keys())}")
             raise KeyError
 
         return integer_label_map[key]
@@ -313,6 +359,7 @@ class SchemeMicrophysics:
     """
     Microphysics schemes.
     """
+
     OFF = 0
     KESSLER = 1
     PURDUE_LIN = 2
@@ -345,10 +392,13 @@ class SchemeMicrophysics:
 
     @classmethod
     def get_scheme_id(cls, key: str = "lin"):
-        """Get corresponding integer label for microphysics scheme
+        """
+        Get corresponding integer label for microphysics scheme.
 
-        Args:
-            key (str, optional): Name of microphysics scheme. Defaults to "PURDUE_LIN".
+        Reference link: `physics <https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/namelist_variables.html#physics>`_.
+
+        :param key: Name of microphysics scheme. Defaults to "PURDUE_LIN".
+        :type key: str
         """
         # Here is the map of scheme name and integer label in WRF
         # Reference link: https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/namelist_variables.html
@@ -384,12 +434,18 @@ class SchemeMicrophysics:
 
         # check if key is in map
         if key not in integer_label_map:
-            logger.error(
-                f"Key error: {key}. Valid key: {list(integer_label_map.keys())}"
-            )
+            logger.error(f"Key error: {key}. Valid key: {list(integer_label_map.keys())}")
             raise KeyError
 
         return integer_label_map[key]
 
 
-__all__ = ["SchemeCumulus", "SchemeLandSurfaceModel", "SchemeLongWave", "SchemePBL", "SchemeShortWave", "SchemeSurfaceLayer", "SchemeMicrophysics"]
+__all__ = [
+    "SchemeCumulus",
+    "SchemeLandSurfaceModel",
+    "SchemeLongWave",
+    "SchemePBL",
+    "SchemeShortWave",
+    "SchemeSurfaceLayer",
+    "SchemeMicrophysics",
+]

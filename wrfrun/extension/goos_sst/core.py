@@ -7,19 +7,19 @@ Implementation of ``extension.goos_sst``'s core functionality.
 
 .. autosummary::
     :toctree: generated/
-    
+
     merge_era5_goos_sst_grib
 """
 
 from os.path import dirname
 
-import cfgrib as cf
 import numpy as np
 from pandas import to_datetime
 from xarray import DataArray
 
+from wrfrun.log import logger
+
 from .utils import create_sst_grib
-from wrfrun.utils import logger
 
 
 def merge_era5_goos_sst_grib(surface_grib_path: str, save_path: str, sst_data_save_path: str | None = None, resolution="low"):
@@ -41,6 +41,7 @@ def merge_era5_goos_sst_grib(surface_grib_path: str, save_path: str, sst_data_sa
     """
     # lazy import seafog to fix libcurl error in readthedocs
     # T^T
+    import cfgrib as cf
     from seafog import goos_sst_find_data, goos_sst_parser
 
     dataset_list = cf.open_datasets(surface_grib_path)
@@ -55,10 +56,10 @@ def merge_era5_goos_sst_grib(surface_grib_path: str, save_path: str, sst_data_sa
         logger.error(f"'skt' data not found in {surface_grib_path}")
         raise ValueError
 
-    skt: DataArray = dataset["skt"]     # type: ignore
+    skt: DataArray = dataset["skt"]  # type: ignore
 
-    longitude_start, longitude_end = skt["longitude"][0].data, skt["longitude"][-1].data    # type: ignore
-    latitude_start, latitude_end = skt["latitude"][-1].data, skt["latitude"][0].data    # type: ignore
+    longitude_start, longitude_end = skt["longitude"][0].data, skt["longitude"][-1].data  # type: ignore
+    latitude_start, latitude_end = skt["latitude"][-1].data, skt["latitude"][0].data  # type: ignore
 
     data_time = skt["time"].to_numpy()  # type: ignore
     data_time = to_datetime(data_time).strftime("%Y-%m-%d %H:%M")
@@ -95,14 +96,8 @@ def merge_era5_goos_sst_grib(surface_grib_path: str, save_path: str, sst_data_sa
         name="sst",
         data=sst,
         dims=["time", "latitude", "longitude"],
-        coords={
-            "time": skt["time"],
-            "latitude": skt["latitude"],
-            "longitude": skt["longitude"]
-        }, attrs={
-            "units": "K",
-            "long_name": "Sea surface temperature"
-        }
+        coords={"time": skt["time"], "latitude": skt["latitude"], "longitude": skt["longitude"]},
+        attrs={"units": "K", "long_name": "Sea surface temperature"},
     )
 
     create_sst_grib(sst, save_path=save_path)

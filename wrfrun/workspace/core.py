@@ -8,13 +8,16 @@ Core functions to prepare ``wrfrun`` workspace.
     :toctree: generated/
 
     prepare_workspace
+    check_workspace
 """
 
 from os.path import exists
 from shutil import rmtree
 
-from wrfrun.core import get_wrfrun_config
-from wrfrun.utils import check_path, logger
+from wrfrun.core import WRFRUN
+from wrfrun.log import check_path, logger
+
+from .palm import prepare_palm_workspace
 from .wrf import check_wrf_workspace, prepare_wrf_workspace
 
 
@@ -34,7 +37,7 @@ def prepare_workspace():
 
     1. :doc:`WPS/WRF model </api/workspace.wrf>`
     """
-    WRFRUNConfig = get_wrfrun_config()
+    WRFRUNConfig = WRFRUN.config
 
     wrfrun_temp_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_TEMP_PATH)
     workspace_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_ROOT)
@@ -44,7 +47,7 @@ def prepare_workspace():
     logger.info(f"Initialize main workspace at: {workspace_path}")
 
     if exists(workspace_path):
-        logger.info(f"Remove old files in workspace.")
+        logger.info("Remove old files in workspace.")
         rmtree(workspace_path)
 
     # check folder
@@ -52,12 +55,14 @@ def prepare_workspace():
     check_path(replay_work_path)
     check_path(output_path)
 
-    func_map = {
-        "wrf": prepare_wrf_workspace
-    }
+    func_map = {"wrf": prepare_wrf_workspace, "palm": prepare_palm_workspace}
     model_configs = WRFRUNConfig["model"]
 
     for model_name in model_configs:
+        if model_name not in func_map:
+            logger.warning(f"Function to prepare '{model_name}' workspace not found, workspace may be incomplete")
+            continue
+
         func_map[model_name](model_configs[model_name])
 
 
@@ -68,7 +73,7 @@ def check_workspace() -> bool:
     :return: ``True`` if workspace exists, ``False`` otherwise.
     :rtype: bool
     """
-    WRFRUNConfig = get_wrfrun_config()
+    WRFRUNConfig = WRFRUN.config
 
     wrfrun_temp_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_TEMP_PATH)
     workspace_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_ROOT)
@@ -78,13 +83,15 @@ def check_workspace() -> bool:
     flag = True
     flag = flag & exists(wrfrun_temp_path) & exists(replay_work_path) & exists(output_path) & exists(workspace_path)
 
-    func_map = {
-        "wrf": check_wrf_workspace
-    }
+    func_map = {"wrf": check_wrf_workspace}
     model_configs = WRFRUNConfig["model"]
 
     for model_name in model_configs:
         if model_name == "debug_level":
+            continue
+
+        if model_name not in func_map:
+            logger.info(f"Function to check '{model_name}' workspace not found, skip")
             continue
 
         flag = flag & func_map[model_name](model_configs[model_name])

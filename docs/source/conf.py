@@ -8,27 +8,28 @@
 
 import sys
 from os.path import abspath
+
 sys.path.insert(0, abspath("../.."))
 
-project = 'wrfrun'
-copyright = '2025, Syize'
-author = 'Syize'
-release = '0.2.0'
+project = "wrfrun"
+copyright = "2026, Syize"
+author = "Syize"
+release = "0.3.0"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
     "sphinx_design",
-    'sphinx_copybutton',
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
+    "sphinx_copybutton",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
 ]
 
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # The main toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 exclude_patterns = []
 
@@ -37,7 +38,7 @@ exclude_patterns = []
 
 # html_theme = 'alabaster'
 html_theme = "pydata_sphinx_theme"
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
 html_sidebars = {
     "index": ["sidebar-nav-bs"],
@@ -47,10 +48,10 @@ html_sidebars = {
 # Set up autosummary and autodoc
 autosummary_generate = True
 autodoc_default_options = {
-    'members': True,
-    'inherited-members': False,
+    "members": True,
+    "inherited-members": False,
 }
-autodoc_typehints = 'description'
+autodoc_typehints = "description"
 
 
 # Skip the doc of specific members in wrfrun when autodoc collecting docs.

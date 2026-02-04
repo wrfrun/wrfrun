@@ -3,6 +3,7 @@ py3.install_sources(
         '__init__.py',
         'cli.py',
         'data.py',
+        'log.py',
         'run.py',
         'utils.py',
     ],

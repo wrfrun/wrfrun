@@ -1,4 +1,16 @@
-from wrfrun.core import get_wrfrun_config
+"""
+wrfrun.scheduler.utils
+######################
+
+Utility functions used by ``wrfrun`` scheduler part.
+
+.. autosummary::
+    :toctree: generated/
+
+    get_core_num
+"""
+
+from wrfrun.core import WRFRUN
 
 
 def get_core_num() -> int:
@@ -8,7 +20,7 @@ def get_core_num() -> int:
     :return: Core number.
     :rtype: int
     """
-    return get_wrfrun_config()["core_num"]
+    return WRFRUN.config["core_num"]
 
 
 __all__ = ["get_core_num"]

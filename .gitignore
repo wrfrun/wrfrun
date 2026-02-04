@@ -22,3 +22,6 @@ test.*
 config.yaml
 main.py
 namelist.*
+uv.lock
+
+!**/namelist.py

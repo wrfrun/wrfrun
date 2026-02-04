@@ -2,8 +2,7 @@
 wrfrun.core.server
 ##################
 
-Currently, ``wrfrun`` provides the method to reads log file of WRF and calculates simulation progress.
-In order to report the progress to user, ``wrfrun`` provides :class:`WRFRunServer` to set up a socket server.
+This module defines the socket server to report simulation progress.
 
 .. autosummary::
     :toctree: generated/
@@ -12,6 +11,29 @@ In order to report the progress to user, ``wrfrun`` provides :class:`WRFRunServe
     WRFRunServer
     WRFRunServerHandler
     stop_server
+
+How does wrfrun get simulation progress?
+****************************************
+
+Currently, wrfrun relies on the log parse function provided by :doc:`model </api/model>`.
+The log parse function should accept one parameter ``datetime``,
+and return an integer represents how many seconds the model has simulated.
+For example, the signature of :func:`get_wrf_simulated_seconds <wrfrun.model.wrf.log.get_wrf_simulated_seconds>` is:
+
+.. code-block:: Python
+
+    def get_wrf_simulated_seconds(start_datetime: datetime) -> int:
+        pass
+
+Socket server API list
+**********************
+
+The socket server accepts a JSON string: ``{"message": "MESSAGE"}``.
+The ``MESSAGE`` can be:
+
+* "stop": Stop the socket server.
+* "debug": Get the start date of the simulation, and the total seconds it will simulate: ``{"start_date": "...", "total_seconds": "..."}``.
+* Any string else: Simulation progress: ``{"usage": "...", "status": "...", "progress": "..."}``.
 """
 
 import socket
@@ -19,19 +41,21 @@ import socketserver
 import threading
 from collections.abc import Callable
 from datetime import datetime
-from json import dumps
+from json import dumps, loads
 from time import time
-from typing import Tuple
+from typing import Any, Tuple
 
-from .config import WRFRUNConfig
-from ..utils import logger
+from ..log import logger
+from .core import WRFRUN
 
-WRFRUN_SERVER_INSTANCE = None
-WRFRUN_SERVER_THREAD = None
+
+def _defaut_log_parser(date: datetime) -> int:
+    return -1
 
 
 SET_LOG_PARSER_LOCK = threading.Lock()
-LOG_PARSER: Callable[[datetime], int] | None = None
+# default parser returns -1
+LOG_PARSER: Callable[[datetime], int] = _defaut_log_parser
 
 
 def set_log_parse_func(func: Callable[[datetime], int]):
@@ -175,6 +199,7 @@ class WRFRunServerHandler(socketserver.StreamRequestHandler):
     ``status`` represents work status,
     ``progress`` represents simulation progress of the status in percentage.
     """
+
     def __init__(self, request, client_address, server: WRFRunServer) -> None:
         """
         :class:`WRFRunServer` handler.
@@ -189,7 +214,7 @@ class WRFRunServerHandler(socketserver.StreamRequestHandler):
         super().__init__(request, client_address, server)
 
         # get server
-        self.server: WRFRunServer = server
+        self._server: WRFRunServer = server
 
     def calculate_time_usage(self) -> int:
         """
@@ -203,7 +228,7 @@ class WRFRunServerHandler(socketserver.StreamRequestHandler):
         current_timestamp = datetime.fromtimestamp(time())
 
         # get delta second
-        seconds_diff = current_timestamp - self.server.get_start_time()
+        seconds_diff = current_timestamp - self._server.get_start_time()
         seconds_diff = seconds_diff.seconds
 
         return seconds_diff
@@ -216,20 +241,17 @@ class WRFRunServerHandler(socketserver.StreamRequestHandler):
                  ``progress`` represents simulation progress of the status in percentage.
         :rtype: tuple[str, int]
         """
-        start_date, simulate_seconds = self.server.get_model_simulate_settings()
+        start_date, simulate_seconds = self._server.get_model_simulate_settings()
 
         with SET_LOG_PARSER_LOCK:
-            if LOG_PARSER is None:
-                simulated_seconds = -1
-            else:
-                simulated_seconds = LOG_PARSER(start_date)
+            simulated_seconds = LOG_PARSER(start_date)
 
         if simulated_seconds > 0:
             progress = simulated_seconds * 100 // simulate_seconds
         else:
             progress = -1
 
-        status = WRFRUNConfig.WRFRUN_WORK_STATUS
+        status = WRFRUN.config.WRFRUN_WORK_STATUS
 
         if status == "":
             status = "*"
@@ -240,20 +262,20 @@ class WRFRunServerHandler(socketserver.StreamRequestHandler):
         """
         Request handler.
         """
-
         # check if we will to stop server
-        msg = self.rfile.readline().decode().split('\n')[0]
+        request: dict[str, Any] = loads(self.rfile.readline().decode())
+        msg = request["message"]
 
         if msg == "stop":
-            self.server.shutdown()
-            self.wfile.write(f"Server stop\n".encode())
-        
+            self._server.shutdown()
+            self.wfile.write("Server stop\n".encode())
+
         elif msg == "debug":
-            start_date, simulate_seconds = self.server.get_model_simulate_settings()
+            start_date, simulate_seconds = self._server.get_model_simulate_settings()
             start_date = start_date.strftime("%Y-%m-%d %H:%M")
-            
+
             self.wfile.write(dumps({"start_date": start_date, "total_seconds": simulate_seconds}).encode())
-            
+
         else:
             status, progress = self.calculate_progress()
             time_usage = self.calculate_time_usage()
@@ -275,10 +297,13 @@ def stop_server(socket_ip: str, socket_port: int):
         sock.connect((socket_ip, socket_port))
 
         # send msg to server
-        sock.sendall("stop\n".encode())
+        # TODO:
+        #   Need to test the new socket server.
+        msg = dumps({"message": "stop"})
+        sock.sendall(msg.encode())
 
         # receive the message
-        msg = sock.recv(1024).decode().split('\n')[0]
+        msg = sock.recv(1024).decode().split("\n")[0]
 
         logger.info(f"WRFRunServer: {msg}")
 

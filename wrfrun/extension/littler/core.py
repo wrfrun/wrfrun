@@ -13,15 +13,15 @@ Implementation of ``extension.littler``'s core functionality.
     LittleR
 """
 
-from json import loads, dumps
-from typing import Union, Tuple, Iterable
+from json import dumps, loads
+from typing import Iterable, Tuple, Union
 from zipfile import ZipFile
 
-from pandas import DataFrame, read_csv
 import numpy as np
+from pandas import DataFrame, read_csv
 
-from wrfrun.core import get_wrfrun_config
-from wrfrun.utils import logger
+from wrfrun.core import WRFRUN
+from wrfrun.log import logger
 
 
 def to_fstring(var: Union[int, float, bool, str], length: Union[int, Tuple[int, int]]) -> str:
@@ -52,23 +52,15 @@ def to_fstring(var: Union[int, float, bool, str], length: Union[int, Tuple[int, 
     """
     if isinstance(var, float):
         if not isinstance(length, tuple):
-            logger.error(
-                "`length` must be a tuple contain two values `(total length, decimal length)` when `var` is `float`"
-            )
-            raise ValueError(
-                "`length` must be a tuple contain two values `(total length, decimal length)` when `var` is `float`"
-            )
+            logger.error("`length` must be a tuple contain two values `(total length, decimal length)` when `var` is `float`")
+            raise ValueError("`length` must be a tuple contain two values `(total length, decimal length)` when `var` is `float`")
 
         res = f"{var:{length[0]}.{length[1]}f}"
 
     else:
         if not isinstance(length, int):
-            logger.error(
-                "`length` must be an int value when `var` is not `float`"
-            )
-            raise ValueError(
-                "`length` must be an int value when `var` is not `float`"
-            )
+            logger.error("`length` must be an int value when `var` is not `float`")
+            raise ValueError("`length` must be an int value when `var` is not `float`")
 
         if isinstance(var, bool):
             res = "T" if var else "F"
@@ -84,6 +76,7 @@ class LittleRHead(dict):
     """
     Headers of LITTLE_R observation data.
     """
+
     def __init__(
         self,
         longitude: float,
@@ -102,7 +95,7 @@ class LittleRHead(dict):
         cloud_cover=-888888,
         precipitable_water=-888888,
         quality_control: Union[dict, int] = 0,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Headers of LITTLE_R observation data.
@@ -125,7 +118,8 @@ class LittleRHead(dict):
         :type name: str
         :param source: Data source, defaults to "Created by wrfrun package".
         :type source: str
-        :param num_sequence: Sequence number which is used to merge multiple record data, the less the num is, the newer the data is. Defaults to 0.
+        :param num_sequence: Sequence number which is used to merge multiple record data,
+                             the less the num is, the newer the data is. Defaults to 0.
         :type num_sequence: int
         :param sea_level_pressure: Sea level pressure. Defaults to -888,888.
         :type sea_level_pressure: int
@@ -220,24 +214,26 @@ class LittleRHead(dict):
     #     return self._convert_to_fstring()
 
     def _convert_to_fstring(self) -> str:
-        return f"{self.latitude:20.5f}" \
-               f"{self.longitude:20.5f}" \
-               f"{self.ID.rjust(40, ' ')}" \
-               f"{self.name.rjust(40, ' ')}" \
-               f"{self.fm.rjust(40, ' ')}" \
-               f"{self.source.rjust(40, ' ')}" \
-               f"{self.elevation:20.5f}" \
-               f"{self.num_valid_field:10d}" \
-               f"{self.num_error:10d}" \
-               f"{self.num_warning:10d}" \
-               f"{self.num_sequence:10d}" \
-               f"{self.num_duplicate:10d}" \
-               f"{to_fstring(self.is_sounding, 10)}" \
-               f"{to_fstring(self.is_bogus, 10)}" \
-               f"{to_fstring(self.discard, 10)}" \
-               f"{self.time:10d}" \
-               f"{self.julian_day:10d}" \
-               f"{self.date.rjust(20, ' ')}" + self._generate_data_qc()
+        return (
+            f"{self.latitude:20.5f}"
+            f"{self.longitude:20.5f}"
+            f"{self.ID.rjust(40, ' ')}"
+            f"{self.name.rjust(40, ' ')}"
+            f"{self.fm.rjust(40, ' ')}"
+            f"{self.source.rjust(40, ' ')}"
+            f"{self.elevation:20.5f}"
+            f"{self.num_valid_field:10d}"
+            f"{self.num_error:10d}"
+            f"{self.num_warning:10d}"
+            f"{self.num_sequence:10d}"
+            f"{self.num_duplicate:10d}"
+            f"{to_fstring(self.is_sounding, 10)}"
+            f"{to_fstring(self.is_bogus, 10)}"
+            f"{to_fstring(self.discard, 10)}"
+            f"{self.time:10d}"
+            f"{self.julian_day:10d}"
+            f"{self.date.rjust(20, ' ')}" + self._generate_data_qc()
+        )
 
     def _generate_data_qc(self) -> str:
         field = [
@@ -270,16 +266,26 @@ class LittleRHead(dict):
 
 
 LITTLE_R_DATA_FIELD = [
-    "pressure", "pressure_qc",
-    "height", "height_qc",
-    "temperature", "temperature_qc",
-    "dew_point", "dew_point_qc",
-    "wind_speed", "wind_speed_qc",
-    "wind_direction", "wind_direction_qc",
-    "wind_u", "wind_u_qc",
-    "wind_v", "wind_v_qc",
-    "relative_humidity", "relative_humidity_qc",
-    "thickness", "thickness_qc",
+    "pressure",
+    "pressure_qc",
+    "height",
+    "height_qc",
+    "temperature",
+    "temperature_qc",
+    "dew_point",
+    "dew_point_qc",
+    "wind_speed",
+    "wind_speed_qc",
+    "wind_direction",
+    "wind_direction_qc",
+    "wind_u",
+    "wind_u_qc",
+    "wind_v",
+    "wind_v_qc",
+    "relative_humidity",
+    "relative_humidity_qc",
+    "thickness",
+    "thickness_qc",
 ]
 
 
@@ -287,23 +293,24 @@ class LittleRData(DataFrame):
     """
     LITTLE_R observation data without headers.
     """
+
     def __init__(
         self,
         data=None,
         index=None,
         columns=None,
-        pressure: Union[Iterable, float] = 100000.,
-        height: Union[Iterable, float] = -888888.,
-        temperature: Union[Iterable, float] = 264.,
-        dew_point: Union[Iterable, float] = 263.,
-        wind_speed: Union[Iterable, float] = -888888.,
-        wind_direction: Union[Iterable, float] = -888888.,
-        wind_u: Union[Iterable, float] = -888888.,
-        wind_v: Union[Iterable, float] = -888888.,
-        relative_humidity: Union[Iterable, float] = -888888.,
-        thickness: Union[Iterable, float] = -888888.,
+        pressure: Union[Iterable, float] = 100000.0,
+        height: Union[Iterable, float] = -888888.0,
+        temperature: Union[Iterable, float] = 264.0,
+        dew_point: Union[Iterable, float] = 263.0,
+        wind_speed: Union[Iterable, float] = -888888.0,
+        wind_direction: Union[Iterable, float] = -888888.0,
+        wind_u: Union[Iterable, float] = -888888.0,
+        wind_v: Union[Iterable, float] = -888888.0,
+        relative_humidity: Union[Iterable, float] = -888888.0,
+        thickness: Union[Iterable, float] = -888888.0,
         quality_control_flag: Union[Iterable, dict, int] = 0,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         LITTLE_R observation data without headers.
@@ -411,9 +418,7 @@ class LittleRData(DataFrame):
                 wind_v = np.array([wind_v]).astype(float)
                 relative_humidity = np.array([relative_humidity]).astype(float)
                 thickness = np.array([thickness]).astype(float)
-                quality_control_flag = np.array(
-                    [quality_control_flag]
-                ).astype(int)
+                quality_control_flag = np.array([quality_control_flag]).astype(int)
             else:
                 pressure = np.asarray(pressure).astype(float)
                 height = np.asarray(height).astype(float)
@@ -425,9 +430,7 @@ class LittleRData(DataFrame):
                 wind_v = np.asarray(wind_v).astype(float)
                 relative_humidity = np.asarray(relative_humidity).astype(float)
                 thickness = np.asarray(thickness).astype(float)
-                quality_control_flag = np.asarray(
-                    quality_control_flag
-                ).astype(int)
+                quality_control_flag = np.asarray(quality_control_flag).astype(int)
 
             # construct data
             if isinstance(quality_control_flag, dict):
@@ -493,7 +496,7 @@ class LittleRData(DataFrame):
         return cls.from_dict(data_dict)
 
     @classmethod
-    def from_dict(cls, data: dict, orient='columns', dtype=None, columns=None):
+    def from_dict(cls, data: dict, orient="columns", dtype=None, columns=None):
         """
         Create ``LittleRData`` instance from a dict.
         This method inspects all fields in ``data`` and supplements any missing fields with invalid value (-888888).
@@ -517,7 +520,7 @@ class LittleRData(DataFrame):
                 if field.endswith("_qc"):
                     data[field] = np.zeros_like(temp_data).astype(int)
                 else:
-                    data[field] = np.zeros_like(temp_data) - 888888.
+                    data[field] = np.zeros_like(temp_data) - 888888.0
 
         return super().from_dict(data, orient, dtype, columns)  # type: ignore
 
@@ -553,7 +556,7 @@ class LittleRData(DataFrame):
         res = ""
         valid_field_num = 0
         for row in self.index:
-            for (key, qc_key) in zip(fields, qc_fields):
+            for key, qc_key in zip(fields, qc_fields):
                 _field = self.loc[row, key]
                 _field_qc = self.loc[row, qc_key]
 
@@ -564,7 +567,7 @@ class LittleRData(DataFrame):
             res += "\n"
 
         # add ending record
-        for (_, _) in zip(fields, qc_fields):
+        for _, _ in zip(fields, qc_fields):
             res += f"{-777777:13.5f}{0:7d}"
         res += "\n"
 
@@ -587,18 +590,18 @@ class LittleR(LittleRData):
         index=None,
         columns=None,
         data_header: Union[dict, None] = None,
-        pressure: Union[Iterable, float] = 100000.,
-        height: Union[Iterable, float] = -888888.,
-        temperature: Union[Iterable, float] = 264.,
-        dew_point: Union[Iterable, float] = 263.,
-        wind_speed: Union[Iterable, float] = -888888.,
-        wind_direction: Union[Iterable, float] = -888888.,
-        wind_u: Union[Iterable, float] = -888888.,
-        wind_v: Union[Iterable, float] = -888888.,
-        relative_humidity: Union[Iterable, float] = -888888.,
-        thickness: Union[Iterable, float] = -888888.,
+        pressure: Union[Iterable, float] = 100000.0,
+        height: Union[Iterable, float] = -888888.0,
+        temperature: Union[Iterable, float] = 264.0,
+        dew_point: Union[Iterable, float] = 263.0,
+        wind_speed: Union[Iterable, float] = -888888.0,
+        wind_direction: Union[Iterable, float] = -888888.0,
+        wind_u: Union[Iterable, float] = -888888.0,
+        wind_v: Union[Iterable, float] = -888888.0,
+        relative_humidity: Union[Iterable, float] = -888888.0,
+        thickness: Union[Iterable, float] = -888888.0,
         quality_control_flag: Union[Iterable, dict, int] = 0,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         ``LittleR`` class helps you manage LITTLE_R data easily.
@@ -751,7 +754,7 @@ class LittleR(LittleRData):
             quality_control_flag=quality_control_flag,
             index=index,
             columns=columns,
-            **kwargs
+            **kwargs,
         )
 
         if data_header is None:
@@ -777,7 +780,7 @@ class LittleR(LittleRData):
         cloud_cover=-888888,
         precipitable_water=-888888,
         quality_control: Union[dict, int] = 0,
-        **kwargs
+        **kwargs,
     ):
         """
         Set headers of LITTLE_R observation data.
@@ -801,7 +804,8 @@ class LittleR(LittleRData):
         :type name: str, optional
         :param source: Data source, defaults to "Created by wrfrun package".
         :type source: str, optional
-        :param num_sequence: Sequence number, used to merge multiple record data, the less the num is, the newer the data is, defaults to 0
+        :param num_sequence: Sequence number, used to merge multiple record data,
+                             the less the num is, the newer the data is, defaults to 0
         :type num_sequence: int, optional
         :param sea_level_pressure: Sea level pressure, defaults to -888888
         :type sea_level_pressure: int, optional
@@ -817,10 +821,23 @@ class LittleR(LittleRData):
         :type quality_control: Union[dict, int], optional
         """
         self.little_r_head = LittleRHead(
-            longitude, latitude, fm, elevation, is_bogus, date, ID,
-            name=name, source=source, num_sequence=num_sequence, sea_level_pressure=sea_level_pressure, reference_pressure=reference_pressure,
-            surface_pressure=surface_pressure, cloud_cover=cloud_cover, precipitable_water=precipitable_water, quality_control=quality_control,
-            **kwargs
+            longitude,
+            latitude,
+            fm,
+            elevation,
+            is_bogus,
+            date,
+            ID,
+            name=name,
+            source=source,
+            num_sequence=num_sequence,
+            sea_level_pressure=sea_level_pressure,
+            reference_pressure=reference_pressure,
+            surface_pressure=surface_pressure,
+            cloud_cover=cloud_cover,
+            precipitable_water=precipitable_water,
+            quality_control=quality_control,
+            **kwargs,
         )
 
     def __str__(self) -> str:
@@ -849,7 +866,7 @@ class LittleR(LittleRData):
         if not file_path.endswith(".zlr"):
             file_path = f"{file_path}.zlr"
 
-        file_path = get_wrfrun_config().parse_resource_uri(file_path)
+        file_path = WRFRUN.config.parse_resource_uri(file_path)
 
         with ZipFile(file_path, "w") as zip_file:
             with zip_file.open("header", "w") as header_file:
@@ -868,7 +885,7 @@ class LittleR(LittleRData):
         :return: ``LittleR`` instance.
         :rtype: LittleR
         """
-        file_path = get_wrfrun_config().parse_resource_uri(file_path)
+        file_path = WRFRUN.config.parse_resource_uri(file_path)
 
         with ZipFile(file_path, "r") as zip_file:
             with zip_file.open("header", "r") as header_file:

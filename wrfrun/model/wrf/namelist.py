@@ -1,12 +1,33 @@
+"""
+wrfrun.model.wrf.namelist
+#########################
+
+Functions to read and change WPS/WRF namelist.
+
+.. autosummary::
+    :toctree: generated/
+
+    prepare_wrf_namelist
+    prepare_wps_namelist
+    prepare_wrfda_namelist
+    prepare_dfi_namelist
+    get_ungrib_out_prefix
+    get_ungrib_out_dir_path
+    set_ungrib_out_prefix
+    get_metgrid_fg_names
+    set_metgrid_fg_names
+"""
+
 from datetime import datetime, timedelta
 from os.path import basename, dirname, exists
 from typing import Union
 
-from wrfrun.core import WRFRUNConfig
+from wrfrun.log import logger
 from wrfrun.res import NAMELIST_DFI, NAMELIST_WPS, NAMELIST_WRF, NAMELIST_WRFDA
-from wrfrun.utils import logger
 from wrfrun.workspace.wrf import get_wrf_workspace_path
-from .scheme import *
+
+from ...core.core import WRFRUN
+from .scheme import SchemeCumulus, SchemeLandSurfaceModel, SchemeLongWave, SchemePBL, SchemeShortWave, SchemeSurfaceLayer
 
 UNGRIB_OUTPUT_DIR = "./outputs"
 
@@ -18,7 +39,7 @@ def get_ungrib_out_dir_path() -> str:
     :return: URI path.
     :rtype: str
     """
-    wif_prefix = WRFRUNConfig.get_namelist("wps")["ungrib"]["prefix"]
+    wif_prefix = WRFRUN.config.get_namelist("wps")["ungrib"]["prefix"]
     wif_path = f"{get_wrf_workspace_path('wps')}/{dirname(wif_prefix)}"
 
     return wif_path
@@ -31,7 +52,7 @@ def get_ungrib_out_prefix() -> str:
     :return: Prefix string of ungrib output (WRF intermediate file).
     :rtype: str
     """
-    wif_prefix = WRFRUNConfig.get_namelist("wps")["ungrib"]["prefix"]
+    wif_prefix = WRFRUN.config.get_namelist("wps")["ungrib"]["prefix"]
     wif_prefix = basename(wif_prefix)
     return wif_prefix
 
@@ -43,11 +64,7 @@ def set_ungrib_out_prefix(prefix: str):
     :param prefix: Prefix string of ungrib output (WRF intermediate file).
     :type prefix: str
     """
-    WRFRUNConfig.update_namelist(
-        {
-            "ungrib": {"prefix": f"{UNGRIB_OUTPUT_DIR}/{prefix}"}
-        }, "wps"
-    )
+    WRFRUN.config.update_namelist({"ungrib": {"prefix": f"{UNGRIB_OUTPUT_DIR}/{prefix}"}}, "wps")
 
 
 def get_metgrid_fg_names() -> list[str]:
@@ -57,7 +74,7 @@ def get_metgrid_fg_names() -> list[str]:
     :return: Prefix strings list.
     :rtype: list
     """
-    fg_names = WRFRUNConfig.get_namelist("wps")["metgrid"]["fg_name"]
+    fg_names = WRFRUN.config.get_namelist("wps")["metgrid"]["fg_name"]
     fg_names = [basename(x) for x in fg_names]
     return fg_names
 
@@ -70,16 +87,16 @@ def set_metgrid_fg_names(prefix: Union[str, list[str]]):
     :type prefix: str | list
     """
     if isinstance(prefix, str):
-        prefix = [prefix, ]
+        prefix = [
+            prefix,
+        ]
     fg_names = [f"{UNGRIB_OUTPUT_DIR}/{x}" for x in prefix]
-    WRFRUNConfig.update_namelist(
-        {
-            "metgrid": {"fg_name": fg_names}
-        }, "wps"
-    )
+    WRFRUN.config.update_namelist({"metgrid": {"fg_name": fg_names}}, "wps")
 
 
-def _check_start_end_date(max_dom: int, start_date: Union[datetime, list[datetime]], end_date: Union[datetime, list[datetime]]) -> tuple[list[datetime], list[datetime]]:
+def _check_start_end_date(
+    max_dom: int, start_date: Union[datetime, list[datetime]], end_date: Union[datetime, list[datetime]]
+) -> tuple[list[datetime], list[datetime]]:
     """
     Format start date and end date.
 
@@ -115,8 +132,8 @@ def prepare_wps_namelist():
 
     """
     # prepare namelist
-    WRFRUNConfig.read_namelist(WRFRUNConfig.parse_resource_uri(NAMELIST_WPS), "wps")
-    wrf_config = WRFRUNConfig.get_model_config("wrf")
+    WRFRUN.config.read_namelist(WRFRUN.config.parse_resource_uri(NAMELIST_WPS), "wps")
+    wrf_config = WRFRUN.config.get_model_config("wrf")
 
     # get domain number
     max_dom = wrf_config["domain"]["domain_num"]
@@ -134,12 +151,7 @@ def prepare_wps_namelist():
 
     # generate update settings based on the config file
     update_value = {
-        "share": {
-            "max_dom": max_dom,
-            "start_date": start_date,
-            "end_date": end_date,
-            "interval_seconds": interval_seconds
-        },
+        "share": {"max_dom": max_dom, "start_date": start_date, "end_date": end_date, "interval_seconds": interval_seconds},
         "geogrid": {
             "parent_grid_ratio": wrf_config["domain"]["parent_grid_ratio"],
             "i_parent_start": wrf_config["domain"]["i_parent_start"],
@@ -154,18 +166,18 @@ def prepare_wps_namelist():
             "truelat1": wrf_config["domain"]["truelat1"],
             "truelat2": wrf_config["domain"]["truelat2"],
             "stand_lon": wrf_config["domain"]["stand_lon"],
-            "geog_data_path": wrf_config["geog_data_path"]
+            "geog_data_path": wrf_config["geog_data_path"],
         },
         "ungrib": {"prefix": f"{UNGRIB_OUTPUT_DIR}/FILE"},
-        "metgrid": {"fg_name": f"{UNGRIB_OUTPUT_DIR}/FILE"}
+        "metgrid": {"fg_name": f"{UNGRIB_OUTPUT_DIR}/FILE"},
     }
 
     # # update namelist
-    WRFRUNConfig.update_namelist(update_value, "wps")
+    WRFRUN.config.update_namelist(update_value, "wps")
 
     # # update settings from custom namelist
     if wrf_config["user_wps_namelist"] != "" and exists(wrf_config["user_wps_namelist"]):
-        WRFRUNConfig.update_namelist(wrf_config["user_wps_namelist"], "wps")
+        WRFRUN.config.update_namelist(wrf_config["user_wps_namelist"], "wps")
 
 
 def prepare_wrf_namelist():
@@ -174,10 +186,10 @@ def prepare_wrf_namelist():
 
     """
     # read template namelist
-    WRFRUNConfig.read_namelist(WRFRUNConfig.parse_resource_uri(NAMELIST_WRF), "wrf")
+    WRFRUN.config.read_namelist(WRFRUN.config.parse_resource_uri(NAMELIST_WRF), "wrf")
 
     # wrf config from config
-    wrf_config = WRFRUNConfig.get_model_config("wrf")
+    wrf_config = WRFRUN.config.get_model_config("wrf")
 
     # get debug level
     debug_level = wrf_config["debug_level"]
@@ -186,7 +198,7 @@ def prepare_wrf_namelist():
     max_dom = wrf_config["domain"]["domain_num"]
     start_date = wrf_config["time"]["start_date"]
     end_date = wrf_config["time"]["end_date"]
-    
+
     start_date, end_date = _check_start_end_date(max_dom, start_date, end_date)
 
     # get the time interval of input data and output data
@@ -250,9 +262,8 @@ def prepare_wrf_namelist():
             "e_sn": wrf_config["domain"]["e_sn"],
             "dx": dx,
             "dy": dy,
-
         },
-        "physics": {}
+        "physics": {},
     }
 
     # and we need to check the physics scheme option
@@ -265,11 +276,12 @@ def prepare_wrf_namelist():
     update_values["physics"].update(long_wave_scheme)
 
     short_wave_scheme = {
-        "ra_sw_physics": [SchemeShortWave.get_scheme_id(wrf_config["scheme"]["short_wave_scheme"]["name"]) for _ in range(max_dom)]
+        "ra_sw_physics": [
+            SchemeShortWave.get_scheme_id(wrf_config["scheme"]["short_wave_scheme"]["name"]) for _ in range(max_dom)
+        ]
     }
     # # and other related options
-    short_wave_scheme.update(
-        wrf_config["scheme"]["short_wave_scheme"]["option"])
+    short_wave_scheme.update(wrf_config["scheme"]["short_wave_scheme"]["option"])
     # update
     update_values["physics"].update(short_wave_scheme)
 
@@ -281,49 +293,47 @@ def prepare_wrf_namelist():
     # update
     update_values["physics"].update(cumulus_scheme)
 
-    pbl_scheme = {
-        "bl_pbl_physics": [SchemePBL.get_scheme_id(wrf_config["scheme"]["pbl_scheme"]["name"]) for _ in range(max_dom)]
-    }
+    pbl_scheme = {"bl_pbl_physics": [SchemePBL.get_scheme_id(wrf_config["scheme"]["pbl_scheme"]["name"]) for _ in range(max_dom)]}
     # # and other related options
     pbl_scheme.update(wrf_config["scheme"]["pbl_scheme"]["option"])
     # update
     update_values["physics"].update(pbl_scheme)
 
     land_surface_scheme = {
-        "sf_surface_physics": [SchemeLandSurfaceModel.get_scheme_id(wrf_config["scheme"]["land_surface_scheme"]["name"]) for _ in range(max_dom)]
+        "sf_surface_physics": [
+            SchemeLandSurfaceModel.get_scheme_id(wrf_config["scheme"]["land_surface_scheme"]["name"]) for _ in range(max_dom)
+        ]
     }
     # # and other related options
-    land_surface_scheme.update(
-        wrf_config["scheme"]["land_surface_scheme"]["option"])
+    land_surface_scheme.update(wrf_config["scheme"]["land_surface_scheme"]["option"])
     # update
     update_values["physics"].update(land_surface_scheme)
 
     surface_layer_scheme = {
-        "sf_sfclay_physics": [SchemeSurfaceLayer.get_scheme_id(wrf_config["scheme"]["surface_layer_scheme"]["name"]) for _ in range(max_dom)]
+        "sf_sfclay_physics": [
+            SchemeSurfaceLayer.get_scheme_id(wrf_config["scheme"]["surface_layer_scheme"]["name"]) for _ in range(max_dom)
+        ]
     }
     # # and other related options
-    surface_layer_scheme.update(
-        wrf_config["scheme"]["surface_layer_scheme"]["option"])
+    surface_layer_scheme.update(wrf_config["scheme"]["surface_layer_scheme"]["option"])
     # update
     update_values["physics"].update(surface_layer_scheme)
 
     # update namelist
-    WRFRUNConfig.update_namelist(update_values, "wrf")
+    WRFRUN.config.update_namelist(update_values, "wrf")
 
     # read user real namelist and update value
     user_namelist_data = wrf_config["user_wrf_namelist"]
     if user_namelist_data != "" and exists(user_namelist_data):
-        WRFRUNConfig.update_namelist(user_namelist_data, "wrf")
+        WRFRUN.config.update_namelist(user_namelist_data, "wrf")
 
 
 def prepare_dfi_namelist():
-    """Generate namelist data for DFI running
-
-    """
+    """Generate namelist data for DFI running"""
     # Read template namelist
-    WRFRUNConfig.read_namelist(WRFRUNConfig.parse_resource_uri(NAMELIST_DFI), "dfi")
+    WRFRUN.config.read_namelist(WRFRUN.config.parse_resource_uri(NAMELIST_DFI), "dfi")
 
-    wrf_config = WRFRUNConfig.get_model_config("wrf")
+    wrf_config = WRFRUN.config.get_model_config("wrf")
 
     # Read start date and end date
     start_date = wrf_config["time"]["start_date"]
@@ -365,7 +375,9 @@ def prepare_dfi_namelist():
             "end_minute": [start_date.minute],
             "end_second": [start_date.second],
             "interval_seconds": input_data_interval,
-            "auxinput4_interval_s": [input_data_interval, ]
+            "auxinput4_interval_s": [
+                input_data_interval,
+            ],
         },
         "domains": {
             # make sure max_dom = 1
@@ -394,26 +406,24 @@ def prepare_dfi_namelist():
             "dfi_fwdstop_hour": dfi_end_date.hour,
             "dfi_fwdstop_minute": dfi_end_date.minute,
             "dfi_fwdstop_second": dfi_end_date.second,
-        }
+        },
     }
 
     # update namelist data
-    WRFRUNConfig.update_namelist(update_value, "dfi")
+    WRFRUN.config.update_namelist(update_value, "dfi")
 
     # read user wrf namelist and update value
     user_namelist_data = wrf_config["user_wrf_namelist"]
     if user_namelist_data != "" and exists(user_namelist_data):
-        WRFRUNConfig.update_namelist(user_namelist_data, "dfi")
+        WRFRUN.config.update_namelist(user_namelist_data, "dfi")
 
 
 def prepare_wrfda_namelist():
-    """Generate namelist for da_wrfvar.exe
-
-    """
+    """Generate namelist for da_wrfvar.exe"""
     # read template namelist
-    WRFRUNConfig.read_namelist(WRFRUNConfig.parse_resource_uri(NAMELIST_WRFDA), "wrfda")
+    WRFRUN.config.read_namelist(WRFRUN.config.parse_resource_uri(NAMELIST_WRFDA), "wrfda")
 
-    wrf_config = WRFRUNConfig.get_model_config("wrf")
+    wrf_config = WRFRUN.config.get_model_config("wrf")
 
     # get wrf start date
     start_date = wrf_config["time"]["start_date"]
@@ -421,9 +431,7 @@ def prepare_wrfda_namelist():
 
     # generate update value
     update_value = {
-        "wrfvar18": {
-            "analysis_date": start_date.strftime("%Y-%m-%d_%H:%M:%S.0000")
-        },
+        "wrfvar18": {"analysis_date": start_date.strftime("%Y-%m-%d_%H:%M:%S.0000")},
         "wrfvar21": {
             # one hour before wrf start date
             "time_window_min": (start_date - timedelta(hours=1)).strftime("%Y-%m-%d_%H:%M:%S.0000")
@@ -431,17 +439,26 @@ def prepare_wrfda_namelist():
         "wrfvar22": {
             # one hour after wrf start date
             "time_window_max": (start_date + timedelta(hours=1)).strftime("%Y-%m-%d_%H:%M:%S.0000")
-        }
+        },
     }
 
     # update namelist
-    WRFRUNConfig.update_namelist(update_value, "wrfda")
+    WRFRUN.config.update_namelist(update_value, "wrfda")
 
     # read user wrfda namelist and update value
     user_namelist_data = wrf_config["user_wrfda_namelist"]
     if user_namelist_data != "" and exists(user_namelist_data):
-        WRFRUNConfig.update_namelist(user_namelist_data, "wrfda")
+        WRFRUN.config.update_namelist(user_namelist_data, "wrfda")
 
 
-__all__ = ["prepare_wrf_namelist", "prepare_wps_namelist", "prepare_wrfda_namelist", "prepare_dfi_namelist", "get_ungrib_out_prefix", "get_ungrib_out_dir_path",
-           "set_ungrib_out_prefix", "get_metgrid_fg_names", "set_metgrid_fg_names"]
+__all__ = [
+    "prepare_wrf_namelist",
+    "prepare_wps_namelist",
+    "prepare_wrfda_namelist",
+    "prepare_dfi_namelist",
+    "get_ungrib_out_prefix",
+    "get_ungrib_out_dir_path",
+    "set_ungrib_out_prefix",
+    "get_metgrid_fg_names",
+    "set_metgrid_fg_names",
+]

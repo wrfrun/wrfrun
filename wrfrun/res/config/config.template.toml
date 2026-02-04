@@ -55,3 +55,11 @@ use = false
 # You can give both absolute and relative path.
 # The relative path is resolved based on this configuration file.
 include = "./configs/wrf.toml"
+
+[model.palm]
+# If you want to use PALM model, set use to true.
+use = false
+# Import configurations from another toml file.
+# You can give both absolute and relative path.
+# The relative path is resolved based on this configuration file.
+include = "./configs/palm.toml"

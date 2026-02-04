@@ -23,6 +23,7 @@ Submodules
     env <scheduler.env>
     lsf <scheduler.lsf>
     pbs <scheduler.pbs>
+    script <scheduler.script>
     slurm <scheduler.slurm>
     utils <scheduler.utils>
 """

@@ -1,5 +1,21 @@
+"""
+wrfrun.model.plot
+#################
+
+This module is used to plot domain area so users can check their domain settings before running simulation.
+
+.. autosummary::
+    :toctree: generated/
+
+    _calculate_x_y_offset
+    create_projection
+    parse_domain_setting
+    plot_domain_area
+    generate_domain_area
+"""
+
 from os.path import abspath, exists
-from typing import Literal, Optional, TypedDict, Union
+from typing import Union
 
 import cartopy.feature as cfeature
 import f90nml
@@ -8,31 +24,14 @@ from cartopy import crs
 from cartopy.mpl.geoaxes import GeoAxes
 from cartopy.mpl.gridliner import LATITUDE_FORMATTER, LONGITUDE_FORMATTER
 from haversine.haversine import Direction, Unit, inverse_haversine
+from matplotlib.figure import Figure
 
-from wrfrun.core import get_wrfrun_config
-from wrfrun.utils import check_path, logger
+from ..core import WRFRUN
+from ..log import logger
+from ..utils import check_path
+from .type import DomainSetting
 
 
-class DomainSetting(TypedDict):
-    """
-    Domain settings which can be used to create a projection.
-    """
-    dx: int
-    dy: int
-    e_sn: Union[list[int], tuple[int]]
-    e_we: Union[list[int], tuple[int]]
-    i_parent_start: Union[list[int], tuple[int]]
-    j_parent_start: Union[list[int], tuple[int]]
-    max_dom: int
-    parent_grid_ratio: Union[list[int], tuple[int]]
-    map_proj: Literal["lambert", "polar", "mercator", "lat-lon"]
-    ref_lat: Union[int, float]
-    ref_lon: Union[int, float]
-    truelat1: Union[int, float]
-    truelat2: Union[int, float]
-    stand_lon: Union[int, float]
-    
-    
 def _calculate_x_y_offset(domain_settings: DomainSetting) -> tuple[float, float]:
     """
     Calculate X and Y offset from planar origin in metres.
@@ -42,12 +41,14 @@ def _calculate_x_y_offset(domain_settings: DomainSetting) -> tuple[float, float]
     :return: (X offset, Y offset)
     :rtype: tuple
     """
-    false_easting = (domain_settings["e_we"][0] - 1) / 2 * domain_settings["dx"]
-    false_northing = (domain_settings["e_sn"][0] - 1) / 2 * domain_settings["dy"]
+    false_easting = (domain_settings["points_x"][0] - 1) / 2 * domain_settings["resolution_x"]
+    false_northing = (domain_settings["points_y"][0] - 1) / 2 * domain_settings["resolution_y"]
     return false_easting, false_northing
 
 
-def create_projection(domain_settings: DomainSetting) -> crs.Projection:
+def create_projection(
+    domain_settings: DomainSetting,
+) -> Union[crs.LambertConformal, crs.NorthPolarStereo, crs.SouthPolarStereo, crs.Mercator, crs.PlateCarree]:
     """
     Create a projection from domain settings which can be used to draw images.
 
@@ -59,26 +60,25 @@ def create_projection(domain_settings: DomainSetting) -> crs.Projection:
     :return: Projection object and the used domain settings.
     :rtype: (Projection, domain settings)
     """
-    match domain_settings["map_proj"]:
+    # declare the proj to pass static type check
+    proj = None
 
+    match domain_settings["projection_type"]:
         case "lat-lon":
-            proj = crs.PlateCarree(central_longitude=domain_settings["ref_lon"])
+            proj = crs.PlateCarree(central_longitude=domain_settings["reference_lon"])
 
         case "lambert":
             false_easting, false_northing = _calculate_x_y_offset(domain_settings)
             proj = crs.LambertConformal(
-                central_longitude=domain_settings["ref_lon"],
-                central_latitude=domain_settings["ref_lat"],
-                standard_parallels=(
-                    domain_settings["truelat1"],
-                    domain_settings["truelat2"]
-                ),
+                central_longitude=domain_settings["reference_lon"],
+                central_latitude=domain_settings["reference_lat"],
+                standard_parallels=(domain_settings["true_lat1"], domain_settings["true_lat2"]),
                 false_easting=false_easting,
-                false_northing=false_northing
+                false_northing=false_northing,
             )
 
         case "polar":
-            ref_lat = domain_settings["ref_lat"]
+            ref_lat = domain_settings["reference_lat"]
             if ref_lat > 0:
                 proj = crs.NorthPolarStereo(central_longitude=domain_settings["stand_lon"])
 
@@ -97,17 +97,18 @@ def create_projection(domain_settings: DomainSetting) -> crs.Projection:
             # ref_lat_distance = ref_lat_distance if central_latitude < 0 else -ref_lat_distance
             # false_northing = ref_lat_distance + false_northing
             proj = crs.Mercator(
-                central_longitude=domain_settings["ref_lon"],
-                latitude_true_scale=domain_settings["truelat1"],
+                central_longitude=domain_settings["reference_lon"],
+                latitude_true_scale=domain_settings["true_lat1"],
                 # false_northing=false_northing,
                 # false_easting=false_easting
             )
 
-        case _:
-            logger.error(f"Unknown projection name: {domain_settings['map_proj']}")
-            raise KeyError(f"Unknown projection name: {domain_settings['map_proj']}")
+    if proj is not None:
+        return proj
 
-    return proj
+    else:
+        logger.error(f"Unknown projection name: {domain_settings['projection_type']}")
+        raise KeyError(f"Unknown projection name: {domain_settings['projection_type']}")
 
 
 def parse_domain_setting(namelist: Union[str, dict]) -> DomainSetting:
@@ -140,30 +141,26 @@ def parse_domain_setting(namelist: Union[str, dict]) -> DomainSetting:
         namelist = f90nml.read(namelist).todict()
 
     domain_setting: DomainSetting = {
-        "dx": namelist["geogrid"]["dx"],
-        "dy": namelist["geogrid"]["dy"],
-        "e_sn": namelist["geogrid"]["e_sn"],
-        "e_we": namelist["geogrid"]["e_we"],
-        "i_parent_start": namelist["geogrid"]["i_parent_start"],
-        "j_parent_start": namelist["geogrid"]["j_parent_start"],
-        "max_dom": namelist["share"]["max_dom"],
-        "parent_grid_ratio": namelist["geogrid"]["parent_grid_ratio"],
-        "ref_lat": namelist["geogrid"]["ref_lat"],
-        "ref_lon": namelist["geogrid"]["ref_lon"],
-        "truelat1": namelist["geogrid"]["truelat1"],
-        "truelat2": namelist["geogrid"]["truelat2"],
+        "resolution_x": namelist["geogrid"]["dx"],
+        "resolution_y": namelist["geogrid"]["dy"],
+        "points_y": namelist["geogrid"]["e_sn"],
+        "points_x": namelist["geogrid"]["e_we"],
+        "x_parent_index": namelist["geogrid"]["i_parent_start"],
+        "y_parent_index": namelist["geogrid"]["j_parent_start"],
+        "domain_num": namelist["share"]["max_dom"],
+        "grid_spacing_ratio": namelist["geogrid"]["parent_grid_ratio"],
+        "reference_lat": namelist["geogrid"]["ref_lat"],
+        "reference_lon": namelist["geogrid"]["ref_lon"],
+        "true_lat1": namelist["geogrid"]["truelat1"],
+        "true_lat2": namelist["geogrid"]["truelat2"],
         "stand_lon": namelist["geogrid"]["stand_lon"],
-        "map_proj": namelist["geogrid"]["map_proj"]
+        "projection_type": namelist["geogrid"]["map_proj"],
     }
 
     return domain_setting
 
 
-def plot_domain_area(
-    fig: plt.Figure,
-    domain_settings: Optional[DomainSetting] = None,
-    model_name: Optional[str] = None
-):
+def plot_domain_area(fig: Figure, domain_settings: DomainSetting):
     """
     Plot domain area based on domain settings.
 
@@ -175,78 +172,53 @@ def plot_domain_area(
     :type fig: Figure
     :param domain_settings: Dictionary contains domain settings. If None, read domain settings from ``WRFRUNConfig``.
     :type domain_settings: DomainSetting | None
-    :param model_name: Model's name for reading domain settings.
-    :type model_name: str | None
     """
-    if domain_settings is None:
-        if model_name is None:
-            logger.error("You need to give 'model_name' if `domain_settings == None`")
-            raise ValueError("You need to give 'model_name' if `domain_settings == None`")
-
-        user_settings = get_wrfrun_config().get_model_config(model_name)["domain"]
-        domain_settings: DomainSetting = {
-            "dx": user_settings["dx"],
-            "dy": user_settings["dy"],
-            "e_sn": user_settings["e_sn"],
-            "e_we": user_settings["e_we"],
-            "i_parent_start": user_settings["i_parent_start"],
-            "j_parent_start": user_settings["j_parent_start"],
-            "max_dom": user_settings["domain_num"],
-            "parent_grid_ratio": user_settings["parent_grid_ratio"],
-            "ref_lat": user_settings["ref_lat"],
-            "ref_lon": user_settings["ref_lon"],
-            "truelat1": user_settings["truelat1"],
-            "truelat2": user_settings["truelat2"],
-            "stand_lon": user_settings["stand_lon"],
-            "map_proj": user_settings["map_proj"]
-        }
-
     proj = create_projection(domain_settings)
 
     fig.clear()
-    ax: GeoAxes = fig.add_subplot(1, 1, 1, projection=proj)     # type: ignore
+    ax: GeoAxes = fig.add_subplot(1, 1, 1, projection=proj)  # type: ignore
     ax.coastlines(resolution="50m")
     ax.add_feature(cfeature.OCEAN)
     ax.add_feature(cfeature.LAND)
 
     # set gridline attributes, close the default labels
     grid_line = ax.gridlines(
-        draw_labels=True, dms=True, linestyle=":", linewidth=0.3,
-        x_inline=False, y_inline=False, color='k'
+        draw_labels=True,
+        dms=True,
+        linestyle=":",
+        linewidth=0.3,
+        x_inline=False,
+        y_inline=False,
+        color="k",
+        rotate_labels=None,
+        xformatter=LONGITUDE_FORMATTER,
+        yformatter=LATITUDE_FORMATTER,
     )
 
     # close coordinates labels on the top and right
     grid_line.top_labels = False
     grid_line.right_labels = False
 
-    # align coordinates labels
-    grid_line.rotate_labels = None
-
-    # set label formatter
-    grid_line.xformattter = LONGITUDE_FORMATTER
-    grid_line.yformatter = LATITUDE_FORMATTER
     ax.set_title("Domain Configuration")
 
     # set area range
-    match type(proj):
+    if isinstance(proj, crs.Mercator):
+        # we may need to calculate the range of longitude and latitude
+        ref_lon = domain_settings["reference_lon"]
+        ref_lat = domain_settings["reference_lat"]
+        false_easting, false_northing = _calculate_x_y_offset(domain_settings)
+        _, start_lon = inverse_haversine((ref_lat, ref_lon), false_easting, direction=Direction.WEST, unit=Unit.METERS)
+        _, end_lon = inverse_haversine((ref_lat, ref_lon), false_easting, direction=Direction.EAST, unit=Unit.METERS)
+        start_lat, _ = inverse_haversine((ref_lat, ref_lon), false_northing, direction=Direction.SOUTH, unit=Unit.METERS)
+        end_lat, _ = inverse_haversine((ref_lat, ref_lon), false_northing, direction=Direction.NORTH, unit=Unit.METERS)
+        ax.set_extent([start_lon, end_lon, start_lat, end_lat])
 
-        case crs.Mercator:
-            # we may need to calculate the range of longitude and latitude
-            ref_lon = domain_settings["ref_lon"]
-            ref_lat = domain_settings["ref_lat"]
-            false_easting, false_northing = _calculate_x_y_offset(domain_settings)
-            _, start_lon = inverse_haversine((ref_lat, ref_lon), false_easting, direction=Direction.WEST, unit=Unit.METERS)
-            _, end_lon = inverse_haversine((ref_lat, ref_lon), false_easting, direction=Direction.EAST, unit=Unit.METERS)
-            start_lat, _ = inverse_haversine((ref_lat, ref_lon), false_northing, direction=Direction.SOUTH, unit=Unit.METERS)
-            end_lat, _ = inverse_haversine((ref_lat, ref_lon), false_northing, direction=Direction.NORTH, unit=Unit.METERS)
-            ax.set_extent([start_lon, end_lon, start_lat, end_lat])
+    elif isinstance(proj, crs.LambertConformal):
+        false_easting, false_northing = _calculate_x_y_offset(domain_settings)
+        ax.set_extent([0, false_easting * 2, 0, false_northing * 2], crs=proj)
 
-        case crs.LambertConformal:
-            false_easting, false_northing = _calculate_x_y_offset(domain_settings)
-            ax.set_extent([0, false_easting * 2, 0, false_northing * 2], crs=proj)
-
-        case _:
-            logger.error(f"Unsupported project type: {type(proj)}")
+    else:
+        logger.error(f"Unsupported project type: {type(proj)}")
 
 
 def generate_domain_area():
@@ -254,24 +226,32 @@ def generate_domain_area():
     Generate domain area for each model based on user's config.
     Images are saved to the output directory with name: "${model_name}_domain.png".
 
-    :return:
-    :rtype:
+    :return: True if domain area is ploted, else False.
+    :rtype: bool
     """
-    WRFRUNConfig = get_wrfrun_config()
+    WRFRUNConfig = WRFRUN.config
     save_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_OUTPUT_PATH)
     check_path(save_path)
     save_path = abspath(save_path)
 
     fig = plt.figure(figsize=(10.24, 10.24))
 
+    flag = False
+
     model_configs = WRFRUNConfig["model"]
     for model_name in model_configs:
-        plot_domain_area(fig, model_name=model_name)
+        if model_name in ["wrf"] and model_configs[model_name]["use"]:
+            namelist = model_configs[model_name]
+            plot_domain_area(fig, parse_domain_setting(namelist))
 
-        _save_path = f"{save_path}/{model_name}_domain.png"
-        fig.savefig(_save_path)
+            _save_path = f"{save_path}/{model_name}_domain.png"
+            fig.savefig(_save_path)
 
-        logger.info(f"Save domain image for '{model_name}' to '{_save_path}'")
+            logger.info(f"Save domain image for '{model_name}' to '{_save_path}'")
+
+            flag = True
+
+    return flag
 
 
-__all__ = ["plot_domain_area", "DomainSetting", "create_projection", "parse_domain_setting", "generate_domain_area"]
+__all__ = ["plot_domain_area", "create_projection", "generate_domain_area"]

@@ -1,0 +1,23 @@
+# Config for PALM model.
+# PALM model path.
+palm_path = "/path/to/your/PALM/folder"
+
+# Place data here.
+data_dir_path = "/path/to/your/data/folder"
+
+# Set PALM config identifier here.
+# If you want to use a config identifier you never used before,
+# make sure palm can build successfully.
+config_identifier = "wrfrun"
+
+# PALM config file.
+# If empty, use the default config from PALM.
+# You can get a file from PALM_INSTALL_DIR/.palm.config.default
+config_file_path = ""
+
+# You can provide topography file here.
+topography_file = '/path/to/your/topography/file'
+
+# You need to give your namelist file,
+# cause wrfrun hasn't supported more options in toml config file yet.
+user_namelist = '/path/to/your/namelist/file'

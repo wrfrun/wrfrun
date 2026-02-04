@@ -10,12 +10,8 @@ Utility functions used by models.
     clear_model_logs
 """
 
-from os import listdir
-from shutil import move
-
-from ..core import get_wrfrun_config
-from ..utils import check_path, logger
-from ..workspace.wrf import get_wrf_workspace_path
+from ..core import WRFRUN
+from .wrf.log import clear_wrf_logs
 
 
 def clear_model_logs():
@@ -23,22 +19,15 @@ def clear_model_logs():
     This function can automatically collect unsaved log files,
     and save them to the corresponding output directory of the ``Executable``.
     """
-    WRFRUNConfig = get_wrfrun_config()
-    work_status = WRFRUNConfig.WRFRUN_WORK_STATUS
-    work_path = WRFRUNConfig.parse_resource_uri(get_wrf_workspace_path("wrf"))
+    WRFRUNConfig = WRFRUN.config
 
-    log_files = [x for x in listdir(work_path) if x.startswith("rsl.") or x.endswith(".log")]
+    func_map = {
+        "wrf": clear_wrf_logs
+    }
 
-    if len(log_files) > 0:
-        logger.warning(f"Found unprocessed log files of {work_status}")
-
-        log_save_path = f"{WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_OUTPUT_PATH)}/{work_status}/logs"
-        check_path(log_save_path)
-
-        for _file in log_files:
-            move(f"{work_path}/{_file}", f"{log_save_path}/{_file}")
-
-        logger.warning(f"Unprocessed log files of {work_status} has been saved to {log_save_path}, check it")
+    for _model in func_map:
+        if _model in WRFRUNConfig["model"] and WRFRUNConfig["model"][_model]["use"]:
+            func_map[_model]()
 
 
 __all__ = ["clear_model_logs"]
