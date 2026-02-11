@@ -1,0 +1,5 @@
+# exclude directories
+data/
+.wrfrun/
+outputs/
+logs/

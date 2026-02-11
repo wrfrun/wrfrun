@@ -30,4 +30,25 @@ def prepare_palm_namelist():
     WRFRUN.config.read_namelist(namelist_file, "palm")
 
 
-__all__ = ["prepare_palm_namelist"]
+def get_namelist_save_name() -> str:
+    """
+    Get the save name of namelist file.
+
+    :raises KeyError: Unknown simulation type set in config file.
+    :return: Save name.
+    :rtype: str
+    """
+    map_dict = {"d3#": "_p3d", "d3r": "_p3dr", "pcr": "_pcr"}
+
+    config = WRFRUN.config.get_model_config("palm")
+    simulation_type = config["simulation_type"]
+    job_name = config["job_name"]
+
+    if simulation_type in map_dict:
+        return f"{job_name}{map_dict[simulation_type]}"
+
+    logger.error(f"Unknown simulation type: Expect {tuple(map_dict.keys())}")
+    raise KeyError(f"Unknown simulation type: Expect {tuple(map_dict.keys())}")
+
+
+__all__ = ["prepare_palm_namelist", "get_namelist_save_name"]

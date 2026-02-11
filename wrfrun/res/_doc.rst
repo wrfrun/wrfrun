@@ -13,6 +13,7 @@ which maps real name of files or directories to a simpler name.
 For example, assume we have a directory which structure is like:
 
 .. code-block::
+
     res
      |
      |---extension

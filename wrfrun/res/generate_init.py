@@ -1,3 +1,7 @@
+"""
+Scripts to generate ``__init__.py`` for ``wrfrun.res``.
+"""
+
 import argparse
 from json import loads
 from os import listdir

@@ -8,7 +8,17 @@ data_dir_path = "/path/to/your/data/folder"
 # Set PALM config identifier here.
 # If you want to use a config identifier you never used before,
 # make sure palm can build successfully.
-config_identifier = "wrfrun"
+config_identifier = "default"
+
+# Set job name (aka run identifier in PALM) here.
+job_name = "wrfrun"
+
+# Set simulation type here (the value passed to "-a" of palmrun)
+# Available values:
+#   - "d3#"
+#   - "d3r"
+#   - "pcr"
+simulation_type = "d3#"
 
 # PALM config file.
 # If empty, use the default config from PALM.

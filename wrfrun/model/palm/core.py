@@ -12,15 +12,16 @@ Core implementation of PALM model. All ``Executable`` and function interface of 
     palmrun
 """
 
-from os.path import exists
+from os import listdir
+from os.path import abspath, exists
 from typing import Optional
 
 from wrfrun.core import WRFRUN, ExecutableBase, ExecutableDB
 from wrfrun.log import logger
 from wrfrun.workspace.palm import get_palm_workspace_path
 
-from ..constants import NamelistName
-from .namelist import prepare_palm_namelist
+from .namelist import get_namelist_save_name, prepare_palm_namelist
+from .utils import get_input_postfix
 
 
 def _check_and_prepare_namelist():
@@ -54,7 +55,10 @@ class PALMRun(ExecutableBase):
         mpi_cmd = None
         mpi_core_num = None
 
-        cmd = f"./palmrun -r wrfrun -c {config_id} -a d3# -X {core_num} -v"
+        config = WRFRUN.config.get_model_config("palm")
+        job_name = config["job_name"]
+        simulation_type = config["simulation_type"]
+        cmd = f"./palmrun -r {job_name} -c {config_id} -a {simulation_type} -X {core_num} -v"
 
         super().__init__("palmrun", cmd, get_palm_workspace_path(), mpi_use, mpi_cmd, mpi_core_num)
 
@@ -81,32 +85,63 @@ class PALMRun(ExecutableBase):
         WRFRUN.config.WRFRUN_WORK_STATUS = "palm"
 
         config = WRFRUN.config.get_model_config("palm")
+        job_name = config["job_name"]
 
         if not WRFRUN.config.IS_IN_REPLAY:
+            palm_workspace_input_path = get_palm_workspace_path("input")
+
             # check if user provides topography files
-            if exists(config["topography_file"]):
+            topography_file = config["topography_file"]
+            topography_file = abspath(topography_file)
+            if exists(topography_file):
                 self.add_input_files(
                     {
-                        "file_path": config["topography_file"],
-                        "save_path": get_palm_workspace_path("input"),
-                        "save_name": "palmrun.topo",
+                        "file_path": topography_file,
+                        "save_path": palm_workspace_input_path,
+                        "save_name": "palmrun_topo",
                         "is_data": True,
                         "is_output": False,
                     }
                 )
 
+            palm_data_dir = config["data_dir_path"]
+            palm_data_dir = abspath(palm_data_dir)
+            if exists(palm_data_dir):
+                logger.info(f"Read datas in '{palm_data_dir}'.")
+                for data in listdir(palm_data_dir):
+                    _palm_postfix = get_input_postfix(data)
+
+                    if _palm_postfix:
+                        save_name = f"{job_name}{_palm_postfix}"
+                        self.add_input_files(
+                            {
+                                "file_path": f"{palm_data_dir}/{data}",
+                                "save_path": palm_workspace_input_path,
+                                "save_name": save_name,
+                                "is_data": True,
+                                "is_output": False,
+                            }
+                        )
+
+                    else:
+                        logger.error(f"Your data have unknown postfix string: '{data}'.")
+                        raise ValueError(f"Your data have unknown postfix string: '{data}'.")
+
+        WRFRUN.config.write_namelist(
+            f"{get_palm_workspace_path('input')}/{get_namelist_save_name()}",
+            "palm",
+        )
+
         super().before_exec()
-
-        WRFRUN.config.write_namelist(f"{get_palm_workspace_path('input')}/{NamelistName.PALM}", "palm")
-
-        # print debug logs
-        logger.debug("Namelist settings of 'palmrun':")
-        logger.debug(WRFRUN.config.get_namelist("palm"))
 
     def after_exec(self):
         if not WRFRUN.config.IS_IN_REPLAY:
+            job_name = WRFRUN.config.get_model_config("palm")["job_name"]
+
             self.add_output_files(
-                output_dir=get_palm_workspace_path("output"), save_path=self._output_save_path, startswith="wrfrun_"
+                output_dir=get_palm_workspace_path("output"),
+                save_path=f"{self._output_save_path}/{job_name}",
+                startswith=job_name,
             )
 
         super().after_exec()

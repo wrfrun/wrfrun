@@ -97,6 +97,7 @@ WRFRUN.set_config_register_func(_register_res_uri)
 
 
 RUN_SH_TEMPLATE = ":WRFRUN_RESOURCE_PATH:/run.template.sh"
+GITIGNORE_RULES = ":WRFRUN_RESOURCE_PATH:/gitignore.rules"
 EXT_NCL_PLOT_SCRIPT = ":WRFRUN_RESOURCE_PATH:/extension/plotgrids.ncl"
 SCHEDULER_LSF_TEMPLATE = ":WRFRUN_RESOURCE_PATH:/scheduler/lsf.template"
 SCHEDULER_PBS_TEMPLATE = ":WRFRUN_RESOURCE_PATH:/scheduler/pbs.template"
@@ -120,6 +121,7 @@ WRFRUN.set_config_register_func(_set_config_template_path)
 
 __all__ = [
     "RUN_SH_TEMPLATE",
+    "GITIGNORE_RULES",
     "EXT_NCL_PLOT_SCRIPT",
     "SCHEDULER_LSF_TEMPLATE",
     "SCHEDULER_PBS_TEMPLATE",

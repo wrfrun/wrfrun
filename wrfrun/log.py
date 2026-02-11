@@ -17,7 +17,6 @@ For functions and classes which parse numerical models' log, please check :doc:`
 
 import logging
 from datetime import datetime
-from os import environ
 from time import time
 from typing import Dict, List, Optional
 
@@ -44,7 +43,7 @@ def set_logger(logger_list: List[str], logger_level: Optional[Dict] = None):
     """
     formatter = logging.Formatter("%(name)s :: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
     # use rich handler
-    handler = RichHandler(console=WRFRUN_RICH_CONSOLE)
+    handler = RichHandler(console=WRFRUN_RICH_CONSOLE, markup=True)
     handler.setFormatter(formatter)
 
     for logger_name in logger_list:
@@ -76,14 +75,14 @@ def unify_logger_format():
 # init wrfrun logger
 logger = logging.getLogger("wrfrun")
 # check environment variables and set logger level
-if "WRFRUN_DEBUG_MODE" in environ and environ["WRFRUN_DEBUG_MODE"]:
-    _logger_level = logging.DEBUG
-    _debug_mode = True
-else:
-    _logger_level = logging.INFO
-    _debug_mode = False
-set_logger(["wrfrun"], {"wrfrun": _logger_level})
-logger.debug(f"DEBUG MODE: {_debug_mode}")
+# if "WRFRUN_DEBUG_MODE" in environ and environ["WRFRUN_DEBUG_MODE"]:
+#     _logger_level = logging.DEBUG
+#     _debug_mode = True
+# else:
+#     _logger_level = logging.INFO
+#     _debug_mode = False
+set_logger(["wrfrun"], {"wrfrun": logging.INFO})
+# logger.debug(f"DEBUG MODE: {_debug_mode}")
 
 
 def logger_add_file_handler(log_path: str):

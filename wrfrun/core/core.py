@@ -166,7 +166,7 @@ class WRFRUNProxy:
         :param config_file: Config file path.
         :type config_file: str
         """
-        logger.info(f"Initialize `WRFRUNConfig` with config: {config_file}")
+        logger.info(f"Read config: '{config_file}'")
         self._config = WRFRunConfig.from_config_file(config_file, self._config_register_funcs)
         self._config_initialized = True
 

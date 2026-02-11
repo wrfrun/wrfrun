@@ -49,6 +49,8 @@ def get_palm_workspace_path(node: Literal["root", "job", "input", "output"] = "r
     :return: Workspace path.
     :rtype: str
     """
+    job_name = WRFRUN.config.get_model_config("palm")["job_name"]
+
     match node:
         case "root":
             return WORKSPACE_PALM
@@ -57,10 +59,10 @@ def get_palm_workspace_path(node: Literal["root", "job", "input", "output"] = "r
             return f"{WORKSPACE_PALM}/job"
 
         case "input":
-            return f"{WORKSPACE_PALM}/job/wrfrun/INPUT"
+            return f"{WORKSPACE_PALM}/job/{job_name}/INPUT"
 
         case "output":
-            return f"{WORKSPACE_PALM}/job/wrfrun/OUTPUT"
+            return f"{WORKSPACE_PALM}/job/{job_name}/OUTPUT"
 
 
 def prepare_palm_workspace(model_config: dict):
@@ -90,8 +92,9 @@ def prepare_palm_workspace(model_config: dict):
         raise FileNotFoundError("Your PALM path is wrong.")
 
     palm_work_path = WRFRUNConfig.parse_resource_uri(WORKSPACE_PALM)
+    job_name = WRFRUNConfig.get_model_config("palm")["job_name"]
     workspace_job_path = f"{palm_work_path}/job"
-    workspace_input_path = f"{workspace_job_path}/wrfrun/INPUT"
+    workspace_input_path = f"{workspace_job_path}/{job_name}/INPUT"
     check_path(palm_work_path, workspace_job_path, workspace_input_path, force=True)
 
     if not exists(f"{palm_path}/bin/palmrun"):

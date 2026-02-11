@@ -2,6 +2,7 @@ py3.install_sources(
     [
         '__init__.py',
         'run.template.sh',
+        'gitignore.rules',
     ],
     subdir: 'wrfrun/res'
 )

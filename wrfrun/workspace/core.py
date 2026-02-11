@@ -44,7 +44,7 @@ def prepare_workspace():
     replay_work_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_REPLAY)
     output_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_OUTPUT_PATH)
 
-    logger.info(f"Initialize main workspace at: {workspace_path}")
+    logger.info(f"Initialize main workspace at: '{workspace_path}'")
 
     if exists(workspace_path):
         logger.info("Remove old files in workspace.")

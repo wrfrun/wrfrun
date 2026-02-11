@@ -18,5 +18,9 @@
     "run.template.sh": {
         "name": "RUN_SH_TEMPLATE",
         "type": "file"
+    },
+    "gitignore.rules": {
+        "name": "GITIGNORE_RULES",
+        "type": "file"
     }
 }

@@ -26,7 +26,13 @@ import tomli_w
 
 from .core import WRFRunConfig
 from .log import logger
-from .res import CONFIG_MAIN_TOML_TEMPLATE, CONFIG_PALM_TOML_TEMPLATE, CONFIG_WRF_TOML_TEMPLATE, _register_res_uri
+from .res import (
+    CONFIG_MAIN_TOML_TEMPLATE,
+    CONFIG_PALM_TOML_TEMPLATE,
+    CONFIG_WRF_TOML_TEMPLATE,
+    GITIGNORE_RULES,
+    _register_res_uri,
+)
 
 MODEL_MAP = {
     "wrf": CONFIG_WRF_TOML_TEMPLATE,
@@ -57,11 +63,21 @@ def _entry_init(args: argparse.Namespace):
         # we need to check if this directory isn't empty.
         files = listdir()
         # exclude:
-        exclude_target = [".venv", ".git", ".gitignore", ".gitattribute", "pyproject.toml", "uv.lock"]
+        exclude_target = [
+            ".venv",
+            ".git",
+            ".gitattribute",
+            "pyproject.toml",
+            "uv.lock",
+            "configs",
+            "data",
+            "namelists",
+            "config.toml",
+        ]
         files = [x for x in files if x not in exclude_target]
 
         if len(files) != 0:
-            logger.error(f"{project_name} isn't empty, choose an empty directory, or backup and delete your files first.")
+            logger.error(f"[CLI] {project_name} isn't empty, choose an empty directory, or backup and delete your files first.")
             exit(1)
 
     makedirs(f"{project_name}/configs")
@@ -70,20 +86,29 @@ def _entry_init(args: argparse.Namespace):
     makedirs(namelist_path)
 
     copyfile(wrfrun_config.parse_resource_uri(CONFIG_MAIN_TOML_TEMPLATE), f"{project_name}/config.toml")
+    copyfile(wrfrun_config.parse_resource_uri(GITIGNORE_RULES), f"{project_name}/.gitignore")
 
+    model_list = []
     if models is not None:
         for _model in models:
-            src_path = wrfrun_config.parse_resource_uri(MODEL_MAP[_model])
-            copyfile(src_path, f"{project_name}/configs/{_model}.toml")
-            makedirs(f"{namelist_path}/{_model}")
+            if _model in MODEL_MAP:
+                src_path = wrfrun_config.parse_resource_uri(MODEL_MAP[_model])
+                copyfile(src_path, f"{project_name}/configs/{_model}.toml")
+                makedirs(f"{namelist_path}/{_model}")
+                model_list.append(_model)
 
-    logger.info(f"Created project {project_name}")
-    logger.info(f"All your configs should be placed in {project_name}/configs.")
-    logger.info(f"All your data should be placed in {project_name}/data.")
-    logger.info(f"All your namelist files should be placed in {namelist_path}")
-    logger.info(f"Make sure to set `use = True` to enable models in {project_name}/config.toml .")
+            else:
+                logger.warning(f"Unknown model: '{_model}'")
+
+    logger.info(f"Created project {project_name}.")
+    if len(model_list) > 0:
+        logger.info(f"Use the following models: {model_list}.")
+    logger.info(f"All your configs should be placed in '{project_name}/configs'.")
+    logger.info(f"All your data should be placed in '{project_name}/data'.")
+    logger.info(f"All your namelist files should be placed in '{namelist_path}'")
+    logger.info(f"Make sure to set `[magenta]use = True[/]` to enable models in '{project_name}/config.toml' .")
     logger.info("It is recommanded to use git to track your wrfrun and model configs.")
-    logger.info("Use command `wrfrun add MODEL_NAME` to add a new model to project.")
+    logger.info("Use command `[magenta]wrfrun add MODEL_NAME[/]` to add a new model to project.")
 
 
 def _entry_model(args: argparse.Namespace):

@@ -15,6 +15,7 @@ Submodules
 ====================================== ========================================================
 :doc:`_config </api/core._config>`     Definition of ``WRFRunConfig``.
 :doc:`_constant </api/core._constant>` Definition of ``ConstantMixIn``.
+:doc:`_debug </api/core._debug>`       Definition of ``DebugMixIn``.
 :doc:`_exec_db </api/core._exec_db>`   Definition of ``ExecutableDB``.
 :doc:`_namelist </api/core._namelist>` Definition of ``NamelistMixIn``.
 :doc:`_record </api/core._record>`     Definition of ``ExecutableRecorder``.
@@ -33,6 +34,7 @@ Submodules
 
     _config <core._config>
     _constant <core._constant>
+    _debug <core._debug>
     _exec_db <core._exec_db>
     _namelist <core._namelist>
     _record <core._record>

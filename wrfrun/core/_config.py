@@ -12,7 +12,8 @@ WRFRunConfig
 
 This class inherits :class:`ConstantMixIn <wrfrun.core._constant.ConstantMixIn>`,
 :class:`NamelistMixIn <wrfrun.core._namelist.NamelistMixIn>`,
-and :class:`ResourceMixIn <wrfrun.core._resource.ResourceMixIn>`.
+:class:`ResourceMixIn <wrfrun.core._resource.ResourceMixIn>`,
+and :class:`DebugMixIn <wrfrun.core._debug.DebugMixIn>`
 
 Besides the methods from its parents, :class:`WRFRunConfig` provides methods to read and access user config files.
 """
@@ -28,12 +29,13 @@ import tomli_w
 
 from ..log import logger
 from ._constant import ConstantMixIn
+from ._debug import DebugMixIn
 from ._namelist import NamelistMixIn
 from ._resource import ResourceMixIn
 from .error import ModelNameError
 
 
-class WRFRunConfig(ConstantMixIn, NamelistMixIn, ResourceMixIn):
+class WRFRunConfig(ConstantMixIn, NamelistMixIn, ResourceMixIn, DebugMixIn):
     """
     Comprehensive class to manage wrfrun config, runtime constants, namelists and resource files.
     """
@@ -64,9 +66,7 @@ class WRFRunConfig(ConstantMixIn, NamelistMixIn, ResourceMixIn):
             _func(self)
 
     @classmethod
-    def from_config_file(
-        cls, config_file: str, register_funcs: list[Callable[["WRFRunConfig"], None]]
-    ) -> "WRFRunConfig":
+    def from_config_file(cls, config_file: str, register_funcs: list[Callable[["WRFRunConfig"], None]]) -> "WRFRunConfig":
         """
         Read the config file and create a instance.
 

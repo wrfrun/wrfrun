@@ -3,6 +3,7 @@ py3.install_sources(
         '__init__.py',
         '_config.py',
         '_constant.py',
+        '_debug.py',
         '_exec_db.py',
         '_namelist.py',
         '_record.py',

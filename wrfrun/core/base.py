@@ -527,6 +527,15 @@ class ExecutableBase:
 
             symlink(file_path, target_path)
 
+        if WRFRUN.config.DEBUG_MODE_EXECUTABLE:
+            self.before_exec_debug()
+
+    def before_exec_debug(self):
+        """
+        Debug method that will be called after ``before_exec``.
+        """
+        logger.debug(f"Method 'before_exec_debug' not implemented in '{self.name}'")
+
     def after_exec(self):
         """
         Save outputs and logs after executing the external program.
@@ -564,6 +573,15 @@ class ExecutableBase:
 
             move(file_path, target_path)
 
+        if WRFRUN.config.DEBUG_MODE_EXECUTABLE:
+            self.after_exec_debug()
+
+    def after_exec_debug(self):
+        """
+        Debug method that will be called after ``after_exec``.
+        """
+        logger.debug(f"Method 'after_exec_debug' not implemented in '{self.name}'")
+
     def exec(self):
         """
         Execute the given command.
@@ -576,11 +594,11 @@ class ExecutableBase:
                     self.cmd,
                 ]
 
-            logger.info(f"Running `{' '.join(self.cmd)}` ...")
+            logger.info(f"Running [magenta]{' '.join(self.cmd)}[/] ...")
             _cmd = self.cmd
 
         else:
-            logger.info(f"Running `{self.mpi_cmd} --oversubscribe -np {self.mpi_core_num} {self.cmd}` ...")
+            logger.info(f"Running [magenta]{self.mpi_cmd} --oversubscribe -np {self.mpi_core_num} {self.cmd}[/] ...")
             _cmd = [self.mpi_cmd, "--oversubscribe", "-np", str(self.mpi_core_num), self.cmd]
 
         if WRFRUN.config.FAKE_SIMULATION_MODE:
@@ -588,6 +606,15 @@ class ExecutableBase:
             return
 
         call_subprocess(_cmd, work_path=work_path)
+
+        if WRFRUN.config.DEBUG_MODE_EXECUTABLE:
+            self.exec_debug()
+
+    def exec_debug(self):
+        """
+        Debug method that will be called after ``exec``.
+        """
+        logger.debug(f"Method 'exec_debug' not implemented in '{self.name}'")
 
     def __call__(self):
         """
