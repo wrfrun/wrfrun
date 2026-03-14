@@ -60,7 +60,15 @@ class PALMRun(ExecutableBase):
         simulation_type = config["simulation_type"]
         cmd = f"./palmrun -r {job_name} -c {config_id} -a {simulation_type} -X {core_num} -v"
 
-        super().__init__("palmrun", cmd, get_palm_workspace_path(), mpi_use, mpi_cmd, mpi_core_num)
+        super().__init__(
+            "palmrun",
+            cmd,
+            get_palm_workspace_path(),
+            mpi_use,
+            mpi_cmd,
+            mpi_core_num,
+            external_log_save_prefix=f"{self._output_save_path}/logs/palm",
+        )
 
         _check_and_prepare_namelist()
 
@@ -142,6 +150,13 @@ class PALMRun(ExecutableBase):
                 output_dir=get_palm_workspace_path("output"),
                 save_path=f"{self._output_save_path}/{job_name}",
                 startswith=job_name,
+            )
+
+            # also save namelist files.
+            self.add_output_files(
+                output_dir=get_palm_workspace_path("input"),
+                save_path=f"{self._output_save_path}/{job_name}/logs",
+                outputs=get_namelist_save_name(),
             )
 
         super().after_exec()

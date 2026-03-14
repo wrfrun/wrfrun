@@ -45,7 +45,7 @@ I strongly recommend you to implement your code by inheriting :class:`Executable
 import subprocess
 from copy import deepcopy
 from os import chdir, getcwd, listdir, makedirs, remove, symlink
-from os.path import abspath, basename, exists
+from os.path import abspath, basename, dirname, exists
 from shutil import move
 from typing import Optional, Union
 
@@ -82,7 +82,12 @@ def check_subprocess_status(status: subprocess.CompletedProcess):
         raise RuntimeError
 
 
-def call_subprocess(command: list[str], work_path: Optional[str] = None, print_output=False):
+def call_subprocess(
+    command: list[str],
+    work_path: Optional[str] = None,
+    print_output=False,
+    log_save_prefix: str | None = None,
+):
     """
     Execute the given command in the system shell.
 
@@ -93,6 +98,8 @@ def call_subprocess(command: list[str], work_path: Optional[str] = None, print_o
     :type work_path: str | None
     :param print_output: If print standard output and error in the logger.
     :type print_output: bool
+    :param log_save_prefix: Save external command output and error to log files. If None, don't save.
+                            Defaults to None.
     """
     if work_path is not None:
         origin_path = getcwd()
@@ -110,6 +117,22 @@ def call_subprocess(command: list[str], work_path: Optional[str] = None, print_o
     if print_output:
         logger.info(status.stdout.decode())
         logger.warning(status.stderr.decode())
+
+    if log_save_prefix:
+        save_dir = dirname(log_save_prefix)
+        if not exists(save_dir):
+            makedirs(save_dir)
+
+        stdout_file = f"{log_save_prefix}.log"
+        stderr_file = f"{log_save_prefix}.err"
+
+        with open(stdout_file, "w") as f:
+            f.write(status.stdout.decode())
+
+        with open(stderr_file, "w") as f:
+            f.write(status.stderr.decode())
+
+        logger.info(f"Logs saved to '{save_dir}'")
 
 
 class ExecutableBase:
@@ -152,6 +175,7 @@ class ExecutableBase:
         mpi_use=False,
         mpi_cmd: Optional[str] = None,
         mpi_core_num: Optional[int] = None,
+        external_log_save_prefix: Optional[str] = None,
     ):
         """
 
@@ -169,6 +193,10 @@ class ExecutableBase:
         :type mpi_cmd: str
         :param mpi_core_num: How many cores you use. Defaults to None.
         :type mpi_core_num: int
+        :param external_log_save_prefix: Log file path to save external command logs.
+                                         For example, if you give a prefix ``logs/wrf/wrf``,
+                                         then two files ``wrf.log`` and ``wrf.err`` will be saved to directory ``logs/wrf``.
+                                         They will contain stdout and stderr logs of the external command.
         """
         if mpi_use and isinstance(cmd, list):
             logger.error("If you want to use mpi, then `cmd` must be a single string.")
@@ -180,6 +208,7 @@ class ExecutableBase:
         self.mpi_use = mpi_use
         self.mpi_cmd = mpi_cmd
         self.mpi_core_num = mpi_core_num
+        self.external_log_save_prefix = external_log_save_prefix
 
         # don't use mpi if mpi_core_num = 1
         if isinstance(self.mpi_core_num, int) and self.mpi_core_num < 2:
@@ -605,7 +634,7 @@ class ExecutableBase:
             logger.info(f"We are in fake simulation mode, skip calling numerical model for '{self.name}'")
             return
 
-        call_subprocess(_cmd, work_path=work_path)
+        call_subprocess(_cmd, work_path=work_path, log_save_prefix=self.external_log_save_prefix)
 
         if WRFRUN.config.DEBUG_MODE_EXECUTABLE:
             self.exec_debug()

@@ -8,6 +8,12 @@ wrfda_path = ''
 # static geographic data path
 geog_data_path = '/path/to/your/geog/data'
 
+# Namelist template.
+# If None, will use built-in namelist template.
+wps_namelist_template = ''
+wrf_namelist_template = ''
+wrfda_namelist_template = ''
+
 # Your can give your custom namelist files here.
 # The value in it will overwrite the default value in the namelist template file.
 user_wps_namelist = ''

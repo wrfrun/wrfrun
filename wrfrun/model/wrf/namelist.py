@@ -132,8 +132,16 @@ def prepare_wps_namelist():
 
     """
     # prepare namelist
-    WRFRUN.config.read_namelist(WRFRUN.config.parse_resource_uri(NAMELIST_WPS), "wps")
-    wrf_config = WRFRUN.config.get_model_config("wrf")
+    wrf_config = WRFRUN.config.get_model_config("wps")
+
+    wps_namelist_template = wrf_config["wps_namelist_template"] if "wps_namelist_template" in wrf_config else ""
+
+    if wps_namelist_template == "" or not exists(wps_namelist_template):
+        logger.info(f"Use built-in namelist template because provided template doesn't exist: '{wps_namelist_template}'")
+        wps_namelist_template = WRFRUN.config.parse_resource_uri(NAMELIST_WPS)
+
+    # read template namelist
+    WRFRUN.config.read_namelist(wps_namelist_template, "wps")
 
     # get domain number
     max_dom = wrf_config["domain"]["domain_num"]
@@ -185,11 +193,17 @@ def prepare_wrf_namelist():
     This function read WRF template namelist and update its value based on the config file and user custom namelist.
 
     """
-    # read template namelist
-    WRFRUN.config.read_namelist(WRFRUN.config.parse_resource_uri(NAMELIST_WRF), "wrf")
-
     # wrf config from config
     wrf_config = WRFRUN.config.get_model_config("wrf")
+
+    wrf_namelist_template = wrf_config["wrf_namelist_template"] if "wrf_namelist_template" in wrf_config else ""
+
+    if wrf_namelist_template == "" or not exists(wrf_namelist_template):
+        logger.info(f"Use built-in namelist template because provided template doesn't exist: '{wrf_namelist_template}'")
+        wrf_namelist_template = WRFRUN.config.parse_resource_uri(NAMELIST_WRF)
+
+    # read template namelist
+    WRFRUN.config.read_namelist(wrf_namelist_template, "wrf")
 
     # get debug level
     debug_level = wrf_config["debug_level"]
@@ -420,10 +434,16 @@ def prepare_dfi_namelist():
 
 def prepare_wrfda_namelist():
     """Generate namelist for da_wrfvar.exe"""
-    # read template namelist
-    WRFRUN.config.read_namelist(WRFRUN.config.parse_resource_uri(NAMELIST_WRFDA), "wrfda")
-
     wrf_config = WRFRUN.config.get_model_config("wrf")
+
+    wrfda_namelist_template = wrf_config["wrfda_namelist_template"] if "wrfda_namelist_template" in wrf_config else ""
+
+    if wrfda_namelist_template == "" or not exists(wrfda_namelist_template):
+        logger.info(f"Use built-in namelist template because provided template doesn't exist: '{wrfda_namelist_template}'")
+        wrfda_namelist_template = WRFRUN.config.parse_resource_uri(NAMELIST_WRFDA)
+
+    # read template namelist
+    WRFRUN.config.read_namelist(wrfda_namelist_template, "wrfda")
 
     # get wrf start date
     start_date = wrf_config["time"]["start_date"]
