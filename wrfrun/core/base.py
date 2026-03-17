@@ -123,8 +123,16 @@ def call_subprocess(
         if not exists(save_dir):
             makedirs(save_dir)
 
-        stdout_file = f"{log_save_prefix}.log"
-        stderr_file = f"{log_save_prefix}.err"
+        stdout_file = f"{log_save_prefix}.stdout"
+        stderr_file = f"{log_save_prefix}.stderr"
+
+        if exists(stdout_file):
+            old_stdout_file = f"{stdout_file}.bak"
+            logger.warning(f"stdout file exists. Backup it to '{old_stdout_file}'")
+
+        if exists(stderr_file):
+            old_stderr_file = f"{stderr_file}.bak"
+            logger.warning(f"stderr file exists. Backup it to '{old_stderr_file}'")
 
         with open(stdout_file, "w") as f:
             f.write(status.stdout.decode())
@@ -193,10 +201,6 @@ class ExecutableBase:
         :type mpi_cmd: str
         :param mpi_core_num: How many cores you use. Defaults to None.
         :type mpi_core_num: int
-        :param external_log_save_prefix: Log file path to save external command logs.
-                                         For example, if you give a prefix ``logs/wrf/wrf``,
-                                         then two files ``wrf.log`` and ``wrf.err`` will be saved to directory ``logs/wrf``.
-                                         They will contain stdout and stderr logs of the external command.
         """
         if mpi_use and isinstance(cmd, list):
             logger.error("If you want to use mpi, then `cmd` must be a single string.")
@@ -208,7 +212,6 @@ class ExecutableBase:
         self.mpi_use = mpi_use
         self.mpi_cmd = mpi_cmd
         self.mpi_core_num = mpi_core_num
-        self.external_log_save_prefix = external_log_save_prefix
 
         # don't use mpi if mpi_core_num = 1
         if isinstance(self.mpi_core_num, int) and self.mpi_core_num < 2:
@@ -634,7 +637,9 @@ class ExecutableBase:
             logger.info(f"We are in fake simulation mode, skip calling numerical model for '{self.name}'")
             return
 
-        call_subprocess(_cmd, work_path=work_path, log_save_prefix=self.external_log_save_prefix)
+        log_save_path = WRFRUN.config.parse_resource_uri(self._log_save_path)
+        log_save_prefix = f"{log_save_path}/{self.name}"
+        call_subprocess(_cmd, work_path=work_path, log_save_prefix=log_save_prefix)
 
         if WRFRUN.config.DEBUG_MODE_EXECUTABLE:
             self.exec_debug()

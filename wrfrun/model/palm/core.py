@@ -69,10 +69,6 @@ class PALMRun(ExecutableBase):
             mpi_core_num,
         )
 
-        # We have to set this after super().__init__(),
-        # because _output_save_path are set in parent class.
-        self.external_log_save_prefix = f"{self._output_save_path}/logs/palm"
-
         _check_and_prepare_namelist()
 
     def generate_custom_config(self):
