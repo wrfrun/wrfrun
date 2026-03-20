@@ -29,7 +29,7 @@ Check [https://wrfrun.syize.cn](https://wrfrun.syize.cn/).
 This design makes model execution intuitive — any supported model can be launched simply by calling a Python function or class method, while `wrfrun` automatically handles all background tasks such as data preparation and configuration file management.
 
 ```python
-from wrfrun import WRFRun
+from wrfrun.run import WRFRun
 from wrfrun.model.wrf import geogrid, metgrid, real, ungrib, wrf
 
 # wrfrun will prepare input data, generate namelist file, 
@@ -47,7 +47,7 @@ with WRFRun("./config.toml", init_workspace=True) as wrf_run:
 Every simulation can be fully recorded and later reproduced from a single `.replay` file — ensuring total reproducibility.
 
 ```python
-from wrfrun import WRFRun
+from wrfrun.run import WRFRun
 from wrfrun.model.wrf import geogrid, ungrib, metgrid, real, wrf
 
 
@@ -161,7 +161,7 @@ Automatically submit jobs to supported schedulers:
 `wrfrun` takes care of resource requests and queue management automatically.
 
 ```python
-from wrfrun import WRFRun
+from wrfrun.run import WRFRun
 from wrfrun.model.wrf import geogrid, metgrid, real, ungrib, wrf
 
 # just set submit_job=True
@@ -178,7 +178,7 @@ with WRFRun("./config.toml", init_workspace=True, submit_job=True) as wrf_run:
 `wrfrun` can parse model log files and start a lightweight socket server to report simulation progress.
 
 ```python
-from wrfrun import WRFRun
+from wrfrun.run import WRFRun
 from wrfrun.model.wrf import geogrid, metgrid, real, ungrib, wrf
 
 # just set start_server=True
@@ -194,9 +194,11 @@ with WRFRun("./config.toml", init_workspace=True, start_server=True) as wrf_run:
 
 - Automated ERA5 data download (requires `cdsapi` authentication)
 - Real-time progress reporting via socket interface
-- Partial WRF support:
-  - Full support for WPS
-  - Wrapped execution for `real` and `wrf`
+- Numerical model support:
+  - Partial WRF support:
+    - Full support for WPS
+    - Wrapped execution for `real` and `wrf`
+  - PALM model support.
 - Job submission on PBS, Slurm, and LSF
 - `record` / `replay` reproducibility for all compliant interfaces
 

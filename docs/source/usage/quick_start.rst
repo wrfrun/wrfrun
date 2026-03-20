@@ -28,7 +28,7 @@ By specifying a non-existent file path and just entering ``WRFRun`` context with
 .. code-block:: Python
     :caption: main.py
 
-    from wrfrun import WRFRun
+    from wrfrun.run import WRFRun
 
     with WRFRun("config.toml") as server:
         pass
@@ -214,7 +214,7 @@ Then call ``ungrib`` under the ``WRFRun``. We can tell ``ungrib`` to use GFS Vta
 .. code-block:: Python
     :caption: main.py
 
-    from wrfrun import WRFRun
+    from wrfrun.run import WRFRun
     from wrfrun.model.wrf import ungrib, VtableFiles
 
     with WRFRun("config.toml") as server:
@@ -258,25 +258,25 @@ If you want to use wrfrun to download data, you need to configure the `cdsapi to
 .. code-block:: Python
     :caption: main.py
 
-    from wrfrun import WRFRun
+    from wrfrun.run import WRFRun
 
     # data area: 90°E - 180°E, 10°N - 70°N
-    with WRFRun("./config.yaml", init_workspace=False, start_server=False,
-                pbs_mode=False, prepare_wps_data=True, wps_data_area=(90, 180, 10, 70)) as server:
+    with WRFRun("./config.toml", init_workspace=False, start_server=False,
+                prepare_wps_data=True, wps_data_area=(90, 180, 10, 70)) as server:
         pass
 
 Running WPS
 ***********
 
-Running WPS can be accomplished by calling the ``geogrid``, ``ungrib`` and ``metgrid`` function.
+Running WPS can be accomplished by calling the ``geogrid``, ``ungrib`` and ``metgrid`` functions.
 
 .. code-block:: Python
     :caption: main.py
 
-    from wrfrun import WRFRun
-    from wrfrun.model import geogrid, ungrib, metgrid
+    from wrfrun.run import WRFRun
+    from wrfrun.model.wrf import geogrid, ungrib, metgrid
 
-    with WRFRun("./config.yaml", init_workspace=False, start_server=False, pbs_mode=False) as server:
+    with WRFRun("./config.toml", init_workspace=False, start_server=False) as server:
         geogrid()
         ungrib()
         metgrid()
@@ -286,16 +286,78 @@ After that, you can find all the logs and outputs of WPS in the directory ``outp
 Running WRF
 ***********
 
-Running WRF can be accomplished by calling the ``real`` and ``wrf`` function.
+Running WRF can be accomplished by calling the ``real`` and ``wrf`` functions.
 
 .. code-block:: Python
     :caption: main.py
 
-    from wrfrun import WRFRun
-    from wrfrun.model import real, wrf
+    from wrfrun.run import WRFRun
+    from wrfrun.model.wrf import real, wrf
 
-    with WRFRun("./config.yaml", init_workspace=False, start_server=False, pbs_mode=False) as server:
+    with WRFRun("./config.toml", init_workspace=False, start_server=False) as server:
         real()
         wrf()
 
 After that, you can also find all the logs and outputs of WRF in the directory ``outputs``, in which they are stored in separate subdirectories.
+
+Complete Workflow Example
+**************************
+
+Here is a complete example that runs the entire WRF workflow from start to finish:
+
+.. code-block:: Python
+    :caption: complete_workflow.py
+
+    from wrfrun.run import WRFRun
+    from wrfrun.model.wrf import geogrid, ungrib, metgrid, real, wrf, VtableFiles
+
+    # Initialize and run the complete workflow
+    with WRFRun("./config.toml", init_workspace=True, start_server=True) as wrf_run:
+        # Optional: Record the simulation for later replay
+        wrf_run.record_simulation(output_path="./outputs/hurricane_matthew.replay")
+        
+        # Run WPS programs
+        geogrid()
+        ungrib(vtable_file=VtableFiles.GFS)
+        metgrid()
+        
+        # Run WRF initialization and simulation
+        real()
+        wrf()
+
+    print("Simulation completed successfully!")
+
+Using Job Scheduler
+*******************
+
+If you're running on a cluster with a job scheduler (PBS, Slurm, or LSF), you can submit the job automatically:
+
+.. code-block:: Python
+    :caption: scheduled_run.py
+
+    from wrfrun.run import WRFRun
+    from wrfrun.model.wrf import geogrid, ungrib, metgrid, real, wrf
+
+    with WRFRun("./config.toml", init_workspace=True, submit_job=True) as wrf_run:
+        geogrid()
+        ungrib()
+        metgrid()
+        real()
+        wrf()
+
+Verifying Results
+*****************
+
+After the simulation completes, you can verify the results by checking the output files in the output directory.
+
+Troubleshooting Tips
+********************
+
+If you encounter issues:
+
+1. **Check the logs**: Look in the ``logs`` directory for detailed error messages
+2. **Increase debug level**: Set ``debug_level = 200`` in your config file for more verbose output
+3. **Verify paths**: Double-check all paths in your config file are correct
+4. **Check domain settings**: Use the domain visualization to ensure your domain is correctly configured
+
+You can open an issue about ``wrfrun`` bugs on `GtiHub <https://github.com/wrfrun/wrfrun>_`.
