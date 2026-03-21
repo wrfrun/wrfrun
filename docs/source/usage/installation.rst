@@ -9,8 +9,8 @@ Prerequisites
 Before installing ``wrfrun``, make sure you have the following:
 
 - Python 3.10 or higher
-- pip package manager
-- For WRF model usage: A working WRF/WPS installation
+- Python package manager (pip or uv)
+- For WRF model usage: A working WRF/WPS installation (You can use `WRF-Install-Script <https://github.com/bakamotokatas/WRF-Install-Script>`_ to install WRF)
 - For PALM model usage: A working PALM installation
 
 System Requirements

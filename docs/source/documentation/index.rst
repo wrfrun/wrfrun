@@ -10,3 +10,4 @@ Write something to show contents of the left sidebar.
 
    config_file
    context
+   global_var_wrfrun
