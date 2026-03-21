@@ -183,7 +183,6 @@ class ExecutableBase:
         mpi_use=False,
         mpi_cmd: Optional[str] = None,
         mpi_core_num: Optional[int] = None,
-        external_log_save_prefix: Optional[str] = None,
     ):
         """
 
@@ -356,7 +355,7 @@ class ExecutableBase:
         ... }
         >>> self.add_input_files([file_dict_1, file_dict_2])
 
-        Please check :class:`FileConfigDict` for more details.
+        Please check :class:`FileConfigDict <wrfrun.core.type.FileConfigDict>` for more details.
 
         :param input_files: Custom files.
         :type input_files: str | list | dict
@@ -415,7 +414,8 @@ class ExecutableBase:
     ):
         """
         Find and save model's outputs to the output save path.
-        An ``OutputFileError`` exception will be raised if no file can be found and ``no_file_error==True``.
+        An :class:`OutputFileError <wrfrun.core.error.OutputFileError>` exception will be raised 
+        if no file can be found and ``no_file_error==True``.
 
         You can give the specific path of a file or multiple files.
 
@@ -564,7 +564,7 @@ class ExecutableBase:
 
     def before_exec_debug(self):
         """
-        Debug method that will be called after ``before_exec``.
+        Debug method that will be called after :py:meth:`before_exec`.
         """
         logger.debug(f"Method 'before_exec_debug' not implemented in '{self.name}'")
 
@@ -610,7 +610,7 @@ class ExecutableBase:
 
     def after_exec_debug(self):
         """
-        Debug method that will be called after ``after_exec``.
+        Debug method that will be called after :py:meth:`after_exec`.
         """
         logger.debug(f"Method 'after_exec_debug' not implemented in '{self.name}'")
 
@@ -646,16 +646,13 @@ class ExecutableBase:
 
     def exec_debug(self):
         """
-        Debug method that will be called after ``exec``.
+        Debug method that will be called after :py:meth:`exec`.
         """
         logger.debug(f"Method 'exec_debug' not implemented in '{self.name}'")
 
     def __call__(self):
         """
-        Execute the given command by calling ``before_exec``, ``exec`` and ``after_exec``.
-
-        :return:
-        :rtype:
+        Execute the given command by calling :py:meth:`before_exec`, :py:meth:`exec` and :py:meth:`after_exec`.
         """
         self.before_exec()
         self.exec()

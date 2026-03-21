@@ -8,6 +8,7 @@ Usage
 
    installation
    quick_start
+   custom_executable
 
 Installation
 ************

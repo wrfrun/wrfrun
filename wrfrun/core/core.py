@@ -6,6 +6,7 @@ wrfrun.core.core
     :toctree: generated/
 
     WRFRUNProxy
+    WRFRUN
 
 Global variable "WRFRUN"
 ************************
