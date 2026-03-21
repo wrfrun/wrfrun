@@ -21,7 +21,7 @@ It automates the tedious parts of model execution — preparing input data, hand
 ``wrfrun`` is not just limited to WRF; it provides a general-purpose, reproducible, and extensible framework that can be adapted to various numerical models through its unified interface architecture.
 
 ✨ Core Features
-***************
+****************
 
 🧩 Unified Interface Architecture
 =================================
@@ -151,13 +151,12 @@ Automatically submit jobs to supported schedulers:
 - Automated ERA5 data download (requires ``cdsapi`` authentication)
 - Real-time progress reporting via socket interface
 - Numerical model support:
-  - Partial WRF support:
-    - Full support for WPS
-    - Wrapped execution for ``real`` and ``wrf``
-  - PALM model support
+   * Partial WRF support:
+      + Full support for WPS
+      + Wrapped execution for ``real`` and ``wrf``
+   * PALM model support (in progress)
 - Job submission on PBS, Slurm, and LSF
 - ``record`` / ``replay`` reproducibility for all compliant interfaces
-- Support for PALM model (in progress)
 
 Get started
 ***********

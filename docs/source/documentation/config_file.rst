@@ -1,481 +1,453 @@
-Config
-######
-
-``wrfrun``'s config file is a YAML file which contains ``wrfrun``'s runtime settings and some WRF basic settings. Here is a config file template, which comes from `wrfrun/res/config.yaml.template <https://github.com/Syize/wrfrun/blob/master/wrfrun/res/config.yaml.template>`_.
-
-.. dropdown:: Click to show full config content
-
-    .. code-block:: yaml
-
-        # The following settings will be used to run WPS and WRF
-        wrf:
-
-          # Set your WPS, WRF and WRFDA path here.
-          wps_path: '/path/to/your/WPS/folder'
-          wrf_path: '/path/to/your/WRF/folder'
-          wrfda_path: '/path/to/your/WRFDA/folder'
-
-          # Set your geographical data path here
-          # It will be used as "geog_data_path" in namelist.wps
-          geog_data_path: '/path/to/your/geog/data'
-
-          # Specify your WPS input data folder path here
-          wps_input_data_folder: './data/bg'
-
-          # Specify your Near GOOS data folder path here
-          near_goos_data_folder: './data/sst'
-
-          # Your can give your custom namelist files here
-          # The value in it will overwrite the default value in wrfrun's namelist template file
-          user_wps_namelist: ''
-          user_real_namelist: ''
-          user_wrf_namelist: ''
-          user_wrfda_namelist: ''
-
-          # It is OK to set debug_level larger than 100. You will need to check details is WRF crash.
-          # And of course, who cares logs if WRF finished successfully?
-          debug_level: 100
-
-          time:
-            # Set the start date, end date
-            start_date: '2021-03-24 12:00:00'
-            end_date: '2021-03-26 00:00:00'
-            # Set input data time interval. Unit: seconds
-            input_data_interval: 10800
-            # Set output data time interval. Unit: minutes
-            output_data_interval: 180
-            # Note that there are various reasons which could crash wrf,
-            # and in most cases you can deal with them by decrease time step.
-            # Unit: seconds
-            time_step: 120
-            # Time ratio to the first domain for each domain
-            parent_time_step_ratio: [1, 3, 4]
-            # Time interval to write restart file. This help you can restart WRF after it stop.
-            # By default it equals to output_data_interval. Unit: minutes.
-            restart_interval: -1
-
-          domain:
-            # Set domain number
-            domain_num: 3
-            # It's very hard to process wrf domain settings because it's related to various settings, so I keep it
-            # Remember to check area settings with wrfrun function `plot_domain_area` before submit to PBS (May not be completed now)
-            # Resolution ratio to the first domain
-            parent_grid_ratio : [1, 3, 9]
-            # Index of the start point
-            i_parent_start : [1, 17, 72]
-            j_parent_start : [1, 17, 36]
-            # Number of point
-            e_we : [120, 250, 1198]
-            e_sn : [120, 220, 1297]
-            # Resolution of the first domain
-            dx : 9000
-            dy : 9000
-            # Projection
-            map_proj :
-              name: 'lambert'
-              # For lambert projection
-              truelat1 : 34.0
-              truelat2 : 40.0
-            # Central point of the first area
-            ref_lat : 37.0
-            ref_lon : 120.5
-            stand_lon : 120.5
-
-          # This section is used to specify various physics scheme for wrf
-          scheme:
-
-            # Here's the option of long wave scheme
-            # "off": off,
-            # "rrtm": RRTM,
-            # "cam": CAM,
-            # "rrtmg": RRTMG,
-            # "new-goddard": New Goddard,
-            # "flg": FLG,
-            # "rrtmg-k": RRTMG-K,
-            # "held-suarez": Held-Suarez,
-            # "gfdl": GFDL
-            long_wave_scheme:
-              name: 'rrtm'
-              # Option contains many other settings related to the scheme.
-              # Sometimes some option can only be used for specific scheme.
-              # You can check it in online namelist variables: https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/namelist_variables.html
-              # You can set option with its `wrf name` and its `wrf value`
-              # For example, `ghg_input=1` works with rrtm scheme. If you want set `ghg_input=1` when using rrtm, set option: {"ghg_input": 1}
-              # However, sometimes some options work with various scheme, and some options themselves are schem.
-              # Use this carefully.
-              # You can set multiple keys in option.
-              option: {'icloud': 1}
-
-            # Here's the option of short wave scheme
-            # "off": off,
-            # "dudhia": Dudhia,
-            # "goddard": Goddard,
-            # "cam": CAM,
-            # "rrtmg": RRTMG,
-            # "new-goddard": New Goddard,
-            # "flg": FLG,
-            # "rrtmg-k": RRTMG-K,
-            # "gfdl": GFDL
-            short_wave_scheme:
-              name: 'rrtmg'
-              option: {}
-
-            # Here's the option of cumulus scheme
-            # "off": off,
-            # "kf": Kain-Fritsch (KF),
-            # "bmj": BMJ,
-            # "gf": Grell-Freitas,
-            # "old-sas": Old SAS,
-            # "grell-3": Grell-3,
-            # "tiedtke": Tiedtke,
-            # "zmf": Zhang-McFarlane,
-            # "kf-cup": KF-CuP,
-            # "mkf": Multi-scale KF,
-            # "kiaps-sas": KIAPS SAS,
-            # "nt": New Tiedtke,
-            # "gd": Grell-Devenyi,
-            # "nsas": NSAS,
-            # "old-kf": Old KF
-            cumulus_scheme:
-              name: 'kf'
-              option: {}
-
-            # Here's the option of PBL scheme
-            # "off": off,
-            # "ysu": YSU,
-            # "myj": MYJ,
-            # "qe": QNSE-EDMF,
-            # "mynn2": MYNN2,
-            # "acm2": ACM2,
-            # "boulac": BouLac,
-            # "uw": UW,
-            # "temf": TEMF,
-            # "shin-hong": Shin-Hong,
-            # "gbm": GBM,
-            # "eeps": EEPS,
-            # "keps": KEPS,
-            # "mrf": MRF
-            pbl_scheme:
-              name: 'ysu'
-              option: {'ysu_topdown_pblmix': 1}
-
-            # Here's the option of land surface model
-            # "off": off,
-            # "slab": 5-layer thermal diffusion (SLAB),
-            # "noah": Noah,
-            # "ruc": RUC,
-            # "noah-mp": Noah-MP,
-            # "clm4": Community Land Model Version 4 (CLM4),
-            # "px": Pleim-Xiu,
-            # "ssib": Simplified Simple Biosphere (SSiB)
-            land_surface_scheme:
-              name: 'noah'
-              option: {}
-
-            # Here's the option of surface layer scheme
-            # "off": off,
-            # "mm5": revised MM5 Monin-Obukhov,
-            # "mo": Monin-Obukhov (Janjic Eta Similarity),
-            # "qnse": QNSE,
-            # "mynn": MYNN,
-            # "px": Pleim-Xiu; use with Pleim-Xiu surface and ACM2 PBL,
-            # "temf": TEMF,
-            # "old-mm5": old MM5
-            surface_layer_scheme:
-              name: 'mo'
-              option: {}
-
-        # The following settings are general settings.
-        wrfrun:
-
-          # Specify where to save py-wrfrun log file
-          log_path: './logs'
-
-          # Specify the socket ip and port to start socket server
-          # You can send any message to this server to check if wrfrun is still running,
-          # and how much time has been used, running progress of wrfrun.
-          socket_host: "localhost"
-          # Leave port to 0 to let system determine it.
-          # You can get the port number in log file.
-          socket_port: 54321
-
-          # Settings for PBS
-          PBS:
-
-            # Specify how many nodes you will use
-            node_num: 1
-
-            # Specify how many cores each node you will use
-            core_num: 36
-
-            # Specify custom environment settings here
-            env_settings: {}
-
-            # Specify custom python interpreter here
-            python_interpreter: 'python3'
-
-          # Specify your data save path here, all the outputs from WPS, WRF and WRFDA will be copied and saved in it
-          output_path: './outputs'
-
-As you can see, the contents of the configuration file are divided into two main sections, ``wrf`` and ``wrfrun``. The ``wrf`` block contains the most commonly used configuration options for WRF, and the ``wrfrun`` block is used to set the save path of ``wrfrun``'s log and WRF output files, job scheduler settings and so on. They will be explained in detail in the following documentation.
-
-wrf
-***
-
-The ``wrf`` block are divided into two main parts, too. Most of the first several options won't be passed to WRF actually. They are used to inform ``wrfrun`` essential information to run WRF. Here are options and their explanations.
-
-.. code-block:: yaml
-
-    # The absolute path to installation directories of WPS, WRF and WRFDA.
-    # wps_path and wrf_path is mandatory, wrfda_path is optional.
-    # If you don't use WRFDA, you can leave it empty.
-    wps_path: '/path/to/your/WPS/folder'
-    wrf_path: '/path/to/your/WRF/folder'
-    wrfda_path: '/path/to/your/WRFDA/folder'
-
-    # The absolute path to the directory contains geographical data.
-    # It will be used as "geog_data_path" in namelist.wps
-    geog_data_path: '/path/to/your/geog/data'
-
-    # The absolute path to the directory contains WPS input data.
-    wps_input_data_folder: './data/bg'
-
-    # The absolute path to the directory contains NEAR-GOOS data.
-    # If you don't use NEAR-GOOS SST data, leave it empty.
-    near_goos_data_folder: './data/sst'
-
-    # Your can give your custom namelist files here.
-    # The value in it will overwrite the default value in wrfrun's namelist template file.
-    user_wps_namelist: ''
-    user_real_namelist: ''
-    user_wrf_namelist: ''
-    user_wrfda_namelist: ''
-
-User custom namelist
-====================
-
-Although ``wrfrun`` attempts to simplify the process of configuring WRF, it is almost impossible to fully rewrite all namelist options into another more understandable format due to the large number of options in the WRF namelist, while researchers sometimes add their additional options. Therefore, ``wrfrun`` allows users to provide their custom namelist files, which can either include the complete WRF configurations or only the options that need to be changed. Before running WRF, ``wrfrun`` will read these files and update the corresponding options to apply the user's configurations.
-
-For example, the default option of ``io_form_geogrid`` in ``wrfrun`` is ``2``, which means the output format of ``geogrid.exe`` is ``NetCDF``. If you want to change the value of it to ``3`` (because ``wrfrun`` doesn't provide any function to change ``io_form_geogrid``'s value), you can write a custom namelist like this
-
-.. code-block::
-    :caption: custom_wps_namelist
-
-    &share
-        io_form_geogrid = 3
-    /
-
-It looks like a simplified version of WRF namelist, but it still works for ``wrfrun``. Change ``user_wps_namelist``'s value to ``custom_wps_namelist``'s path, for example, ``./namelist/custom_wps_namelist``, ``wrfrun`` will read it and overwrite the default value with your configurations.
-
-.. code-block:: yaml
-
-    user_wps_namelist: './namelist/custom_wps_namelist'
-
-You can use the function ``write_namelist`` to write namelist settings a to file to check it.
-
-.. code-block:: python
-
-    from wrfrun import WRFRun, write_namelist
-
-    with WRFRun("./config.yaml", init_workspace=False, start_server=False, pbs_mode=False) as server:
-        write_namelist("./test_namelist", "wps")
-
-WRF options
-===========
-
-Time and domain options
------------------------
-
-Values in the second part of the ``wrf`` block will be write to WRF namelist files. They are options about simulation time, simulation domain and physics scheme WRF will use. Let's see options about time and domain at first.
-
-.. code-block:: yaml
-
-    time:
-      # Start date and end date of the simulation in "%Y-%m-%d %H:%M:%S" format.
-      start_date: '2021-03-24 12:00:00'
-      end_date: '2021-03-26 00:00:00'
-      # Input data time interval. Unit: seconds
-      input_data_interval: 10800
-      # Output data time interval. Unit: minutes
-      output_data_interval: 180
-      # Integral time step of the simulation's domain1.
-      # Note that there are various reasons which could crash WRF,
-      # and in most cases you can deal with them by decrease the time step.
-      # Unit: seconds
-      time_step: 120
-      # Time ratio to the first domain for each domain.
-      # For example, if ratio of the domain2 is 3, and time step is 120s,
-      # Then the actually time step of the domain2 is 120 / 3 = 40s.
-      parent_time_step_ratio: [1, 3, 4]
-      # Time interval to write restart file. This help you restart WRF after it stop.
-      # By default (when its value is -1) it equals to output_data_interval. Unit: minutes.
-      restart_interval: -1
-
-    # Options of domain are the same as them in namelist.
-    domain:
-      # Total number of domains
-      domain_num: 3
-      # Resolution ratio to the domain1
-      parent_grid_ratio : [1, 3, 9]
-      # Index of the start point
-      i_parent_start : [1, 17, 72]
-      j_parent_start : [1, 17, 36]
-      # Number of point
-      e_we : [120, 250, 1198]
-      e_sn : [120, 220, 1297]
-      # Resolution of the domain1
-      dx : 9000
-      dy : 9000
-      # Projection
-      map_proj :
-        name: 'lambert'
-        # For lambert projection
-        truelat1 : 34.0
-        truelat2 : 40.0
-      # Central point of the first area
-      ref_lat : 37.0
-      ref_lon : 120.5
-      stand_lon : 120.5
-
-As you can see, options about map projection are placed under ``map_proj``, because there are various projections in WRF ARW: ``['lambert', 'polar', 'mercator', 'lat-lon']``, and some options are only used for specific projection. For example, ``truelat2`` is only used for ``lambert`` projection. The ``name``, which is mandatory, specifies the name of projection, and others fields under ``map_proj`` is optional. Let's say, you can configure ``lambert`` projection just like the template config showed above:
-
-.. code-block:: yaml
-
-    map_proj :
-      name: 'lambert'
-      # For lambert projection
-      truelat1 : 34.0
-      truelat2 : 40.0
-
-You can also configure ``lat-lon`` projection with options ``pole_lat`` and ``pole_lon``:
-
-.. code-block:: yaml
-
-    map_proj :
-      name: 'lat-lon'
-      # For lat-lon projection
-      pole_lat: 90
-      pole_lon: 0
-
-The only thing to note is to ensure the name of options match those in the namelist.
-
-Physics scheme options
-----------------------
-
-``wrfrun`` collects all available values and their corresponding names in physics scheme, and uses their names or simplified names instead of easily forgotten numbers to represent the corresponding option. You can find names used by ``wrfrun`` and their corresponding physics schemes in comment above each scheme option.
-
-.. code-block:: yaml
-
-    scheme:
-
-      # Here's the option of long wave scheme
-      # "off": off,
-      # "rrtm": RRTM,
-      # "cam": CAM,
-      # "rrtmg": RRTMG,
-      # "new-goddard": New Goddard,
-      # "flg": FLG,
-      # "rrtmg-k": RRTMG-K,
-      # "held-suarez": Held-Suarez,
-      # "gfdl": GFDL
-      long_wave_scheme:
-        name: 'rrtm'
+Configuration File
+##################
+
+``wrfrun`` uses TOML format for configuration files, which contains runtime settings and model-specific configurations. wrfrun adopts a layered configuration design: the main configuration file defines global settings, while specific configurations for each model are placed in separate files and imported via the ``include`` field.
+
+Configuration file templates are located in the ``wrfrun/res/config/`` directory of the project source code, including the main configuration template, and various model configuration templates.
+
+.. dropdown:: Click to view full main configuration file template
+    :icon: file-code
+
+    .. code-block:: toml
+        :caption: config.toml
+
+        # Config template of wrfrun.
+
+        # Work directory.
+        # By setting work directory, you can let wrfrun work and save runtime files in a single directory.
+        # You can also set work_dir="" to let wrfrun work in the standard path.
+        work_dir = "./.wrfrun"
+
+
+        # Path of the directory which contains input data.
+        input_data_path = ""
+
+        # Path of the directory to store all outputs.
+        output_path = "./outputs"
+        log_path = "./logs"
+
+        # wrfrun can launch a socket server during NWP execution to report simulation progress.
+        # To enable the server, you need to configure the IP address and port on which it will listen to.
+        server_host = "localhost"
+        server_port = 54321
+
+        # How many cores you will use.
+        # Note that if you use a job scheduler (like PBS), this value means the number of cores each node you use.
+        core_num = 36
+
+
+        [job_scheduler]
+        # Job scheduler settings.
+        # Which job scheduler you want to use
+        # wrfrun supports following job schedulers:
+        # 1. PBS: "pbs"
+        # 2. LSF: "lsf"
+        # 3. Slurm: "slurm"
+        job_scheduler = "pbs"
+
+        # Which queue should the task be submited to
+        queue_name = ""
+
+        # How many nodes you will use.
+        node_num = 1
+
+        # Custom environment settings
+        env_settings = {}
+
+        # Path of the python interpreter that will be used to run wrfrun.
+        # You can also give its name only.
+        python_interpreter = "/usr/bin/python3"     # or just "python3"
+
+
+        [model]
+
+        [model.wrf]
+        # If you want to use WRF model, set use to true.
+        use = false
+        # Import configurations from another toml file.
+        # You can give both absolute and relative path.
+        # The relative path is resolved based on this configuration file.
+        include = "./configs/wrf.toml"
+
+        [model.palm]
+        # If you want to use PALM model, set use to true.
+        use = false
+        # Import configurations from another toml file.
+        # You can give both absolute and relative path.
+        # The relative path is resolved based on this configuration file.
+        include = "./configs/palm.toml"
+
+.. dropdown:: Click to view full WRF model configuration template
+    :icon: file-code
+
+    .. code-block:: toml
+        :caption: wrf.toml
+
+        # Config for WRF model.
+        # WRF model path.
+        wps_path = '/path/to/your/WPS/folder'
+        wrf_path = '/path/to/your/WRF/folder'
+        # WRFDA is optional.
+        wrfda_path = ''
+
+        # static geographic data path
+        geog_data_path = '/path/to/your/geog/data'
+
+        # Namelist template.
+        # If None, will use built-in namelist template.
+        wps_namelist_template = ''
+        wrf_namelist_template = ''
+        wrfda_namelist_template = ''
+
+        # Your can give your custom namelist files here.
+        # The value in it will overwrite the default value in the namelist template file.
+        user_wps_namelist = ''
+        user_real_namelist = ''
+        user_wrf_namelist = ''
+        user_wrfda_namelist = ''
+
+        # If you make a restart run?
+        restart_mode = false
+
+        # debug level for WRF model
+        debug_level = 100
+
+        [time]
+        # Advance time config for WRF
+        # Set the start and end date. It will be used for all domains.
+        # You can also provide all the dates as a list, with each date for the corresponding domain.
+        start_date = 2021-03-24T12:00:00Z   # or [2021-03-24T12:00:00Z, 2021-03-24T12:00:00Z]
+        end_date = 2021-03-26T00:00:00Z     # or [2021-03-26T00:00:00Z, 2021-03-24T12:00:00Z]
+
+        # Set input data time interval. Unit: seconds
+        input_data_interval = 10800
+
+        # Set output data time interval. Unit: minutes
+        output_data_interval = 180
+
+        # Note that there are various reasons which could crash wrf,
+        # and in most cases you can deal with them by decrease time step.
+        # Unit: seconds
+        time_step = 120
+
+        # Time ratio to the first domain for each domain
+        parent_time_step_ratio = [1, 3, 4]
+
+        # Time interval to write restart files.
+        # This help you can restart WRF after it stops.
+        # By default, it equals to output_data_interval. Unit: minutes.
+        restart_interval = -1
+
+
+        [domain]
+        # Advance domain config for WRF.
+        # Set domain number.
+        domain_num = 3
+
+        # It's very hard to process wrf domain settings because it's related to various settings, so I keep it.
+        # The resolution ratio to the first domain.
+        parent_grid_ratio = [1, 3, 9]
+
+        # Index of the start point.
+        i_parent_start = [1, 17, 72]
+        j_parent_start = [1, 17, 36]
+
+        # Number of points.
+        e_we = [120, 250, 1198]
+        e_sn = [120, 220, 1297]
+
+        # Resolution of the first domain.
+        dx = 9000
+        dy = 9000
+
+        # Projection.
+        map_proj = 'lambert'
+        truelat1 = 34.0
+        truelat2 = 40.0
+
+        # Central point of the first area.
+        ref_lat = 37.0
+        ref_lon = 120.5
+        stand_lon = 120.5
+
+
+        [scheme]
+        # Advance physics scheme config for WRF.
+        # To look up the nickname for all physics schemes, please see: https://wrfrun.syize.cn.
         # Option contains many other settings related to the scheme.
-        # Sometimes some options can only be used for specific scheme.
+        # Sometimes some option can only be used for a specific scheme.
         # You can check it in online namelist variables: https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/namelist_variables.html
         # You can set option with its `wrf name` and its `wrf value`.
-        # For example, `ghg_input=1` works with rrtm scheme. If you want set `ghg_input=1` when using rrtm, set option: {"ghg_input": 1}
-        # However, sometimes some options work with various scheme, and some options themselves are schemes too.
+        # For example, `ghg_input=1` works with rrtm scheme. If you want to set `ghg_input=1` when using rrtm, set option: {"ghg_input": 1}
+        # However, sometimes some options work with various schemes, and some options themselves are scheme.
         # Use this carefully.
         # You can set multiple keys in option.
-        option: {'icloud': 1}
+        long_wave_scheme = { name = "rrtm", option = {} }
+        short_wave_scheme = { name = "rrtmg", option = {} }
+        cumulus_scheme = { name = "kf", option = {} }
+        pbl_scheme = { name = "ysu", option = { ysu_topdown_pblmix = 1} }
+        land_surface_scheme = { name = "noah", option = {} }
+        surface_layer_scheme = { name = "mm5", option = {} }
 
-      # Here's the option of short wave scheme
-      # "off": off,
-      # "dudhia": Dudhia,
-      # "goddard": Goddard,
-      # "cam": CAM,
-      # "rrtmg": RRTMG,
-      # "new-goddard": New Goddard,
-      # "flg": FLG,
-      # "rrtmg-k": RRTMG-K,
-      # "gfdl": GFDL
-      short_wave_scheme:
-        name: 'rrtmg'
-        option: {}
+.. dropdown:: Click to view full PALM model configuration template
+    :icon: file-code
 
-      # Here's the option of cumulus scheme
-      # "off": off,
-      # "kf": Kain-Fritsch (KF),
-      # "bmj": BMJ,
-      # "gf": Grell-Freitas,
-      # "old-sas": Old SAS,
-      # "grell-3": Grell-3,
-      # "tiedtke": Tiedtke,
-      # "zmf": Zhang-McFarlane,
-      # "kf-cup": KF-CuP,
-      # "mkf": Multi-scale KF,
-      # "kiaps-sas": KIAPS SAS,
-      # "nt": New Tiedtke,
-      # "gd": Grell-Devenyi,
-      # "nsas": NSAS,
-      # "old-kf": Old KF
-      cumulus_scheme:
-        name: 'kf'
-        option: {}
+    .. code-block:: toml
+        :caption: palm.toml
 
-      # Here's the option of PBL scheme
-      # "off": off,
-      # "ysu": YSU,
-      # "myj": MYJ,
-      # "qe": QNSE-EDMF,
-      # "mynn2": MYNN2,
-      # "acm2": ACM2,
-      # "boulac": BouLac,
-      # "uw": UW,
-      # "temf": TEMF,
-      # "shin-hong": Shin-Hong,
-      # "gbm": GBM,
-      # "eeps": EEPS,
-      # "keps": KEPS,
-      # "mrf": MRF
-      pbl_scheme:
-        name: 'ysu'
-        option: {'ysu_topdown_pblmix': 1}
+        # Config for PALM model.
+        # PALM model path.
+        palm_path = "/path/to/your/PALM/folder"
 
-      # Here's the option of land surface model
-      # "off": off,
-      # "slab": 5-layer thermal diffusion (SLAB),
-      # "noah": Noah,
-      # "ruc": RUC,
-      # "noah-mp": Noah-MP,
-      # "clm4": Community Land Model Version 4 (CLM4),
-      # "px": Pleim-Xiu,
-      # "ssib": Simplified Simple Biosphere (SSiB)
-      land_surface_scheme:
-        name: 'noah'
-        option: {}
+        # Place data here.
+        data_dir_path = "/path/to/your/data/folder"
 
-      # Here's the option of surface layer scheme
-      # "off": off,
-      # "mm5": revised MM5 Monin-Obukhov,
-      # "mo": Monin-Obukhov (Janjic Eta Similarity),
-      # "qnse": QNSE,
-      # "mynn": MYNN,
-      # "px": Pleim-Xiu; use with Pleim-Xiu surface and ACM2 PBL,
-      # "temf": TEMF,
-      # "old-mm5": old MM5
-      surface_layer_scheme:
-        name: 'mo'
-        option: {}
+        # Set PALM config identifier here.
+        # If you want to use a config identifier you never used before,
+        # make sure palm can build successfully.
+        config_identifier = "default"
 
-Each scheme option has two fields: ``name`` and ``option``. Like the ``map_proj`` mentioned above, ``name`` specifies the name of physics scheme and is mandatory. ``option`` is used to specify more options related to the scheme you use. For example, ``ysu_topdown_pblmix`` is only used when the PBL scheme is ``YSU``, if you want to turn ``ysu_topdown_pblmix`` on when using ``YSU`` PBL scheme, you can write like this:
+        # Set job name (aka run identifier in PALM) here.
+        job_name = "wrfrun"
 
-.. code-block:: yaml
+        # Set simulation type here (the value passed to "-a" of palmrun)
+        # Available values:
+        #   - "d3#"
+        #   - "d3r"
+        #   - "pcr"
+        simulation_type = "d3#"
 
-    pbl_scheme:
-      name: 'ysu'
-      option: {'ysu_topdown_pblmix': 1}
+        # PALM config file.
+        # If empty, use the default config from PALM.
+        # You can get a file from PALM_INSTALL_DIR/.palm.config.default
+        config_file_path = ""
 
-wrfrun
-******
+        # You can provide topography file here.
+        topography_file = '/path/to/your/topography/file'
+
+        # You need to give your namelist file,
+        # cause wrfrun hasn't supported more options in toml config file yet.
+        user_namelist = '/path/to/your/namelist/file'
+
+Configuration Structure
+***********************
+
+The configuration file is divided into three main sections: global configuration, job scheduler configuration, and model configuration.
+
+Global Configuration
+====================
+
+The global configuration defines the basic operating parameters of wrfrun:
+
+.. code-block:: toml
+
+    # Working directory where wrfrun saves all runtime files
+    work_dir = "./.wrfrun"
+
+    # Path to directory containing input data
+    input_data_path = ""
+
+    # Paths for output files and log files
+    output_path = "./outputs"
+    log_path = "./logs"
+
+    # Progress report server configuration
+    server_host = "localhost"
+    server_port = 54321
+
+    # Number of CPU cores to use
+    # When using a job scheduler, this value represents the number of cores per node
+    core_num = 36
+
+Job Scheduler Configuration
+===========================
+
+The ``[job_scheduler]`` section defines job submission related configurations:
+
+.. code-block:: toml
+
+    [job_scheduler]
+    # Job scheduler type, supports "pbs", "lsf", "slurm"
+    job_scheduler = "pbs"
+
+    # Job queue name
+    queue_name = ""
+
+    # Number of nodes to use
+    node_num = 1
+
+    # Custom environment variable settings
+    env_settings = {}
+
+    # Python interpreter path
+    python_interpreter = "/usr/bin/python3"
+
+Model Configuration
+===================
+
+The ``[model]`` section defines the numerical models to use and their configurations:
+
+.. code-block:: toml
+
+    [model]
+
+    [model.wrf]
+    # Whether to enable WRF model
+    use = false
+    # Path to WRF model configuration file, can be absolute or relative
+    include = "./configs/wrf.toml"
+
+    [model.palm]
+    # Whether to enable PALM model
+    use = false
+    # Path to PALM model configuration file
+    include = "./configs/palm.toml"
+
+wrfrun supports configuring multiple models simultaneously.
+
+WRF Model Configuration Details
+*******************************
+
+The WRF model configuration file contains all parameters required for WRF runs, divided into the following sections:
+
+Basic Configuration
+===================
+
+.. code-block:: toml
+
+    # Installation paths for WPS, WRF and WRFDA
+    wps_path = '/path/to/your/WPS/folder'
+    wrf_path = '/path/to/your/WRF/folder'
+    wrfda_path = ''  # Optional
+
+    # Geographic data path
+    geog_data_path = '/path/to/your/geog/data'
+
+    # Custom namelist template paths
+    wps_namelist_template = ''
+    wrf_namelist_template = ''
+    wrfda_namelist_template = ''
+
+    # User custom namelist files, will override default values in templates
+    user_wps_namelist = ''
+    user_real_namelist = ''
+    user_wrf_namelist = ''
+    user_wrfda_namelist = ''
+
+    # Whether this is a restart run
+    restart_mode = false
+
+    # WRF debug level
+    debug_level = 100
+
+Time Configuration
+==================
+
+The ``[time]`` section defines simulation time related parameters:
+
+.. code-block:: toml
+
+    [time]
+    # Simulation start and end times, supports ISO 8601 format
+    # You can also specify different times for each domain, e.g. [2021-03-24T12:00:00Z, 2021-03-24T12:00:00Z]
+    start_date = 2021-03-24T12:00:00Z
+    end_date = 2021-03-26T00:00:00Z
+
+    # Input data time interval in seconds
+    input_data_interval = 10800
+
+    # Output data time interval in minutes
+    output_data_interval = 180
+
+    # Integration time step in seconds
+    time_step = 120
+
+    # Time step ratio for each nested domain relative to the outermost domain
+    parent_time_step_ratio = [1, 3, 4]
+
+    # Restart file writing interval in minutes
+    # -1 means same as output interval
+    restart_interval = -1
+
+Domain Configuration
+====================
+
+The ``[domain]`` section defines simulation domain related parameters:
+
+.. code-block:: toml
+
+    [domain]
+    # Total number of nested domains
+    domain_num = 3
+
+    # Resolution ratio for each nested domain relative to the outermost domain
+    parent_grid_ratio = [1, 3, 9]
+
+    # Starting point indices for each nested domain
+    i_parent_start = [1, 17, 72]
+    j_parent_start = [1, 17, 36]
+
+    # Number of grid points for each nested domain
+    e_we = [120, 250, 1198]
+    e_sn = [120, 220, 1297]
+
+    # Resolution of the outermost domain in meters
+    dx = 9000
+    dy = 9000
+
+    # Projection method and parameters
+    map_proj = 'lambert'
+    truelat1 = 34.0
+    truelat2 = 40.0
+
+    # Center point coordinates of the domain
+    ref_lat = 37.0
+    ref_lon = 120.5
+    stand_lon = 120.5
+
+Physics Scheme Configuration
+============================
+
+The ``[scheme]`` section defines the physical parameterization schemes used by WRF:
+
+.. code-block:: toml
+
+    [scheme]
+    # Longwave radiation scheme
+    long_wave_scheme = { name = "rrtm", option = {} }
+    # Shortwave radiation scheme
+    short_wave_scheme = { name = "rrtmg", option = {} }
+    # Cumulus convection scheme
+    cumulus_scheme = { name = "kf", option = {} }
+    # Planetary boundary layer scheme
+    pbl_scheme = { name = "ysu", option = { ysu_topdown_pblmix = 1} }
+    # Land surface model scheme
+    land_surface_scheme = { name = "noah", option = {} }
+    # Surface layer scheme
+    surface_layer_scheme = { name = "mm5", option = {} }
+
+Each physics scheme contains two fields: ``name`` and ``option``:
+
+- ``name``: The name of the scheme, wrfrun has built-in aliases for all commonly used schemes, see :doc:`/api/model.wrf.scheme` for the complete list of available schemes.
+- ``option``: Additional configuration options for this scheme, which will be written directly to the namelist
+
+You can view all available physics schemes and parameters in the `official WRF documentation <https://www2.mmm.ucar.edu/wrf/users/wrf_users_guide/build/html/namelist_variables.html>`_.
+
+PALM Model Configuration Details
+********************************
+
+The PALM model configuration file contains parameters required for PALM runs:
+
+.. code-block:: toml
+
+    # PALM model installation path
+    palm_path = "/path/to/your/PALM/folder"
+
+    # Data directory path
+    data_dir_path = "/path/to/your/data/folder"
+
+    # PALM configuration identifier
+    config_identifier = "default"
+
+    # Job name (run identifier in PALM)
+    job_name = "wrfrun"
