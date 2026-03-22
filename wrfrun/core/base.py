@@ -123,8 +123,16 @@ def call_subprocess(
         if not exists(save_dir):
             makedirs(save_dir)
 
-        stdout_file = f"{log_save_prefix}.log"
-        stderr_file = f"{log_save_prefix}.err"
+        stdout_file = f"{log_save_prefix}.stdout"
+        stderr_file = f"{log_save_prefix}.stderr"
+
+        if exists(stdout_file):
+            old_stdout_file = f"{stdout_file}.bak"
+            logger.warning(f"stdout file exists. Backup it to '{old_stdout_file}'")
+
+        if exists(stderr_file):
+            old_stderr_file = f"{stderr_file}.bak"
+            logger.warning(f"stderr file exists. Backup it to '{old_stderr_file}'")
 
         with open(stdout_file, "w") as f:
             f.write(status.stdout.decode())
@@ -175,7 +183,6 @@ class ExecutableBase:
         mpi_use=False,
         mpi_cmd: Optional[str] = None,
         mpi_core_num: Optional[int] = None,
-        external_log_save_prefix: Optional[str] = None,
     ):
         """
 
@@ -193,10 +200,6 @@ class ExecutableBase:
         :type mpi_cmd: str
         :param mpi_core_num: How many cores you use. Defaults to None.
         :type mpi_core_num: int
-        :param external_log_save_prefix: Log file path to save external command logs.
-                                         For example, if you give a prefix ``logs/wrf/wrf``,
-                                         then two files ``wrf.log`` and ``wrf.err`` will be saved to directory ``logs/wrf``.
-                                         They will contain stdout and stderr logs of the external command.
         """
         if mpi_use and isinstance(cmd, list):
             logger.error("If you want to use mpi, then `cmd` must be a single string.")
@@ -208,7 +211,6 @@ class ExecutableBase:
         self.mpi_use = mpi_use
         self.mpi_cmd = mpi_cmd
         self.mpi_core_num = mpi_core_num
-        self.external_log_save_prefix = external_log_save_prefix
 
         self.class_config: ExecutableClassConfig = {"class_args": (), "class_kwargs": {}}
         self.custom_config: dict = {}
@@ -349,7 +351,7 @@ class ExecutableBase:
         ... }
         >>> self.add_input_files([file_dict_1, file_dict_2])
 
-        Please check :class:`FileConfigDict` for more details.
+        Please check :class:`FileConfigDict <wrfrun.core.type.FileConfigDict>` for more details.
 
         :param input_files: Custom files.
         :type input_files: str | list | dict
@@ -408,7 +410,8 @@ class ExecutableBase:
     ):
         """
         Find and save model's outputs to the output save path.
-        An ``OutputFileError`` exception will be raised if no file can be found and ``no_file_error==True``.
+        An :class:`OutputFileError <wrfrun.core.error.OutputFileError>` exception will be raised 
+        if no file can be found and ``no_file_error==True``.
 
         You can give the specific path of a file or multiple files.
 
@@ -557,7 +560,7 @@ class ExecutableBase:
 
     def before_exec_debug(self):
         """
-        Debug method that will be called after ``before_exec``.
+        Debug method that will be called after :py:meth:`before_exec`.
         """
         logger.debug(f"Method 'before_exec_debug' not implemented in '{self.name}'")
 
@@ -603,7 +606,7 @@ class ExecutableBase:
 
     def after_exec_debug(self):
         """
-        Debug method that will be called after ``after_exec``.
+        Debug method that will be called after :py:meth:`after_exec`.
         """
         logger.debug(f"Method 'after_exec_debug' not implemented in '{self.name}'")
 
@@ -630,23 +633,22 @@ class ExecutableBase:
             logger.info(f"We are in fake simulation mode, skip calling numerical model for '{self.name}'")
             return
 
-        call_subprocess(_cmd, work_path=work_path, log_save_prefix=self.external_log_save_prefix)
+        log_save_path = WRFRUN.config.parse_resource_uri(self._log_save_path)
+        log_save_prefix = f"{log_save_path}/{self.name}"
+        call_subprocess(_cmd, work_path=work_path, log_save_prefix=log_save_prefix)
 
         if WRFRUN.config.DEBUG_MODE_EXECUTABLE:
             self.exec_debug()
 
     def exec_debug(self):
         """
-        Debug method that will be called after ``exec``.
+        Debug method that will be called after :py:meth:`exec`.
         """
         logger.debug(f"Method 'exec_debug' not implemented in '{self.name}'")
 
     def __call__(self):
         """
-        Execute the given command by calling ``before_exec``, ``exec`` and ``after_exec``.
-
-        :return:
-        :rtype:
+        Execute the given command by calling :py:meth:`before_exec`, :py:meth:`exec` and :py:meth:`after_exec`.
         """
         self.before_exec()
         self.exec()

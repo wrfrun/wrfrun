@@ -14,7 +14,7 @@ sys.path.insert(0, abspath("../.."))
 project = "wrfrun"
 copyright = "2026, Syize"
 author = "Syize"
-release = "0.3.1"
+release = "0.3.3"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -52,39 +52,3 @@ autodoc_default_options = {
     "inherited-members": False,
 }
 autodoc_typehints = "description"
-
-
-# Skip the doc of specific members in wrfrun when autodoc collecting docs.
-# def skip_specific_members(app, what, name, obj, skip, options):
-#     """
-#     See `sphinx docs <https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#skipping-members>`_.
-#
-#     :param app:
-#     :type app:
-#     :param what:
-#     :type what:
-#     :param name:
-#     :type name:
-#     :param obj:
-#     :type obj:
-#     :param skip:
-#     :type skip:
-#     :param options:
-#     :type options:
-#     :return:
-#     :rtype:
-#     """
-#     print(f"what is {what}, name is {name}, obj is {type(obj)}")
-#     return skip
-#
-#
-# def setup(app):
-#     """
-#     Set handlers.
-#
-#     :param app:
-#     :type app:
-#     :return:
-#     :rtype:
-#     """
-#     app.connect("autodoc-skip-member", skip_specific_members)

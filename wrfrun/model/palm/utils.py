@@ -5,7 +5,7 @@ wrfrun.model.palm.utils
 .. autosummary::
     :toctree: generated/
 
-    get_input_subfix
+    get_input_postfix
 
 Utility functions used by ``wrfrun.model.palm``.
 """
