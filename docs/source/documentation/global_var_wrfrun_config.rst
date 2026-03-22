@@ -11,8 +11,8 @@ Class Architecture
 
 :class:`WRFRunConfig <wrfrun.core._config.WRFRunConfig>` uses multiple inheritance to combine functionality from four mixin classes, each responsible for a specific aspect of configuration management:
 
-.. inheritance-diagram:: wrfrun.core._config.WRFRunConfig
-    :parts: 1
+.. .. inheritance-diagram:: wrfrun.core._config.WRFRunConfig
+..     :parts: 1
 
 + :class:`ConstantMixIn <wrfrun.core._constant.ConstantMixIn>`: Manages runtime constants, standard paths, and global state
 + :class:`ResourceMixIn <wrfrun.core._resource.ResourceMixIn>`: Handles resource URI registration and path resolution

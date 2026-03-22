@@ -190,3 +190,9 @@ API reference
    :maxdepth: 2
 
    api/index
+
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+
+   development/index
