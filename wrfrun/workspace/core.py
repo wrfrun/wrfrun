@@ -18,6 +18,7 @@ from wrfrun.core import WRFRUN
 from wrfrun.log import check_path, logger
 
 from .palm import prepare_palm_workspace
+from .roms import prepare_roms_workspace
 from .wrf import check_wrf_workspace, prepare_wrf_workspace
 
 
@@ -55,7 +56,7 @@ def prepare_workspace():
     check_path(replay_work_path)
     check_path(output_path)
 
-    func_map = {"wrf": prepare_wrf_workspace, "palm": prepare_palm_workspace}
+    func_map = {"wrf": prepare_wrf_workspace, "palm": prepare_palm_workspace, "roms": prepare_roms_workspace}
     model_configs = WRFRUNConfig["model"]
 
     for model_name in model_configs:

@@ -11,3 +11,4 @@ py3.install_sources(
 
 subdir('palm')
 subdir('wrf')
+subdir('roms')

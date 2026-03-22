@@ -1,0 +1,14 @@
+# Config for ROMS model.
+# ROMS model path.
+roms_in_path = '/path/to/your/ROMS_in_file'
+
+# roms.h file path
+# roms_header_file_path = ''
+
+# build.sh file path
+# roms_build_script_path = ''
+
+# compiled ROMS executable path.
+roms_compiled_executable_path = '' 
+
+roms_varinfo_file_path = ''

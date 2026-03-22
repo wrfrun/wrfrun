@@ -10,5 +10,9 @@
     "palm.template.toml": {
         "name": "PALM_TOML_TEMPLATE",
         "type": "file"
+    },
+    "roms.template.toml": {
+        "name": "ROMS_TOML_TEMPLATE",
+        "type": "file"
     }
 }

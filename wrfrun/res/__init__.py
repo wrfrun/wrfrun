@@ -110,6 +110,7 @@ NAMELIST_WPS = ":WRFRUN_RESOURCE_PATH:/namelist/namelist.wps.template"
 CONFIG_MAIN_TOML_TEMPLATE = ":WRFRUN_RESOURCE_PATH:/config/config.template.toml"
 CONFIG_WRF_TOML_TEMPLATE = ":WRFRUN_RESOURCE_PATH:/config/wrf.template.toml"
 CONFIG_PALM_TOML_TEMPLATE = ":WRFRUN_RESOURCE_PATH:/config/palm.template.toml"
+CONFIG_ROMS_TOML_TEMPLATE = ":WRFRUN_RESOURCE_PATH:/config/roms.template.toml"
 
 
 def _set_config_template_path(wrfrun_config: WRFRunConfig):
@@ -134,4 +135,5 @@ __all__ = [
     "CONFIG_MAIN_TOML_TEMPLATE",
     "CONFIG_WRF_TOML_TEMPLATE",
     "CONFIG_PALM_TOML_TEMPLATE",
+    "CONFIG_ROMS_TOML_TEMPLATE",
 ]
