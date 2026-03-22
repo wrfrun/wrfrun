@@ -7,18 +7,57 @@ Core functions to prepare ``wrfrun`` workspace.
 .. autosummary::
     :toctree: generated/
 
+    register_workspace_func
     prepare_workspace
     check_workspace
 """
 
 from os.path import exists
 from shutil import rmtree
+from typing import Callable, Literal
 
 from wrfrun.core import WRFRUN
 from wrfrun.log import check_path, logger
 
 from .palm import prepare_palm_workspace
 from .wrf import check_wrf_workspace, prepare_wrf_workspace
+
+PREPARE_FUNC_MAP = {"wrf": prepare_wrf_workspace, "palm": prepare_palm_workspace}
+CHECK_FUNC_MAP = {"wrf": check_wrf_workspace}
+
+
+def register_workspace_func(model_name: str, func: Callable[[dict], bool], func_type: Literal["prepare", "check"]) -> bool:
+    """
+    Register a workspace function for a model.
+
+    :param model_name: _description_
+    :type model_name: str
+    :param func: Workspace process function.
+    :type func: Callable[[dict], bool]
+    :param func_type: Type of the function.
+    :type func_type: Literal["prepare", "check"]
+    :return: If successfully register.
+    :rtype: bool
+    """
+    global PREPARE_FUNC_MAP, CHECK_FUNC_MAP
+
+    flag = False
+
+    if func_type == "prepare":
+        if model_name not in PREPARE_FUNC_MAP:
+            PREPARE_FUNC_MAP[model_name] = func
+            flag = True
+
+    elif func_type == "check":
+        if model_name not in CHECK_FUNC_MAP:
+            CHECK_FUNC_MAP[model_name] = func
+            flag = True
+
+    else:
+        logger.error(f"Unknown function type: {func_type}")
+        raise ValueError(f"Unknown function type: {func_type}")
+
+    return flag
 
 
 def prepare_workspace():
@@ -37,6 +76,8 @@ def prepare_workspace():
 
     1. :doc:`WPS/WRF model </api/workspace.wrf>`
     """
+    global PREPARE_FUNC_MAP
+
     WRFRUNConfig = WRFRUN.config
 
     wrfrun_temp_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_TEMP_PATH)
@@ -55,15 +96,14 @@ def prepare_workspace():
     check_path(replay_work_path)
     check_path(output_path)
 
-    func_map = {"wrf": prepare_wrf_workspace, "palm": prepare_palm_workspace}
     model_configs = WRFRUNConfig["model"]
 
     for model_name in model_configs:
-        if model_name not in func_map:
+        if model_name not in PREPARE_FUNC_MAP:
             logger.warning(f"Function to prepare '{model_name}' workspace not found, workspace may be incomplete")
             continue
 
-        func_map[model_name](model_configs[model_name])
+        PREPARE_FUNC_MAP[model_name](model_configs[model_name])
 
 
 def check_workspace() -> bool:
@@ -73,6 +113,8 @@ def check_workspace() -> bool:
     :return: ``True`` if workspace exists, ``False`` otherwise.
     :rtype: bool
     """
+    global CHECK_FUNC_MAP
+
     WRFRUNConfig = WRFRUN.config
 
     wrfrun_temp_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_TEMP_PATH)
@@ -83,18 +125,17 @@ def check_workspace() -> bool:
     flag = True
     flag = flag & exists(wrfrun_temp_path) & exists(replay_work_path) & exists(output_path) & exists(workspace_path)
 
-    func_map = {"wrf": check_wrf_workspace}
     model_configs = WRFRUNConfig["model"]
 
     for model_name in model_configs:
         if model_name == "debug_level":
             continue
 
-        if model_name not in func_map:
+        if model_name not in CHECK_FUNC_MAP:
             logger.info(f"Function to check '{model_name}' workspace not found, skip")
             continue
 
-        flag = flag & func_map[model_name](model_configs[model_name])
+        flag = flag & CHECK_FUNC_MAP[model_name](model_configs[model_name])
 
     return True
 
