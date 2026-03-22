@@ -1,3 +1,16 @@
+"""
+wrfrun.model.roms.core
+######################
+
+Core implementation of ROMS model.
+
+.. autosummary::
+    :toctree: generated/
+
+    ROMS
+    roms
+"""
+
 from os.path import abspath, basename
 from typing import Optional
 
@@ -8,16 +21,18 @@ from wrfrun.workspace.roms import get_roms_workspace_path
 
 class ROMS(ExecutableBase):
     """
-    ``Executable`` for "roms*.exe".
+    ``Executable`` for ROMS.
     """
 
     def __init__(self, roms_exe_path: str, core_num: Optional[int] = None):
         """
-        ``Executable`` for "roms*.exe".
-        """
-        model_config = WRFRUN.config.get_model_config("roms")
-        in_file_path = model_config["roms_in_path"]
+        ``Executable`` for ROMS
 
+        :param roms_exe_path: ROMS executable file path.
+        :type roms_exe_path: str
+        :param core_num: CPU cores to use, defaults to None
+        :type core_num: Optional[int], optional
+        """
         if isinstance(core_num, int) and core_num <= 0:
             logger.warning("`core_num` should be greater than 0")
             core_num = None
@@ -32,6 +47,9 @@ class ROMS(ExecutableBase):
             mpi_cmd = "mpirun"
             mpi_core_num = core_num
 
+        model_config = WRFRUN.config.get_model_config("roms")
+        in_file_path = model_config["roms_in_path"]
+
         super().__init__(
             name="roms",
             cmd=f"./{basename(roms_exe_path)} ./{basename(in_file_path)}",
@@ -40,6 +58,7 @@ class ROMS(ExecutableBase):
             mpi_cmd=mpi_cmd,
             mpi_core_num=mpi_core_num,
         )
+
         self.roms_exe_path = abspath(roms_exe_path)
         self.in_file_path = abspath(in_file_path)
         self.varinfo_file_path = abspath(model_config["roms_varinfo_file_path"])
@@ -50,18 +69,24 @@ class ROMS(ExecutableBase):
 
     def generate_custom_config(self):
         """
-        Store ROMS config.
+        Store custom config, including:
+
+        * ``.in`` file path.
+        * varinfo.yaml file path.
         """
-        self.custom_config.update({"ocean.in": WRFRUN.config.get_namelist("wps"), "geogrid_tbl_file": self.geogrid_tbl_file})
+        self.custom_config.update({"in_file_path": self.in_file_path, "varinfo_file_path": self.varinfo_file_path})
 
     def load_custom_config(self):
         """
-        Load ROMS config.
-        """
-        WRFRUN.config.update_namelist(self.custom_config["ocean.in"], "wps")
-        self.geogrid_tbl_file = self.custom_config["geogrid_tbl_file"]
+        Load custom config, including:
 
-    def before_exec(self):  # 把文件放入工作区
+        * ``.in`` file path.
+        * varinfo.yaml file path.
+        """
+        self.in_file_path = self.custom_config["in_file_path"]
+        self.varinfo_file_path = self.custom_config["varinfo_file_path"]
+
+    def before_exec(self):
         WRFRUN.config.check_wrfrun_context(True)
         WRFRUN.config.WRFRUN_WORK_STATUS = "roms"
 
@@ -72,15 +97,8 @@ class ROMS(ExecutableBase):
 
         super().before_exec()
 
-        # WRFRUN.config.write_namelist(f"{get_wrf_workspace_path('wps')}/{NamelistName.WPS}", "wps")
-
-        # print debug logs
-        logger.debug("Settings of 'roms':")
-        # logger.debug(WRFRUN.config.get_namelist("wps"))
-
     def after_exec(self):
         if not WRFRUN.config.IS_IN_REPLAY:
-            # self.add_output_files(save_path=self._log_save_path, startswith="geogrid.log", outputs=NamelistName.WPS)
             self.add_output_files(save_path=self._output_save_path, endswith=".nc")
 
             logger.warning(
@@ -89,10 +107,15 @@ class ROMS(ExecutableBase):
 
         super().after_exec()
 
-        logger.info(f"All geogrid output files have been copied to {WRFRUN.config.parse_resource_uri(self._output_save_path)}")
+        logger.info(f"All ROMS output files have been copied to {WRFRUN.config.parse_resource_uri(self._output_save_path)}")
 
 
 def roms():
+    """
+    Function interface for :class:`ROMS`.
+
+    Parameters needed to initialize :class:`ROMS` is read from global variable :doc:`WRFRUN </api/core.core>`.
+    """
     roms_exe_path = WRFRUN.config.get_model_config("roms")["roms_compiled_executable_path"]
     return ROMS(roms_exe_path, WRFRUN.config.get_core_num())()
 
