@@ -20,9 +20,10 @@ from wrfrun.core import WRFRUN
 from wrfrun.log import check_path, logger
 
 from .palm import prepare_palm_workspace
+from .roms import prepare_roms_workspace
 from .wrf import check_wrf_workspace, prepare_wrf_workspace
 
-PREPARE_FUNC_MAP = {"wrf": prepare_wrf_workspace, "palm": prepare_palm_workspace}
+PREPARE_FUNC_MAP = {"wrf": prepare_wrf_workspace, "palm": prepare_palm_workspace, "roms": prepare_roms_workspace}
 CHECK_FUNC_MAP = {"wrf": check_wrf_workspace}
 
 

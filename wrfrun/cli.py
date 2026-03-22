@@ -29,6 +29,7 @@ from .log import logger
 from .res import (
     CONFIG_MAIN_TOML_TEMPLATE,
     CONFIG_PALM_TOML_TEMPLATE,
+    CONFIG_ROMS_TOML_TEMPLATE,
     CONFIG_WRF_TOML_TEMPLATE,
     GITIGNORE_RULES,
     _register_res_uri,
@@ -37,6 +38,7 @@ from .res import (
 MODEL_MAP = {
     "wrf": CONFIG_WRF_TOML_TEMPLATE,
     "palm": CONFIG_PALM_TOML_TEMPLATE,
+    "roms": CONFIG_ROMS_TOML_TEMPLATE,
 }
 
 # need some mannual calls to make cli work without a config file.
@@ -185,7 +187,7 @@ def main_entry():
     model_parser = subparsers.add_parser("model", help="Manage models used by wrfrun project.", add_help=True)
     model_parser.add_argument("-c", "--config", type=str, default="config.toml", help="Path of the main config file.")
     model_parser.add_argument(
-        "-a", "--add", nargs="+", required=True, type=str, help="Add models to the project.", choices=["wrf", "palm"]
+        "-a", "--add", nargs="+", required=True, type=str, help="Add models to the project.", choices=["wrf", "palm", "roms"]
     )
     model_parser.set_defaults(func=_entry_model)
 

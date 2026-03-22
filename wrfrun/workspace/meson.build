@@ -4,6 +4,7 @@ py3.install_sources(
         'core.py',
         'palm.py',
         'wrf.py',
+        'roms.py'
     ],
     subdir: 'wrfrun/workspace'
 )

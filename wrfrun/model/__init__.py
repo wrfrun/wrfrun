@@ -11,6 +11,7 @@ which are all placed in this module.
 
 ========================================= ==========================================
 :doc:`palm </api/model.palm>`             Support for PALM
+:doc:`roms </api/model.roms>`             Support for ROMS
 :doc:`wrf </api/model.wrf>`               Support for WRF
 ========================================= ==========================================
 
@@ -21,6 +22,7 @@ which are all placed in this module.
     constants <model.constants>
     palm <model.palm>
     plot <model.plot>
+    roms <model.roms>
     type <model.type>
     utils <model.utils>
     wrf <model.wrf>

@@ -212,10 +212,6 @@ class ExecutableBase:
         self.mpi_cmd = mpi_cmd
         self.mpi_core_num = mpi_core_num
 
-        # don't use mpi if mpi_core_num = 1
-        if isinstance(self.mpi_core_num, int) and self.mpi_core_num < 2:
-            self.mpi_core_num = None
-
         self.class_config: ExecutableClassConfig = {"class_args": (), "class_kwargs": {}}
         self.custom_config: dict = {}
         self.input_file_config: list[FileConfigDict] = []
