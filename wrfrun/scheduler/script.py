@@ -74,6 +74,7 @@ def prepare_scheduler_script(main_file_path: str):
             SCHEDULER_SETTINGS=scheduler_settings,
             ENV_SETTINGS=env_settings,
             WORK_COMMAND=exec_cmd,
+            WORK_PATH=dir_path,
         )
 
         f.write(template)

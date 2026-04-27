@@ -104,7 +104,7 @@ class WRFRUNProxy:
     def set_config_register_func(self, func: Callable[["WRFRunConfig"], None]):
         """
         Set register function which will be called by wrfrun config.
-        This functions should accept a ``WRFRunConfig`` instance.
+        This function should accept a ``WRFRunConfig`` instance.
 
         If wrfrun config hasn't been initialized, the function will be stored
         and called in order by the time wrfrun config is initialized.
