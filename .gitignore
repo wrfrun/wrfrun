@@ -22,6 +22,7 @@ config.yaml
 main.py
 namelist.*
 uv.lock
+.codex
 
 !**/namelist.py
 

@@ -1,8 +1,8 @@
 """
-wrfrun.scheduler.script
-#######################
+wrfrun.scheduler.core
+#####################
 
-Function to prepare bash script to commit job to scheduler.
+Functions to interact with job scheduler.
 
 .. autosummary::
     :toctree: generated/
@@ -19,6 +19,16 @@ from wrfrun.res import RUN_SH_TEMPLATE
 from .lsf import lsf_generate_settings
 from .pbs import pbs_generate_settings
 from .slurm import slurm_generate_settings
+
+
+def submit_scheduler_task(main_file_path: str):
+    """
+    Prepare the bash script for scheduler and submit it.
+
+    :param main_file_path: Path of the main entry Python file.
+    :type main_file_path: str
+    """
+    pass
 
 
 def prepare_scheduler_script(main_file_path: str):
@@ -82,4 +92,4 @@ def prepare_scheduler_script(main_file_path: str):
     logger.info(f"Job scheduler script written to {dir_path}/run.sh")
 
 
-__all__ = ["prepare_scheduler_script"]
+__all__ = ["prepare_scheduler_script", "submit_scheduler_task"]

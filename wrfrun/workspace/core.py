@@ -19,12 +19,12 @@ from typing import Callable, Literal
 from wrfrun.core import WRFRUN
 from wrfrun.log import check_path, logger
 
-from .palm import prepare_palm_workspace
+from .palm import check_palm_workspace, prepare_palm_workspace
 from .roms import prepare_roms_workspace
 from .wrf import check_wrf_workspace, prepare_wrf_workspace
 
 PREPARE_FUNC_MAP = {"wrf": prepare_wrf_workspace, "palm": prepare_palm_workspace, "roms": prepare_roms_workspace}
-CHECK_FUNC_MAP = {"wrf": check_wrf_workspace}
+CHECK_FUNC_MAP = {"wrf": check_wrf_workspace, "palm": check_palm_workspace}
 
 
 def register_workspace_func(model_name: str, func: Callable[[dict], bool], func_type: Literal["prepare", "check"]) -> bool:
@@ -138,7 +138,7 @@ def check_workspace() -> bool:
 
         flag = flag & CHECK_FUNC_MAP[model_name](model_configs[model_name])
 
-    return True
+    return flag
 
 
 __all__ = ["prepare_workspace", "check_workspace"]

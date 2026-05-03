@@ -13,6 +13,7 @@ Functions to prepare workspace for PALM model.
 
 from os import remove, symlink
 from os.path import abspath, exists, islink
+from pathlib import Path
 from shutil import copyfile, move, rmtree
 from typing import Literal
 
@@ -137,4 +138,23 @@ def prepare_palm_workspace(model_config: dict):
         symlink(abspath(config_file), f"{palm_work_path}/.palm.config.{config_id}")
 
 
-__all__ = ["get_palm_workspace_path", "prepare_palm_workspace"]
+def check_palm_workspace(model_config: dict) -> bool:
+    """
+    Check if PALM's workspace is broken.
+
+    :param model_config: PALM's model config.
+    :type model_config: dict
+    :return: If check passed.
+    :rtype: bool
+    """
+    WRFRUNConfig = WRFRUN.config
+
+    flag = True
+
+    palm_work_path = WRFRUNConfig.parse_resource_uri(WORKSPACE_PALM)
+    flag = flag & Path(palm_work_path).exists()
+
+    return flag
+
+
+__all__ = ["get_palm_workspace_path", "prepare_palm_workspace", "check_palm_workspace"]
