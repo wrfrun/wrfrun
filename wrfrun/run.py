@@ -191,9 +191,14 @@ class WRFRun:
         if self._start_server:
             stop_server(self._ip, self._port)  # type: ignore
 
-        if exc_type is None and self._WRFRUNReplay is not None:
-            self._WRFRUNReplay.export_replay_file()
+        if self._WRFRUNReplay is not None:
+            if exc_type is None:
+                self._WRFRUNReplay.export_replay_file()
+
             self._WRFRUNReplay.clear_records()
+            self._WRFRUNReplay = None
+
+        WRFRUN.config.IS_RECORDING = False
 
         # change status
         WRFRUN.config.set_wrfrun_context(False)
@@ -269,7 +274,8 @@ class WRFRun:
         except WRFRunBasicError:
             logger.error("Failed to replay the simulation")
 
-        WRFRUN.config.IS_IN_REPLAY = False
+        finally:
+            WRFRUN.config.IS_IN_REPLAY = False
 
     def replay_executables(self, replay_file: str) -> Generator[tuple[str, ExecutableBase], None, None]:
         """
@@ -293,10 +299,12 @@ class WRFRun:
 
         WRFRUN.config.IS_IN_REPLAY = True
 
-        for name, executable in self._replay_configs:
-            yield name, executable
+        try:
+            for name, executable in self._replay_configs:
+                yield name, executable
 
-        WRFRUN.config.IS_IN_REPLAY = False
+        finally:
+            WRFRUN.config.IS_IN_REPLAY = False
 
 
 __all__ = ["WRFRun"]
