@@ -45,13 +45,13 @@ from typing import Optional, Tuple, Union
 
 from wrfrun.core.base import ExecutableBase
 
-from .core import WRFRunBasicError, WRFRunServer, WRFRunServerHandler, call_subprocess, replay_config_generator, stop_server
+from .core import WRFRunBasicError, WRFRunServer, WRFRunServerHandler, replay_config_generator, stop_server
 from .core._record import ExecutableRecorder
 from .core.core import WRFRUN
 from .data import prepare_wps_input_data
 from .log import logger, logger_add_file_handler
 from .model import clear_model_logs, generate_domain_area
-from .scheduler import in_job_scheduler, prepare_scheduler_script
+from .scheduler import in_job_scheduler, submit_scheduler_task
 from .workspace import check_workspace, prepare_workspace
 
 
@@ -151,10 +151,8 @@ class WRFRun:
             if not self._skip_domain_confirm:
                 confirm_model_area()
 
-            prepare_scheduler_script(self._entry_file_path)
-
-            call_subprocess(["qsub", f"{self._entry_file_dir_path}/run.sh"])
-            logger.info("Work has been submit to PBS system")
+            submit_scheduler_task(self._entry_file_path)
+            logger.info("Work has been submitted to the configured scheduler")
             exit(0)
 
         elif not self._submit_job:

@@ -7,12 +7,13 @@ Functions to interact with job scheduler.
 .. autosummary::
     :toctree: generated/
 
+    submit_scheduler_task
     prepare_scheduler_script
 """
 
 from os.path import abspath, dirname, exists
 
-from wrfrun.core import WRFRUN
+from wrfrun.core import WRFRUN, call_subprocess
 from wrfrun.log import logger
 from wrfrun.res import RUN_SH_TEMPLATE
 
@@ -28,15 +29,37 @@ def submit_scheduler_task(main_file_path: str):
     :param main_file_path: Path of the main entry Python file.
     :type main_file_path: str
     """
-    pass
+    script_path = prepare_scheduler_script(main_file_path)
+
+    scheduler_name = WRFRUN.config.get_job_scheduler_config()["job_scheduler"]
+
+    match scheduler_name:
+        case "pbs":
+            submit_command = ["qsub", script_path]
+
+        case "slurm":
+            submit_command = ["sbatch", script_path]
+
+        case "lsf":
+            # `call_subprocess` currently executes through the shell, so `<` works here.
+            submit_command = ["bsub", "<", script_path]
+
+        case _:
+            logger.error(f"Unknown scheduler name: {scheduler_name}")
+            raise ValueError(f"Unknown scheduler name: {scheduler_name}")
+
+    logger.info(f"Submit scheduler task with backend '{scheduler_name}'.")
+    call_subprocess(submit_command)
 
 
-def prepare_scheduler_script(main_file_path: str):
+def prepare_scheduler_script(main_file_path: str) -> str:
     """
     Prepare the bash script to be submitted to job scheduler.
 
     :param main_file_path: Path of the main entry file.
     :type main_file_path: str
+    :return: Absolute path of generated shell script.
+    :rtype: str
     """
     WRFRUNConfig = WRFRUN.config
 
@@ -76,7 +99,9 @@ def prepare_scheduler_script(main_file_path: str):
 
     # generate shell script
     shell_template_path = WRFRUNConfig.parse_resource_uri(RUN_SH_TEMPLATE)
-    with open(f"{dir_path}/run.sh", "w") as f:
+    script_path = f"{dir_path}/run.sh"
+
+    with open(script_path, "w") as f:
         with open(shell_template_path, "r") as f_template:
             template = f_template.read()
 
@@ -89,7 +114,9 @@ def prepare_scheduler_script(main_file_path: str):
 
         f.write(template)
 
-    logger.info(f"Job scheduler script written to {dir_path}/run.sh")
+    logger.info(f"Job scheduler script written to {script_path}")
+
+    return script_path
 
 
 __all__ = ["prepare_scheduler_script", "submit_scheduler_task"]
