@@ -136,7 +136,7 @@ class WRFRun:
     def __enter__(self):
         # check workspace
         if not check_workspace():
-            logger.info("Force re-create workspace because it is broken.")
+            logger.info("Reinitialize workspace because it is broken.")
             self._init_workspace = True
 
         # here is the condition we need to initialize workspace:

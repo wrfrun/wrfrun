@@ -12,8 +12,8 @@ Core functions to prepare ``wrfrun`` workspace.
     check_workspace
 """
 
-from os.path import exists
-from shutil import rmtree
+from os.path import dirname, exists
+from shutil import move, rmtree
 from typing import Callable, Literal
 
 from wrfrun.core import WRFRUN
@@ -80,17 +80,22 @@ def prepare_workspace():
     global PREPARE_FUNC_MAP
 
     WRFRUNConfig = WRFRUN.config
+    workspace_backup_path = None
+    initialize_success = False
 
     wrfrun_temp_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_TEMP_PATH)
     workspace_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_ROOT)
     replay_work_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_REPLAY)
     output_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_OUTPUT_PATH)
 
-    logger.info(f"Initialize main workspace at: '{workspace_path}'")
-
     if exists(workspace_path):
-        logger.info("Remove old files in workspace.")
-        rmtree(workspace_path)
+        logger.info(f"Reinitialize main workspace at: '{workspace_path}'")
+        # backup old workspace, so we can restore it if we failed to create new workspace.
+        workspace_backup_path = f"{dirname(workspace_path)}/.workspace_backup"
+        move(workspace_path, workspace_backup_path)
+
+    else:
+        logger.info(f"Initialize main workspace at: '{workspace_path}'")
 
     # check folder
     check_path(wrfrun_temp_path)
@@ -99,12 +104,27 @@ def prepare_workspace():
 
     model_configs = WRFRUNConfig["model"]
 
-    for model_name in model_configs:
-        if model_name not in PREPARE_FUNC_MAP:
-            logger.warning(f"Function to prepare '{model_name}' workspace not found, workspace may be incomplete")
-            continue
+    try:
+        for model_name in model_configs:
+            if model_name not in PREPARE_FUNC_MAP:
+                logger.warning(f"Function to prepare '{model_name}' workspace not found, workspace may be incomplete")
+                continue
 
-        PREPARE_FUNC_MAP[model_name](model_configs[model_name])
+            PREPARE_FUNC_MAP[model_name](model_configs[model_name])
+
+        initialize_success = True
+
+    finally:
+        if initialize_success and workspace_backup_path:
+            rmtree(workspace_backup_path)
+
+        else:
+            logger.warning("Failed to initialize workspace.")
+
+            if workspace_backup_path:
+                rmtree(workspace_path)
+                move(workspace_backup_path, workspace_path)
+                logger.warning("Old workspace restored.")
 
 
 def check_workspace() -> bool:

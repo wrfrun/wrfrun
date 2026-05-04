@@ -138,28 +138,36 @@ class NamelistMixIn:
         else:
             return False
 
-    def read_namelist(self, file_path: str, namelist_id: str):
+    def read_namelist(self, new_values: Union[str, dict], namelist_id: str):
         """
-        Read namelist values from a file and store them with the ``namelist_id``.
+        Read namelist values from a file or a dictionary, and store them with the ``namelist_id``.
 
         If ``wrfrun`` can't read the file, :class:`FileNotFoundError` will be raised.
         If ``namelist_id`` isn't registered, :class:`NamelistIDError <wrfrun.core.error.NamelistIDError>` will be raised.
 
-        :param file_path: Namelist file path.
-        :type file_path: str
+        :param new_values: Namelist file path, or a Python dictionary.
+        :type new_values: Union[str, dict]
         :param namelist_id: Registered ``namelist_id``.
         :type namelist_id: str
         """
-        # check the file path
-        if not exists(file_path):
-            logger.error(f"File not found: {file_path}")
-            raise FileNotFoundError
+        if isinstance(new_values, str):
+            # check the file path
+            if not exists(new_values):
+                logger.error(f"File not found: {new_values}")
+                raise FileNotFoundError
 
-        if namelist_id not in self._namelist_id_list:
-            logger.error(f"Unknown namelist id: {namelist_id}, register it first.")
-            raise NamelistIDError(f"Unknown namelist id: {namelist_id}, register it first.")
+            if namelist_id not in self._namelist_id_list:
+                logger.error(f"Unknown namelist id: {namelist_id}, register it first.")
+                raise NamelistIDError(f"Unknown namelist id: {namelist_id}, register it first.")
 
-        self._namelist_dict[namelist_id] = f90nml.read(file_path).todict()
+            self._namelist_dict[namelist_id] = f90nml.read(new_values).todict()
+
+        elif isinstance(new_values, dict):
+            self._namelist_dict[namelist_id] = deepcopy(new_values)
+
+        else:
+            logger.error(f"Unknow type of 'new_values': {type(new_values)}")
+            raise TypeError(f"Unknow type of 'new_values': {type(new_values)}")
 
     def write_namelist(self, save_path: str, namelist_id: str, overwrite=True):
         """
@@ -230,9 +238,16 @@ class NamelistMixIn:
 
         for key in new_values:
             if key in reference:
-                reference[key].update(new_values[key])
+                if isinstance(reference[key], dict):
+                    reference[key].update(new_values[key])
+
+                else:
+                    reference[key] = new_values[key]
+
             else:
                 reference[key] = new_values[key]
+
+        self._namelist_dict[namelist_id] = reference
 
     def get_namelist(self, namelist_id: str) -> dict:
         """

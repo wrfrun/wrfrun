@@ -20,6 +20,7 @@ from wrfrun.core import WRFRUN, ExecutableBase, ExecutableDB
 from wrfrun.log import logger
 from wrfrun.workspace.palm import get_palm_workspace_path
 
+from .config import prepare_palm_config, write_palm_config
 from .namelist import check_palm_namelist_settings, get_namelist_save_name, prepare_palm_namelist
 from .utils import get_input_postfix
 
@@ -32,6 +33,12 @@ def _check_and_prepare_namelist():
     if not WRFRUN.config.check_namelist("palm"):
         prepare_palm_namelist()
         check_palm_namelist_settings()
+
+    if not WRFRUN.config.check_namelist("palm_config"):
+        prepare_palm_config()
+
+    if not WRFRUN.config.check_namelist("palm_config"):
+        prepare_palm_config()
 
 
 class PALMRun(ExecutableBase):
@@ -94,6 +101,7 @@ class PALMRun(ExecutableBase):
 
         config = WRFRUN.config.get_model_config("palm")
         job_name = config["job_name"]
+        config_id = config["config_identifier"]
 
         if not WRFRUN.config.IS_IN_REPLAY:
             palm_workspace_input_path = get_palm_workspace_path("input")
@@ -139,6 +147,8 @@ class PALMRun(ExecutableBase):
             f"{get_palm_workspace_path('input')}/{get_namelist_save_name()}",
             "palm",
         )
+
+        write_palm_config(f"{get_palm_workspace_path()}/.palm.config.{config_id}")
 
         super().before_exec()
 

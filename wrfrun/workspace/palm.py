@@ -11,15 +11,16 @@ Functions to prepare workspace for PALM model.
     prepare_palm_workspace
 """
 
-from os import remove, symlink
-from os.path import abspath, exists, islink
+from os import listdir
+from os.path import abspath, exists
 from pathlib import Path
-from shutil import copyfile, move, rmtree
 from typing import Literal
 
 from wrfrun.core import WRFRUN, WRFRunConfig
 from wrfrun.log import logger
 from wrfrun.utils import check_path
+
+from .utils import create_copy
 
 WORKSPACE_PALM = ""
 
@@ -83,8 +84,8 @@ def prepare_palm_workspace(model_config: dict):
     WRFRUNConfig = WRFRUN.config
 
     palm_path = model_config["palm_path"]
-    config_id = model_config["config_identifier"]
-    config_file = model_config["config_file_path"]
+    # config_id = model_config["config_identifier"]
+    # config_file = model_config["config_file_path"]
 
     palm_path = abspath(palm_path)
 
@@ -102,40 +103,43 @@ def prepare_palm_workspace(model_config: dict):
         logger.error("Script 'palmrun' not found in your PALM dir.")
         raise FileNotFoundError("Script 'palmrun' not found in your PALM dir.")
 
-    symlink(f"{palm_path}/bin/palmrun", f"{palm_work_path}/palmrun")
+    create_copy(f"{palm_path}/bin/palmrun", f"{palm_work_path}/palmrun")
+
+    file_list = [x for x in listdir(palm_path) if not (x.startswith(".palm.config") or x == "JOBS")]
+    _ = [create_copy(f"{palm_path}/{x}", f"{palm_work_path}/{x}") for x in file_list]
 
     # we need some tricks to hack palm runtime directory.
-    job_path = f"{palm_path}/JOBS"
-    if exists(job_path):
-        if islink(job_path):
-            remove(job_path)
+    # job_path = f"{palm_path}/JOBS"
+    # if exists(job_path):
+    #     if islink(job_path):
+    #         remove(job_path)
 
-        else:
-            new_job_path = f"{job_path}_wrfrun_bak"
-            if exists(new_job_path):
-                rmtree(new_job_path)
+    #     else:
+    #         new_job_path = f"{job_path}_wrfrun_bak"
+    #         if exists(new_job_path):
+    #             rmtree(new_job_path)
 
-            logger.warning(f"You have an existed PALM JOBS dir: {job_path}")
-            logger.warning(f"wrfrun has renamed it to: {new_job_path}")
-            logger.warning("If you have important files in it, please backup it to other positions,")
-            logger.warning("cause wrfrun may delete the renamed depository in the future.")
+    #         logger.warning(f"You have an existed PALM JOBS dir: {job_path}")
+    #         logger.warning(f"wrfrun has renamed it to: {new_job_path}")
+    #         logger.warning("If you have important files in it, please backup it to other positions,")
+    #         logger.warning("cause wrfrun may delete the renamed depository in the future.")
 
-            move(job_path, new_job_path)
+    #         move(job_path, new_job_path)
 
-    symlink(workspace_job_path, job_path)
+    # symlink(workspace_job_path, job_path)
 
     # PALM config file.
-    if config_file == "":
-        if not exists(f"{palm_path}/.palm.config.default"):
-            logger.error(f"Can't find the default config file: '{palm_path}/.palm.config.default', please provide one.")
-            raise FileNotFoundError(
-                f"Can't find the default config file: '{palm_path}/.palm.config.default', please provide one."
-            )
+    # if config_file == "":
+    #     if not exists(f"{palm_path}/.palm.config.default"):
+    #         logger.error(f"Can't find the default config file: '{palm_path}/.palm.config.default', please provide one.")
+    #         raise FileNotFoundError(
+    #             f"Can't find the default config file: '{palm_path}/.palm.config.default', please provide one."
+    #         )
 
-        copyfile(f"{palm_path}/.palm.config.default", f"{palm_work_path}/.palm.config.{config_id}")
+    #     copyfile(f"{palm_path}/.palm.config.default", f"{palm_work_path}/.palm.config.{config_id}")
 
-    else:
-        symlink(abspath(config_file), f"{palm_work_path}/.palm.config.{config_id}")
+    # else:
+    #     symlink(abspath(config_file), f"{palm_work_path}/.palm.config.{config_id}")
 
 
 def check_palm_workspace(model_config: dict) -> bool:

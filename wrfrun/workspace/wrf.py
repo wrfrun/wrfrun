@@ -20,6 +20,8 @@ from wrfrun.core import WRFRUN, WRFRunConfig
 from wrfrun.log import logger
 from wrfrun.utils import check_path
 
+from .utils import create_copy
+
 WORKSPACE_MODEL_WPS = ""
 WORKSPACE_MODEL_WRF = ""
 WORKSPACE_MODEL_WRFDA = ""
@@ -87,8 +89,8 @@ def prepare_wrf_workspace(model_config: dict):
     wrfda_path = model_config["wrfda_path"]
 
     if not (wps_path and wrf_path):
-        logger.warning("No WPS/WRF model installation path given, skip initialization.")
-        return
+        logger.error("WPS/WRF model installation path isn't set in config file.")
+        raise ValueError("WPS/WRF model installation path isn't set in config file.")
 
     if wps_path:
         if not exists(wps_path):
@@ -101,7 +103,7 @@ def prepare_wrf_workspace(model_config: dict):
         file_list = [x for x in listdir(wps_path) if x not in ["geogrid", "namelist.wps"]]
         _ = [symlink(f"{wps_path}/{file}", f"{wps_work_path}/{file}") for file in file_list]
         makedirs(f"{wps_work_path}/geogrid")
-        symlink(f"{wps_path}/geogrid/GEOGRID.TBL", f"{wps_work_path}/geogrid/GEOGRID.TBL")
+        create_copy(f"{wps_path}/geogrid/GEOGRID.TBL", f"{wps_work_path}/geogrid/GEOGRID.TBL")
 
     if wrf_path:
         if not exists(wrf_path):
@@ -123,12 +125,12 @@ def prepare_wrf_workspace(model_config: dict):
         check_path(wrfda_work_path, force=True)
 
         file_list = ["da_wrfvar.exe", "da_update_bc.exe"]
-        _ = [symlink(f"{wrfda_path}/var/build/{file}", f"{wrfda_work_path}/{file}") for file in file_list]
+        _ = [create_copy(f"{wrfda_path}/var/build/{file}", f"{wrfda_work_path}/{file}") for file in file_list]
 
         file_list = listdir(f"{wrfda_path}/var/run")
         _ = [symlink(f"{wrfda_path}/var/run/{file}", f"{wrfda_work_path}/{file}") for file in file_list]
 
-        symlink(f"{wrfda_path}/run/LANDUSE.TBL", f"{wrfda_work_path}/LANDUSE.TBL")
+        create_copy(f"{wrfda_path}/run/LANDUSE.TBL", f"{wrfda_work_path}/LANDUSE.TBL")
 
 
 def check_wrf_workspace(model_config: dict) -> bool:
