@@ -1,89 +1,154 @@
-# wrfrun 文档完善计划
+# wrfrun Roadmap
 
-本文档列出了完善 wrfrun 项目文档的计划任务。
+## Positioning
 
-## 目录
+`wrfrun` should evolve toward a research infrastructure with two priorities:
 
-- [主页文档完善](#主页文档完善)
-- [使用指南部分](#使用指南部分)
-- [用户文档部分](#用户文档部分)
-- [API 文档检查和补充](#api-文档检查和补充)
-- [示例和教程](#示例和教程)
-- [其他](#其他)
+1. Reproducible and stable numerical simulation workflows.
+2. A lower entry barrier for new users learning how to run numerical models.
 
-## 主页文档完善
+This means the core should optimize for correctness, traceability, and recovery, while the user-facing layer should optimize for guided usage, good defaults, and smooth first success.
 
-- [x] 完善主页文档，增加项目概述和核心功能介绍
-  - 从 README.md 中提取更多内容
-  - 增加项目架构图
-  - 突出显示主要特性
+## Current Assessment
 
-## 使用指南部分
+Based on the current codebase, `wrfrun` already has a solid foundation:
 
-- [ ] 完善使用指南部分
-  - [x] 更新和扩写安装指南
-    - 增加依赖项说明
-    - 增加从源码安装的说明
-    - 增加开发环境安装说明
-  - [ ] 完善快速开始教程，增加更多示例
-    - 扩展现有快速开始教程
-    - 增加更多实用示例
-  - [ ] 扩写自定义 Executable 教程
-    - 完成现有教程
-    - 增加更多高级用例
+- Unified execution abstraction via `ExecutableBase`
+- Context-based orchestration via `WRFRun`
+- Workspace preparation and output organization
+- Scheduler integration for PBS, Slurm, and LSF
+- Record and replay support
+- Initial documentation and configuration templates
+- Partial support for multiple models
 
-## 用户文档部分
+The project is no longer in the "add basic features as fast as possible" stage. The next phase should focus on turning existing capabilities into a more trustworthy and easier-to-adopt system.
 
-- [ ] 完善用户文档部分
-  - [ ] 补充 context.rst 文档，解释上下文管理器
-    - 解释 WRFRun 上下文管理器的工作原理
-    - 提供使用示例
-  - [ ] 更新 config_file.rst 文档，确保与最新代码一致
-    - 更新配置文件格式说明（YAML vs TOML）
-    - 补充所有配置选项的详细说明
-  - [ ] 增加架构设计文档
-    - 解释项目整体架构
-    - 说明核心概念和设计思想
-    - 提供组件关系图
+## Guiding Principles
 
-## API 文档检查和补充
+- Prefer reliability improvements over scattered new features.
+- Prefer better onboarding over more configuration surface.
+- Turn personal workflow experience into explicit product behavior.
+- Keep extensibility, but provide stronger defaults and recommended paths.
+- Do not rebuild the architecture without a clear operational payoff.
 
-- [ ] 检查和补充 API 文档
-  - [ ] 确保核心模块 API 文档完整
-    - 检查 core 模块
-    - 检查 type 模块
-    - 检查 error 模块
-  - [ ] 检查 WRF 模型 API 文档
-    - 确保所有类和函数都有文档
-  - [ ] 检查 PALM 模型 API 文档
-    - 确保所有类和函数都有文档
-  - [ ] 补充其他模块 API 文档
-    - 检查 extension 模块
-    - 检查 scheduler 模块
-    - 检查 workspace 模块
+## Phase 1: Make The Core More Trustworthy
 
-## 示例和教程
+Goal: strengthen `wrfrun` as a reproducible and stable research infrastructure.
 
-- [ ] 增加示例和教程
-  - [ ] 增加 WRF 完整示例
-    - 提供完整的 WRF 运行流程示例
-  - [ ] 增加 PALM 示例
-    - 提供 PALM 模型使用示例
-  - [ ] 增加扩展功能示例
-    - 展示如何使用扩展功能
+- [ ] Audit critical runtime paths and remove fragile behavior in context setup, workspace preparation, scheduler submission, and replay flow.
+- [ ] Improve preflight validation so common configuration and environment problems fail before a run starts.
+- [ ] Standardize error messages so they answer three questions: what failed, why it failed, and what the user should do next.
+- [ ] Record more execution metadata for reproducibility:
+  - Python version
+  - wrfrun version
+  - host and scheduler environment
+  - model paths and key runtime settings
+- [ ] Define a clearer reproducibility contract for `.replay` files:
+  - what is guaranteed to be reproduced
+  - what depends on external environment
+  - what is intentionally excluded
+- [ ] Strengthen log organization and output indexing so a finished run is easier to inspect after the fact.
+- [ ] Review recovery behavior for interrupted runs and clarify what can be resumed safely.
+- [ ] Add regression tests for config loading, workspace preparation, scheduler script generation, and replay behavior.
 
-## 其他
+## Phase 2: Improve The First-Run Experience
 
-- [ ] 增加贡献指南
-  - 说明如何为项目做贡献
-  - 提供代码风格指南
-  - 说明文档贡献流程
-- [ ] 增加常见问题解答(FAQ)
-  - 收集和解答常见问题
-  - 提供故障排除指南
+Goal: make `wrfrun` much easier for new users to adopt successfully.
 
-## 优先级说明
+- [ ] Design a "first successful run" path and make it the primary beginner workflow.
+- [ ] Provide a minimal runnable example project with:
+  - a clear directory layout
+  - ready-to-edit config files
+  - a short script showing the normal execution path
+- [ ] Add a project initialization command or helper that creates:
+  - `config.toml`
+  - model config files
+  - recommended directory structure
+  - optional example script
+- [ ] Improve template configuration files with beginner-friendly comments and safer defaults.
+- [ ] Add a validation command such as a dry-run or doctor mode to check environment, paths, and core config before execution.
+- [ ] Reduce hidden behavior where possible; when behavior is automatic, document it clearly in logs and docs.
+- [ ] Write a short "How wrfrun works" guide aimed at new users:
+  - workspace
+  - config layering
+  - executable lifecycle
+  - outputs and logs
+  - replay basics
 
-1. **高优先级**：完善主页文档、更新配置文件文档、补充 context.rst
-2. **中优先级**：完善使用指南、检查 API 文档
-3. **低优先级**：增加示例、贡献指南、FAQ
+## Phase 3: Turn Documentation Into Guided Learning
+
+Goal: make `wrfrun` useful not only as a tool, but also as an entry point for learning numerical-model workflows.
+
+- [ ] Reorganize docs into three paths:
+  - beginner path
+  - daily-use path
+  - developer/extender path
+- [ ] Create a step-by-step beginner tutorial that explains not only what to run, but why each step exists.
+- [ ] Add troubleshooting pages for the most common failure cases:
+  - bad paths
+  - missing executables
+  - invalid namelist settings
+  - scheduler submission problems
+  - replay misunderstandings
+- [ ] Add "mental model" documentation for core concepts instead of only API descriptions.
+- [ ] Add more examples that reflect real workflows rather than isolated functions.
+- [ ] Make docs consistently show the recommended path first, advanced flexibility second.
+
+## Phase 4: Make Extensibility More Explicit
+
+Goal: preserve architectural flexibility while making the framework easier to extend correctly.
+
+- [ ] Define a clearer extension story for:
+  - new models
+  - new preprocessing steps
+  - new scheduler backends
+  - custom executables
+- [ ] Review current registration points and document them as public extension surfaces vs internal implementation details.
+- [x] Create a minimal "add your own executable/model" tutorial based on the current architecture.
+- [ ] Add tests or validation helpers for extension authors so integrations fail earlier.
+- [ ] Clarify which APIs are stable and which are still experimental.
+
+## Phase 5: Expand Carefully, Not Broadly
+
+Goal: continue capability growth without returning to feature sprawl.
+
+- [ ] Finish the most important missing pieces in WRF support before broadening too far.
+- [ ] Expand model coverage only when the integration can meet the same standards for reproducibility, logging, and usability.
+- [ ] Treat dashboard or visualization features as secondary until core reliability and onboarding improve.
+- [ ] Prefer deeper support for fewer workflows over shallow support for many workflows.
+
+## Near-Term Priorities
+
+These should be the highest-priority items.
+
+- [ ] Review current failure points in `WRFRun`, workspace preparation, scheduler submission, and replay.
+- [ ] Add a preflight validation command or equivalent check flow.
+- [ ] Define and document the reproducibility contract for replay files.
+- [ ] Create one minimal, beginner-oriented runnable example.
+- [ ] Rework config templates and quick-start docs around the first-run experience.
+
+## Mid-Term Priorities
+
+- [ ] Build a stronger testing baseline for infrastructure behavior.
+- [ ] Improve recovery and resume semantics.
+- [ ] Reorganize documentation into guided learning paths.
+- [ ] Clarify extension APIs and write extension-oriented tutorials.
+- [ ] Complete the most important missing support in WRF workflows.
+
+## Explicit Non-Priorities For Now
+
+To avoid drifting back into low-leverage work, the following should not be the main focus right now.
+
+- [ ] Do not redesign the whole framework around a new abstraction unless it clearly improves reliability or onboarding.
+- [ ] Do not broaden model support aggressively before the current core is more trustworthy.
+- [ ] Do not spend major effort on dashboards before logs, validation, and recovery behavior are stronger.
+- [ ] Do not add advanced options for every edge case before the recommended beginner path is polished.
+
+## Success Criteria
+
+This roadmap is working if, over time, the project moves toward the following outcomes:
+
+- A new user can complete a first run with less confusion and fewer hidden steps.
+- An experienced user can trust that runs are easier to reproduce, audit, and recover.
+- Extension authors can tell which parts of the framework are intended to be extended.
+- The project grows in depth and quality, not just in surface area.

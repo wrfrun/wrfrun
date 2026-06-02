@@ -20,7 +20,7 @@ from wrfrun.core import WRFRUN, ExecutableBase, ExecutableDB
 from wrfrun.log import logger
 from wrfrun.workspace.palm import get_palm_workspace_path
 
-from .namelist import get_namelist_save_name, prepare_palm_namelist
+from .namelist import check_palm_namelist_settings, get_namelist_save_name, prepare_palm_namelist
 from .utils import get_input_postfix
 
 
@@ -31,6 +31,7 @@ def _check_and_prepare_namelist():
     """
     if not WRFRUN.config.check_namelist("palm"):
         prepare_palm_namelist()
+        check_palm_namelist_settings()
 
 
 class PALMRun(ExecutableBase):

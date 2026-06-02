@@ -24,3 +24,5 @@ namelist.*
 uv.lock
 
 !**/namelist.py
+
+.codex

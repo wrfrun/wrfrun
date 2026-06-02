@@ -247,8 +247,8 @@ class NamelistMixIn:
             logger.error(f"Unknown namelist id: {namelist_id}, register it first.")
             raise NamelistIDError(f"Unknown namelist id: {namelist_id}, register it first.")
         elif namelist_id not in self._namelist_dict:
-            logger.error(f"Can't found custom namelist '{namelist_id}', maybe you forget to read it first")
-            raise NamelistError(f"Can't found custom namelist '{namelist_id}', maybe you forget to read it first")
+            logger.error(f"Can't found namelist '{namelist_id}', maybe you forget to read it first")
+            raise NamelistError(f"Can't found namelist '{namelist_id}', maybe you forget to read it first")
         else:
             return deepcopy(self._namelist_dict[namelist_id])
 
