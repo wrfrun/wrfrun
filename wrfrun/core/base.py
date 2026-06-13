@@ -46,6 +46,7 @@ import subprocess
 from copy import deepcopy
 from os import chdir, getcwd, listdir, makedirs, remove, symlink
 from os.path import abspath, basename, dirname, exists
+from shlex import join
 from shutil import move
 from typing import Optional, Union
 
@@ -55,7 +56,48 @@ from .error import CommandError, ConfigError, OutputFileError
 from .type import ExecutableClassConfig, ExecutableConfig, FileConfigDict
 
 
-def check_subprocess_status(status: subprocess.CompletedProcess):
+def _decode_command_output(output: bytes | None) -> str:
+    if output is None:
+        return ""
+
+    return output.decode(errors="replace")
+
+
+def _format_command(command: list[str], stdin_path: str | None = None) -> str:
+    formatted_command = join(command)
+
+    if stdin_path is not None:
+        return f"{formatted_command} < {stdin_path}"
+
+    return formatted_command
+
+
+def _save_subprocess_logs(log_save_prefix: str, stdout_text: str, stderr_text: str):
+    save_dir = dirname(log_save_prefix)
+    if not exists(save_dir):
+        makedirs(save_dir)
+
+    stdout_file = f"{log_save_prefix}.stdout"
+    stderr_file = f"{log_save_prefix}.stderr"
+
+    if exists(stdout_file):
+        old_stdout_file = f"{stdout_file}.bak"
+        logger.warning(f"stdout file exists. Backup it to '{old_stdout_file}'")
+
+    if exists(stderr_file):
+        old_stderr_file = f"{stderr_file}.bak"
+        logger.warning(f"stderr file exists. Backup it to '{old_stderr_file}'")
+
+    with open(stdout_file, "w") as f:
+        f.write(stdout_text)
+
+    with open(stderr_file, "w") as f:
+        f.write(stderr_text)
+
+    logger.info(f"Logs saved to '{save_dir}'")
+
+
+def check_subprocess_status(status: subprocess.CompletedProcess, command_display: str):
     """
     Check subprocess return code.
 
@@ -67,15 +109,14 @@ def check_subprocess_status(status: subprocess.CompletedProcess):
     """
     if status.returncode != 0:
         # print command
-        command = status.args
-        logger.error(f"Failed to exec command: {command}")
+        logger.error(f"Failed to exec command: {command_display}")
 
         # print log
         logger.error("====== stdout ======")
-        logger.error(status.stdout.decode())
+        logger.error(_decode_command_output(status.stdout))
         logger.error("====== ====== ======")
         logger.error("====== stderr ======")
-        logger.error(status.stderr.decode())
+        logger.error(_decode_command_output(status.stderr))
         logger.error("====== ====== ======")
 
         # raise error
@@ -87,9 +128,10 @@ def call_subprocess(
     work_path: Optional[str] = None,
     print_output=False,
     log_save_prefix: str | None = None,
+    stdin_path: str | None = None,
 ):
     """
-    Execute the given command in the system shell.
+    Execute the given command.
 
     :param command: A list contains the command and parameters to be executed.
     :type command: list
@@ -100,6 +142,8 @@ def call_subprocess(
     :type print_output: bool
     :param log_save_prefix: Save external command output and error to log files. If None, don't save.
                             Defaults to None.
+    :param stdin_path: Read command's standard input from the given file path. Defaults to None.
+    :type stdin_path: str | None
     """
     if work_path is not None:
         origin_path = getcwd()
@@ -107,40 +151,28 @@ def call_subprocess(
     else:
         origin_path = None
 
-    status = subprocess.run(" ".join(command), shell=True, capture_output=True)
+    command_display = _format_command(command, stdin_path)
+
+    if stdin_path is None:
+        status = subprocess.run(command, shell=False, capture_output=True)
+    else:
+        with open(stdin_path, "rb") as stdin_file:
+            status = subprocess.run(command, shell=False, stdin=stdin_file, capture_output=True)
 
     if origin_path is not None:
         chdir(origin_path)
 
-    check_subprocess_status(status)
-
-    if print_output:
-        logger.info(status.stdout.decode())
-        logger.warning(status.stderr.decode())
+    stdout_text = _decode_command_output(status.stdout)
+    stderr_text = _decode_command_output(status.stderr)
 
     if log_save_prefix:
-        save_dir = dirname(log_save_prefix)
-        if not exists(save_dir):
-            makedirs(save_dir)
+        _save_subprocess_logs(log_save_prefix, stdout_text, stderr_text)
 
-        stdout_file = f"{log_save_prefix}.stdout"
-        stderr_file = f"{log_save_prefix}.stderr"
+    check_subprocess_status(status, command_display)
 
-        if exists(stdout_file):
-            old_stdout_file = f"{stdout_file}.bak"
-            logger.warning(f"stdout file exists. Backup it to '{old_stdout_file}'")
-
-        if exists(stderr_file):
-            old_stderr_file = f"{stderr_file}.bak"
-            logger.warning(f"stderr file exists. Backup it to '{old_stderr_file}'")
-
-        with open(stdout_file, "w") as f:
-            f.write(status.stdout.decode())
-
-        with open(stderr_file, "w") as f:
-            f.write(status.stderr.decode())
-
-        logger.info(f"Logs saved to '{save_dir}'")
+    if print_output:
+        logger.info(stdout_text)
+        logger.warning(stderr_text)
 
 
 class ExecutableBase:
@@ -189,7 +221,7 @@ class ExecutableBase:
         :param name: Unique name to identify different executables.
         :type name: str
         :param cmd: Command to execute, can be a single string or a list contains the command and its parameters.
-                    For example, ``"./geogrid.exe"``, ``["./link_grib.csh", "data/*", "."]``.
+                    For example, ``"./geogrid.exe"``, ``["./script.sh", "arg1", "arg2"]``.
                     If you want to use mpi, then ``cmd`` must be a string.
         :type cmd: str
         :param work_path: Working directory path.

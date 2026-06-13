@@ -11,7 +11,9 @@ Functions to interact with job scheduler.
     prepare_scheduler_script
 """
 
+import re
 from os.path import abspath, dirname, exists
+from shlex import join, quote
 
 from wrfrun.core import WRFRUN, call_subprocess
 from wrfrun.log import logger
@@ -20,6 +22,8 @@ from wrfrun.res import RUN_SH_TEMPLATE
 from .lsf import lsf_generate_settings
 from .pbs import pbs_generate_settings
 from .slurm import slurm_generate_settings
+
+ENV_KEY_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 def submit_scheduler_task(main_file_path: str):
@@ -41,15 +45,18 @@ def submit_scheduler_task(main_file_path: str):
             submit_command = ["sbatch", script_path]
 
         case "lsf":
-            # `call_subprocess` currently executes through the shell, so `<` works here.
-            submit_command = ["bsub", "<", script_path]
+            submit_command = ["bsub"]
 
         case _:
             logger.error(f"Unknown scheduler name: {scheduler_name}")
             raise ValueError(f"Unknown scheduler name: {scheduler_name}")
 
     logger.info(f"Submit scheduler task with backend '{scheduler_name}'.")
-    call_subprocess(submit_command)
+
+    if scheduler_name == "lsf":
+        call_subprocess(submit_command, stdin_path=script_path)
+    else:
+        call_subprocess(submit_command)
 
 
 def prepare_scheduler_script(main_file_path: str) -> str:
@@ -92,10 +99,15 @@ def prepare_scheduler_script(main_file_path: str) -> str:
     env_settings = "export WRFRUN_ENV_JOB_SCHEDULER=1\n"
     if len(scheduler_configs["env_settings"]) > 0:
         for key in scheduler_configs["env_settings"]:
-            env_settings += f"export {key}={scheduler_configs['env_settings'][key]}\n"
+            if not ENV_KEY_PATTERN.fullmatch(key):
+                logger.error(f"Invalid environment variable name: {key}")
+                raise ValueError(f"Invalid environment variable name: {key}")
+
+            value = str(scheduler_configs["env_settings"][key])
+            env_settings += f"export {key}={quote(value)}\n"
 
     # generate command
-    exec_cmd = f"{scheduler_configs['python_interpreter']} {main_file_path}"
+    exec_cmd = join([scheduler_configs["python_interpreter"], main_file_path])
 
     # generate shell script
     shell_template_path = WRFRUNConfig.parse_resource_uri(RUN_SH_TEMPLATE)
@@ -109,7 +121,7 @@ def prepare_scheduler_script(main_file_path: str) -> str:
             SCHEDULER_SETTINGS=scheduler_settings,
             ENV_SETTINGS=env_settings,
             WORK_COMMAND=exec_cmd,
-            WORK_PATH=dir_path,
+            WORK_PATH=quote(dir_path),
         )
 
         f.write(template)

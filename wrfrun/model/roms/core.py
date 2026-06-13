@@ -52,7 +52,7 @@ class ROMS(ExecutableBase):
 
         super().__init__(
             name="roms",
-            cmd=f"./{basename(roms_exe_path)} ./{basename(in_file_path)}",
+            cmd=[f"./{basename(roms_exe_path)}", f"./{basename(in_file_path)}"],
             work_path=get_roms_workspace_path(),
             mpi_use=mpi_use,
             mpi_cmd=mpi_cmd,

@@ -66,7 +66,7 @@ class PALMRun(ExecutableBase):
         config = WRFRUN.config.get_model_config("palm")
         job_name = config["job_name"]
         simulation_type = config["simulation_type"]
-        cmd = f"./palmrun -r {job_name} -c {config_id} -a {simulation_type} -X {core_num} -v"
+        cmd = ["./palmrun", "-r", job_name, "-c", config_id, "-a", simulation_type, "-X", str(core_num), "-v"]
 
         super().__init__(
             "palmrun",

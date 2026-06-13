@@ -19,6 +19,7 @@ If you prefer function interfaces, please see :doc:`function wrapper </api/model
     NDown
 """
 
+from glob import glob
 from os import listdir
 from os.path import abspath, basename, exists
 from shutil import copyfile, move, rmtree
@@ -162,10 +163,11 @@ class LinkGrib(ExecutableBase):
         :type grib_dir_path: str
         """
         self._link_grib_input_path = "./input_grib_data_dir"
+        grib_files = sorted(glob(f"{self._link_grib_input_path}/*"))
 
         super().__init__(
             name="link_grib",
-            cmd=["./link_grib.csh", f"{self._link_grib_input_path}/*", "."],
+            cmd=["./link_grib.csh", *grib_files, "."],
             work_path=get_wrf_workspace_path("wps"),
         )
         self.grib_dir_path = grib_dir_path

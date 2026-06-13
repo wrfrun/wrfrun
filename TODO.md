@@ -1,154 +1,138 @@
-# wrfrun Roadmap
+# Runtime Hardening Plan
 
-## Positioning
+This plan is derived from a read-through of the current `wrfrun` runtime path, with focus on context setup, workspace preparation, scheduler submission, and replay flow.
 
-`wrfrun` should evolve toward a research infrastructure with two priorities:
+## Goals
 
-1. Reproducible and stable numerical simulation workflows.
-2. A lower entry barrier for new users learning how to run numerical models.
+- Make startup and submission behavior deterministic.
+- Reduce destructive or stale filesystem behavior.
+- Make replay mode and scheduler integration safe to fail.
+- Preserve the current public API where practical, but prefer correctness over accidental behavior.
 
-This means the core should optimize for correctness, traceability, and recovery, while the user-facing layer should optimize for guided usage, good defaults, and smooth first success.
+## Phase 1: Fix correctness bugs on the critical path
 
-## Current Assessment
+- [x] Fix `wrfrun.workspace.core.check_workspace()` to return the computed `flag` instead of always returning `True`.
+- [x] Add coverage for broken workspace detection:
+  - [x] missing workspace root
+  - [x] missing replay workspace
+  - [x] missing output path
+  - [x] missing model-specific workspace
+- [x] Make scheduler submission dispatch by configured backend instead of always calling `qsub`.
+- [x] Add an explicit scheduler submit layer, for example:
+  - [x] `pbs -> qsub`
+  - [x] `slurm -> sbatch`
+  - [x] `lsf -> bsub < run.sh` or equivalent non-interactive form
+- [x] Ensure scheduler mismatch fails early with a clear error message.
+- [x] Make replay mode cleanup exception-safe:
+  - wrap `IS_IN_REPLAY = True` / reset in `try/finally`
+  - do this for both `replay_simulation()` and `replay_executables()`
+- [x] Review whether `WRFRUN.config.IS_RECORDING` also needs symmetric reset when recording ends.
 
-Based on the current codebase, `wrfrun` already has a solid foundation:
+## Phase 2: Make workspace preparation safer
 
-- Unified execution abstraction via `ExecutableBase`
-- Context-based orchestration via `WRFRun`
-- Workspace preparation and output organization
-- Scheduler integration for PBS, Slurm, and LSF
-- Record and replay support
-- Initial documentation and configuration templates
-- Partial support for multiple models
+- [x] Validate rebuild prerequisites before destructive cleanup in `prepare_workspace()` where possible.
+- [x] Avoid deleting the entire workspace root before model-specific checks succeed.
+- [x] Decide on one safe strategy for workspace rebuild:
+  - preflight validation, then delete and rebuild
+  - build into a temporary directory, then swap into place
+- [x] Expand model-specific workspace validation coverage:
+  - [x] add PALM checker
+  - [x] add ROMS checker if ROMS runtime depends on prepared directories (skip ROMS for now)
+- [x] (Diffcult to check files)Review whether `check_wrf_workspace()` should verify expected links/files, not just directory existence.
+- [x] Make re-init behavior visible in logs so users can distinguish:
+  - clean run
+  - forced rebuild
+  - partial/broken previous workspace
 
-The project is no longer in the "add basic features as fast as possible" stage. The next phase should focus on turning existing capabilities into a more trustworthy and easier-to-adopt system.
+## Phase 3: Reduce filesystem fragility in model setup
 
-## Guiding Principles
+- [x] Audit all symlink-heavy setup paths for failure behavior and idempotency.
+- [x] In WRF workspace setup, verify required source subpaths before creating any links.
+- [x] Decide how to handle pre-existing targets:
+  - fail clearly
+  - replace explicitly
+  - skip when already correct
+- [x] Rework PALM `JOBS` handling to avoid mutating the user installation in a surprising way.
+- [x] If PALM still requires installation mutation, add:
+  - explicit warning in docs
+  - rollback/restore strategy
+  - stronger guardrails around deleting backup dirs
 
-- Prefer reliability improvements over scattered new features.
-- Prefer better onboarding over more configuration surface.
-- Turn personal workflow experience into explicit product behavior.
-- Keep extensibility, but provide stronger defaults and recommended paths.
-- Do not rebuild the architecture without a clear operational payoff.
+## Phase 4: Harden subprocess and shell boundaries
 
-## Phase 1: Make The Core More Trustworthy
+- [x] Replace `subprocess.run(" ".join(command), shell=True, ...)` with argument-safe execution where possible.
+- [x] Quote or avoid shell interpolation for:
+  - [x] executable paths
+  - [x] `python_interpreter`
+  - [x] entry script path
+  - [x] scheduler env values
+- [x] Review generated `run.sh` for path safety when directories contain spaces or shell metacharacters.
+- [x] Decide which scheduler-specific commands truly require shell behavior and isolate that logic to a small boundary.
+- [x] Preserve useful stdout/stderr logging while improving command safety.
 
-Goal: strengthen `wrfrun` as a reproducible and stable research infrastructure.
+## Phase 5: Make replay flow isolated and deterministic
 
-- [ ] Audit critical runtime paths and remove fragile behavior in context setup, workspace preparation, scheduler submission, and replay flow.
-- [ ] Improve preflight validation so common configuration and environment problems fail before a run starts.
-- [ ] Standardize error messages so they answer three questions: what failed, why it failed, and what the user should do next.
-- [ ] Record more execution metadata for reproducibility:
-  - Python version
-  - wrfrun version
-  - host and scheduler environment
-  - model paths and key runtime settings
-- [ ] Define a clearer reproducibility contract for `.replay` files:
-  - what is guaranteed to be reproduced
-  - what depends on external environment
-  - what is intentionally excluded
-- [ ] Strengthen log organization and output indexing so a finished run is easier to inspect after the fact.
-- [ ] Review recovery behavior for interrupted runs and clarify what can be resumed safely.
-- [ ] Add regression tests for config loading, workspace preparation, scheduler script generation, and replay behavior.
+- [ ] Stop unpacking every replay archive into one shared replay directory.
+- [ ] Choose a replay workspace strategy:
+  - per-replay temp directory
+  - unique run-id subdirectory under replay workspace
+- [ ] Clear or isolate extracted replay state before reading `config.json`.
+- [ ] Ensure stale files from an older replay cannot satisfy a new replay load.
+- [ ] Decide whether replay should clean extracted files after success/failure.
+- [ ] Add failure cases for:
+  - invalid archive
+  - missing `config.json`
+  - partial unpack
+  - replay file name collisions
 
-## Phase 2: Improve The First-Run Experience
+## Phase 6: Revisit global runtime state
 
-Goal: make `wrfrun` much easier for new users to adopt successfully.
+- [ ] Review the impact of process-global `WRFRUN` state on:
+  - nested contexts
+  - repeated runs in one interpreter
+  - tests
+  - future parallel execution
+- [ ] Review whether `ExecutableBase.__new__()` singleton behavior is intentional for each executable class.
+- [ ] If singleton behavior is not required, remove it.
+- [ ] If singleton behavior must remain, document the invariants and reset mutable per-run state explicitly.
+- [ ] Confirm replay does not inherit stale `input_file_config`, `output_file_config`, or custom config from prior calls unintentionally.
 
-- [ ] Design a "first successful run" path and make it the primary beginner workflow.
-- [ ] Provide a minimal runnable example project with:
-  - a clear directory layout
-  - ready-to-edit config files
-  - a short script showing the normal execution path
-- [ ] Add a project initialization command or helper that creates:
-  - `config.toml`
-  - model config files
-  - recommended directory structure
-  - optional example script
-- [ ] Improve template configuration files with beginner-friendly comments and safer defaults.
-- [ ] Add a validation command such as a dry-run or doctor mode to check environment, paths, and core config before execution.
-- [ ] Reduce hidden behavior where possible; when behavior is automatic, document it clearly in logs and docs.
-- [ ] Write a short "How wrfrun works" guide aimed at new users:
-  - workspace
-  - config layering
-  - executable lifecycle
-  - outputs and logs
-  - replay basics
+## Phase 7: Fix config bootstrap inconsistencies
 
-## Phase 3: Turn Documentation Into Guided Learning
+- [ ] Reconcile `WRFRunConfig.from_config_file()` with `load_wrfrun_config()` so missing-config bootstrap works as documented.
+- [ ] Decide how first-run config creation should obtain `work_dir` before the config exists.
+- [ ] Ensure error messages match actual behavior for:
+  - missing main config
+  - missing included model config
+  - invalid include path
 
-Goal: make `wrfrun` useful not only as a tool, but also as an entry point for learning numerical-model workflows.
+## Phase 8: Add targeted tests around runtime behavior
 
-- [ ] Reorganize docs into three paths:
-  - beginner path
-  - daily-use path
-  - developer/extender path
-- [ ] Create a step-by-step beginner tutorial that explains not only what to run, but why each step exists.
-- [ ] Add troubleshooting pages for the most common failure cases:
-  - bad paths
-  - missing executables
-  - invalid namelist settings
-  - scheduler submission problems
-  - replay misunderstandings
-- [ ] Add "mental model" documentation for core concepts instead of only API descriptions.
-- [ ] Add more examples that reflect real workflows rather than isolated functions.
-- [ ] Make docs consistently show the recommended path first, advanced flexibility second.
+- [ ] Add tests for context entry/exit behavior around:
+  - normal execution
+  - scheduler submit path
+  - replay failure
+  - replay generator early exit
+- [ ] Add tests for scheduler script generation and scheduler submit command selection.
+- [ ] Add tests for workspace rebuild behavior when directories are partially missing.
+- [ ] Add tests for replay extraction isolation and stale-file resistance.
+- [ ] Add tests for subprocess invocation with paths containing spaces.
 
-## Phase 4: Make Extensibility More Explicit
+## Open design questions
 
-Goal: preserve architectural flexibility while making the framework easier to extend correctly.
+- Q: Should `submit_job=True` submit and `exit(0)`, or should submission be exposed as a more explicit operation?
+  A: Submit and `exit(0)` for now.
+- Q: Should replay require a clean workspace, or be allowed to overlay an existing one?
+  A: Clean workspace.
+- Q: Should PALM workspace prep ever mutate the installation tree, or should `wrfrun` require a user-managed runtime copy?
+  A: Require a copy is better, but we can mutate the installation tree for now.
+- Q: Is preserving backward-compatible behavior around global singletons worth the runtime risk?
+  A: Preserving backward-compatible behavior around global singletons for now, postpone redesign.
 
-- [ ] Define a clearer extension story for:
-  - new models
-  - new preprocessing steps
-  - new scheduler backends
-  - custom executables
-- [ ] Review current registration points and document them as public extension surfaces vs internal implementation details.
-- [x] Create a minimal "add your own executable/model" tutorial based on the current architecture.
-- [ ] Add tests or validation helpers for extension authors so integrations fail earlier.
-- [ ] Clarify which APIs are stable and which are still experimental.
+## Recommended implementation order
 
-## Phase 5: Expand Carefully, Not Broadly
-
-Goal: continue capability growth without returning to feature sprawl.
-
-- [ ] Finish the most important missing pieces in WRF support before broadening too far.
-- [ ] Expand model coverage only when the integration can meet the same standards for reproducibility, logging, and usability.
-- [ ] Treat dashboard or visualization features as secondary until core reliability and onboarding improve.
-- [ ] Prefer deeper support for fewer workflows over shallow support for many workflows.
-
-## Near-Term Priorities
-
-These should be the highest-priority items.
-
-- [ ] Review current failure points in `WRFRun`, workspace preparation, scheduler submission, and replay.
-- [ ] Add a preflight validation command or equivalent check flow.
-- [ ] Define and document the reproducibility contract for replay files.
-- [ ] Create one minimal, beginner-oriented runnable example.
-- [ ] Rework config templates and quick-start docs around the first-run experience.
-
-## Mid-Term Priorities
-
-- [ ] Build a stronger testing baseline for infrastructure behavior.
-- [ ] Improve recovery and resume semantics.
-- [ ] Reorganize documentation into guided learning paths.
-- [ ] Clarify extension APIs and write extension-oriented tutorials.
-- [ ] Complete the most important missing support in WRF workflows.
-
-## Explicit Non-Priorities For Now
-
-To avoid drifting back into low-leverage work, the following should not be the main focus right now.
-
-- [ ] Do not redesign the whole framework around a new abstraction unless it clearly improves reliability or onboarding.
-- [ ] Do not broaden model support aggressively before the current core is more trustworthy.
-- [ ] Do not spend major effort on dashboards before logs, validation, and recovery behavior are stronger.
-- [ ] Do not add advanced options for every edge case before the recommended beginner path is polished.
-
-## Success Criteria
-
-This roadmap is working if, over time, the project moves toward the following outcomes:
-
-- A new user can complete a first run with less confusion and fewer hidden steps.
-- An experienced user can trust that runs are easier to reproduce, audit, and recover.
-- Extension authors can tell which parts of the framework are intended to be extended.
-- The project grows in depth and quality, not just in surface area.
+1. Fix Phase 1 first. These are correctness bugs in the main runtime path.
+2. Then do Phases 2 and 5 together, because workspace and replay isolation are tightly related.
+3. Then do Phase 4, since safer subprocess handling reduces hidden scheduler/runtime failures.
+4. After that, decide the larger architectural direction in Phases 6 and 7.
+5. Keep Phase 8 running alongside each change rather than leaving it all to the end.
