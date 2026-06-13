@@ -9,6 +9,7 @@ py3.install_sources(
     subdir: 'wrfrun/model'
 )
 
+subdir('arps')
 subdir('palm')
 subdir('wrf')
 subdir('roms')

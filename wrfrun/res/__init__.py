@@ -107,6 +107,7 @@ NAMELIST_DFI = ":WRFRUN_RESOURCE_PATH:/namelist/namelist.input.dfi.template"
 NAMELIST_REAL = ":WRFRUN_RESOURCE_PATH:/namelist/namelist.input.real.template"
 NAMELIST_WRF = ":WRFRUN_RESOURCE_PATH:/namelist/namelist.input.wrf.template"
 NAMELIST_WPS = ":WRFRUN_RESOURCE_PATH:/namelist/namelist.wps.template"
+CONFIG_ARPS_TOML_TEMPLATE = ":WRFRUN_RESOURCE_PATH:/config/arps.template.toml"
 CONFIG_MAIN_TOML_TEMPLATE = ":WRFRUN_RESOURCE_PATH:/config/config.template.toml"
 CONFIG_WRF_TOML_TEMPLATE = ":WRFRUN_RESOURCE_PATH:/config/wrf.template.toml"
 CONFIG_PALM_TOML_TEMPLATE = ":WRFRUN_RESOURCE_PATH:/config/palm.template.toml"
@@ -132,6 +133,7 @@ __all__ = [
     "NAMELIST_REAL",
     "NAMELIST_WRF",
     "NAMELIST_WPS",
+    "CONFIG_ARPS_TOML_TEMPLATE",
     "CONFIG_MAIN_TOML_TEMPLATE",
     "CONFIG_WRF_TOML_TEMPLATE",
     "CONFIG_PALM_TOML_TEMPLATE",

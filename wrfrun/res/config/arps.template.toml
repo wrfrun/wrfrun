@@ -1,0 +1,30 @@
+# Submodels' config of ARPS are splited into multiple blocks.
+
+# Global configs
+[global]
+# For example, /home/syize/Apps/ARPS/bin
+arps_bin_directory = "/path/to/your/ARPS/binary/folder"
+
+# ########################## Config for submodels ##############################
+# NOTE:
+#     wrfrun will mark if the submodel is available by add new value at runtime:
+#
+#     is_valid = True / False
+#
+#     Because it is annoying to set `is_valid` manually for each submodel.
+#     wrfrun will detect if submodel's binary exists, mark it as `True` or `False`,
+#     and warn the user in logs.
+#     If you believe wrfrun makes a mistake, you can manually change the value
+#     of `is_valid` in ARPS model config, for example:
+#
+#     WRFRUN.config.update_model_config("arps", {"arpstrn": {"is_valid": True}})
+
+# Config for arpstrn
+[arpstrn]
+# For example, /share/ARPS/terrain/arpstopo30.data
+dir_terrain_data = "/path/to/your/terrain/base/data/folder"
+# This will affect the outputs name of arpstrn
+run_name = "wrfrun"
+user_namelist = "/path/to/the/namelist/for/arpstrn"
+
+# ##############################################################################

@@ -10,6 +10,7 @@ which are all placed in this module.
 ``wrfrun.model`` currently supports following numerical models:
 
 ========================================= ==========================================
+:doc:`arps </api/model.arps>`             Support for ARPS
 :doc:`palm </api/model.palm>`             Support for PALM
 :doc:`roms </api/model.roms>`             Support for ROMS
 :doc:`wrf </api/model.wrf>`               Support for WRF
@@ -20,6 +21,7 @@ which are all placed in this module.
     :hidden:
 
     constants <model.constants>
+    arps <model.arps>
     palm <model.palm>
     plot <model.plot>
     roms <model.roms>
@@ -29,6 +31,7 @@ which are all placed in this module.
 """
 
 # just to register executables
+from . import arps as _
 from . import palm as _
 from . import wrf as _
 from .constants import *

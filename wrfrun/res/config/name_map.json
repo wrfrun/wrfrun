@@ -1,4 +1,8 @@
 {
+    "arps.template.toml": {
+        "name": "ARPS_TOML_TEMPLATE",
+        "type": "file"
+    },
     "config.template.toml": {
         "name": "MAIN_TOML_TEMPLATE",
         "type": "file"

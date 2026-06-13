@@ -27,6 +27,7 @@ import tomli_w
 from .core import WRFRunConfig
 from .log import logger
 from .res import (
+    CONFIG_ARPS_TOML_TEMPLATE,
     CONFIG_MAIN_TOML_TEMPLATE,
     CONFIG_PALM_TOML_TEMPLATE,
     CONFIG_ROMS_TOML_TEMPLATE,
@@ -36,6 +37,7 @@ from .res import (
 )
 
 MODEL_MAP = {
+    "arps": CONFIG_ARPS_TOML_TEMPLATE,
     "wrf": CONFIG_WRF_TOML_TEMPLATE,
     "palm": CONFIG_PALM_TOML_TEMPLATE,
     "roms": CONFIG_ROMS_TOML_TEMPLATE,
@@ -181,13 +183,25 @@ def main_entry():
 
     init_parser = subparsers.add_parser("init", help="Initialize a wrfrun project.", add_help=True)
     init_parser.add_argument("-n", "--name", type=str, help="Name of the wrfrun project.")
-    init_parser.add_argument("--models", nargs="*", type=str, help="List of models to use.", choices=["wrf", "palm"])
+    init_parser.add_argument(
+        "--models",
+        nargs="*",
+        type=str,
+        help="List of models to use.",
+        choices=["wrf", "palm", "roms", "arps"],
+    )
     init_parser.set_defaults(func=_entry_init)
 
     model_parser = subparsers.add_parser("model", help="Manage models used by wrfrun project.", add_help=True)
     model_parser.add_argument("-c", "--config", type=str, default="config.toml", help="Path of the main config file.")
     model_parser.add_argument(
-        "-a", "--add", nargs="+", required=True, type=str, help="Add models to the project.", choices=["wrf", "palm", "roms"]
+        "-a",
+        "--add",
+        nargs="+",
+        required=True,
+        type=str,
+        help="Add models to the project.",
+        choices=["wrf", "palm", "roms", "arps"],
     )
     model_parser.set_defaults(func=_entry_model)
 
