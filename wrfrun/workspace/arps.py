@@ -7,14 +7,14 @@ Functions to prepare workspace for ARPS model and its submodels.
 .. autosummary::
     :toctree: generated/
 
-    get_palm_workspace_path
-    prepare_palm_workspace
+    get_arps_workspace_path
+    prepare_arps_workspace
 """
 
 from os import symlink
 from os.path import abspath, exists
 
-from wrfrun.core import WRFRUN, WRFRunConfig
+from wrfrun.core import WRFRUN, WRFRUNURI
 from wrfrun.log import logger
 from wrfrun.utils import check_path
 
@@ -31,21 +31,21 @@ def get_arps_workspace_path() -> str:
     return WORKSPACE_ARPS
 
 
-def _register_arps_workspace_uri(wrfrun_config: WRFRunConfig):
+def _arps_workspace_uri_hook(uri_manager: WRFRUNURI):
     """
     This function doesn't register any URI.
 
     This is a hook to initializes some global strings.
 
-    :param wrfrun_config: ``WRFRunConfig`` instance.
-    :type wrfrun_config: WRFRunConfig
+    :param uri_manager: ``WRFRUNURI`` instance.
+    :type uri_manager: WRFRUNURI
     """
     global WORKSPACE_ARPS
 
-    WORKSPACE_ARPS = f"{wrfrun_config.WRFRUN_WORKSPACE_MODEL}/ARPS"
+    WORKSPACE_ARPS = f"{uri_manager.WRFRUN_WORKSPACE_MODEL}/ARPS"
 
 
-WRFRUN.set_config_register_func(_register_arps_workspace_uri)
+WRFRUN.set_uri_register_func(_arps_workspace_uri_hook)
 
 
 def prepare_arps_workspace(model_config: dict):

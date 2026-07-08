@@ -23,15 +23,16 @@ LOGGER = logging.getLogger("wrfrun")
 
 def _check_and_prepare_namelist():
     WRFRUNConfig = WRFRUN.config
-    model_config: dict = WRFRUNConfig.get_model_config("arps").get("arpstrn", {})
-
-    dir_terrain_data = model_config["dir_terrain_data"]
-    user_namelist = model_config["user_namelist"]
-    run_name = model_config["run_name"]
+    global_config = WRFRUNConfig.get_model_config("arps")
+    model_config: dict = global_config.get("arpstrn", {})
 
     if len(model_config) == 0:
         LOGGER.error("Config for [magenta]arpstrn[/magenta] not found in your TOML, check it.")
         raise KeyError("Config for arpstrn not found in your TOML, check it.")
+
+    dir_terrain_data = model_config["dir_terrain_data"]
+    user_namelist = model_config["user_namelist"]
+    run_name = global_config["run_name"]
 
     if not WRFRUNConfig.check_namelist_id("arpstrn"):
         WRFRUNConfig.register_namelist_id("arpstrn")

@@ -410,7 +410,7 @@ class MetGrid(ExecutableBase):
 
             if "geo_em.d01.nc" not in file_list:
                 if self.geogrid_data_path is None:
-                    self.geogrid_data_path = f"{WRFRUN.config.WRFRUN_OUTPUT_PATH}/geogrid"
+                    self.geogrid_data_path = f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/geogrid"
                 geogrid_data_path = WRFRUN.config.parse_resource_uri(self.geogrid_data_path)
 
                 if not exists(geogrid_data_path) or "geo_em.d01.nc" not in listdir(geogrid_data_path):
@@ -436,7 +436,7 @@ class MetGrid(ExecutableBase):
             ungrib_output_dir = WRFRUN.config.parse_resource_uri(get_ungrib_out_dir_path())
             if basename(ungrib_output_dir) not in file_list or len(listdir(ungrib_output_dir)) == 0:
                 if self.ungrib_data_path is None:
-                    self.ungrib_data_path = f"{WRFRUN.config.WRFRUN_OUTPUT_PATH}/ungrib"
+                    self.ungrib_data_path = f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/ungrib"
 
                 ungrib_data_path = WRFRUN.config.parse_resource_uri(self.ungrib_data_path)
 
@@ -543,7 +543,7 @@ class Real(ExecutableBase):
 
         if not WRFRUN.config.IS_IN_REPLAY and not WRFRUN.config.FAKE_SIMULATION_MODE:
             if self.metgrid_data_path is None:
-                self.metgrid_data_path = f"{WRFRUN.config.WRFRUN_OUTPUT_PATH}/metgrid"
+                self.metgrid_data_path = f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/metgrid"
 
             metgrid_data_path = WRFRUN.config.parse_resource_uri(self.metgrid_data_path)
             reconcile_namelist_metgrid(metgrid_data_path)
@@ -666,10 +666,10 @@ class WRF(ExecutableBase):
             if self.input_file_dir_path is None:
                 if last_work_status == "":
                     # assume we already have outputs from real.exe.
-                    self.input_file_dir_path = f"{WRFRUN.config.WRFRUN_OUTPUT_PATH}/real"
+                    self.input_file_dir_path = f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/real"
                     is_output = False
                 else:
-                    self.input_file_dir_path = f"{WRFRUN.config.WRFRUN_OUTPUT_PATH}/{last_work_status}"
+                    self.input_file_dir_path = f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/{last_work_status}"
                     is_output = True
 
             else:
@@ -810,7 +810,7 @@ class DFI(ExecutableBase):
         if not WRFRUN.config.IS_IN_REPLAY and not WRFRUN.config.FAKE_SIMULATION_MODE:
             # prepare config
             if self.input_file_dir_path is None:
-                self.input_file_dir_path = f"{WRFRUN.config.WRFRUN_OUTPUT_PATH}/real"
+                self.input_file_dir_path = f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/real"
                 is_output = True
 
             else:
@@ -948,7 +948,7 @@ class NDown(ExecutableBase):
         WRFRUN.config.update_namelist({"time_control": {"io_form_auxinput2": 2}}, "wrf")
 
         if self.real_output_dir_path is None:
-            self.real_output_dir_path = f"{WRFRUN.config.WRFRUN_OUTPUT_PATH}/real"
+            self.real_output_dir_path = f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/real"
             is_output = True
 
         else:
@@ -980,7 +980,7 @@ class NDown(ExecutableBase):
         self.add_output_files(save_path=self._output_save_path, outputs=["wrfinput_d02", "wrfbdy_d02"])
         # also save other outputs of real.exe, so WRF can directly use them.
         self.add_output_files(
-            output_dir=f"{WRFRUN.config.WRFRUN_OUTPUT_PATH}/real",
+            output_dir=f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/real",
             save_path=self._output_save_path,
             startswith="wrflowinp_",
             no_file_error=False,

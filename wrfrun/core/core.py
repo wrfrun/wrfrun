@@ -25,20 +25,23 @@ from ._config import WRFRunConfig
 from ._exec_db import ExecutableDB
 from ._record import ExecutableRecorder
 from .error import ConfigError
+from .uri import WRFRUNURI
 
 
 class WRFRUNProxy:
     """
     Proxy class to access :class:`WRFRunConfig <wrfrun.core._config.WRFRunConfig>`,
     :class:`ExecutableDB <wrfrun.core._exec_db.ExecutableDB>`,
-    and :class:`ExecutableRecorder <wrfrun.core._record.ExecutableRecorder>`.
+    :class:`ExecutableRecorder <wrfrun.core._record.ExecutableRecorder>`,
+    and :class:`WRFRUNURI <wrfrun.core.uri.WRFRUNURI>`
     """
 
     def __init__(self):
         """
         Proxy class to access :class:`WRFRunConfig <wrfrun.core._config.WRFRunConfig>`,
         :class:`ExecutableDB <wrfrun.core._exec_db.ExecutableDB>`,
-        and :class:`ExecutableRecorder <wrfrun.core._record.ExecutableRecorder>`.
+        :class:`ExecutableRecorder <wrfrun.core._record.ExecutableRecorder>`,
+        and :class:`WRFRUNURI <wrfrun.core.uri.WRFRUNURI>`
         """
         self._config: WRFRunConfig | None = None
         self._config_initialized = False
@@ -46,8 +49,11 @@ class WRFRUNProxy:
         self._exec_db_initialized = False
         self._recorder: ExecutableRecorder | None = None
         self._recorder_initialized = False
+        self._uri_manager: WRFRUNURI | None = None
+        self._uri_manager_initialized = False
 
         self._config_register_funcs: list[Callable[["WRFRunConfig"], None]] = []
+        self._uri_register_funcs: list[Callable[["WRFRUNURI"], None]] = []
         self._exec_db_register_funcs: list[Callable[["ExecutableDB"], None]] = []
 
         self.init_exec_db()
@@ -64,6 +70,19 @@ class WRFRUNProxy:
             logger.error("You haven't initialize `CONFIG` yet.")
             raise ConfigError("You haven't initialize `CONFIG` yet.")
         return self._config
+
+    @property
+    def uri(self) -> WRFRUNURI:
+        """
+        Access WRFRUNURI.
+
+        :return: WRFRUNURIg.
+        :rtype: WRFRUNURI
+        """
+        if self._uri_manager is None:
+            logger.error("You haven't initialize `WRFRUNURI` yet.")
+            raise ConfigError("You haven't initialize `WRFRUNURI` yet.")
+        return self._uri_manager
 
     @property
     def ExecDB(self) -> ExecutableDB:
@@ -119,6 +138,24 @@ class WRFRUNProxy:
             if func not in self._config_register_funcs:
                 self._config_register_funcs.append(func)
 
+    def set_uri_register_func(self, func: Callable[["WRFRUNURI"], None]):
+        """
+        Set register function which will be called by WRFRUNURI.
+        This function should accept a ``WRFRUNURI`` instance.
+
+        If WRFRUNURI hasn't been initialized, the function will be stored
+        and called in order by the time WRFRUNURI is initialized.
+
+        :param func: Register functions.
+        :type func: Callable[["WRFRUNURI"], None]
+        """
+        if self._uri_manager_initialized:
+            func(self._uri_manager)
+
+        else:
+            if func not in self._uri_register_funcs:
+                self._uri_register_funcs.append(func)
+
     def set_exec_db_register_func(self, func: Callable[["ExecutableDB"], None]):
         """
         Set register function which will be called by executables DB.
@@ -137,7 +174,7 @@ class WRFRUNProxy:
             if func not in self._exec_db_register_funcs:
                 self._exec_db_register_funcs.append(func)
 
-    def is_initialized(self, name: Literal["config", "exec_db", "record"]) -> bool:
+    def is_initialized(self, name: Literal["config", "exec_db", "record", "uri"]) -> bool:
         """
         Check if the config has been initialized.
 
@@ -158,6 +195,9 @@ class WRFRUNProxy:
             case "record":
                 flag = self._recorder_initialized
 
+            case "uri":
+                flag = self._uri_manager_initialized
+
         return flag
 
     def init_wrfrun_config(self, config_file: str):
@@ -168,7 +208,7 @@ class WRFRUNProxy:
         :type config_file: str
         """
         logger.info(f"Read config: '{config_file}'")
-        self._config = WRFRunConfig.from_config_file(config_file, self._config_register_funcs)
+        self._config = WRFRunConfig.from_config_file(self.uri, config_file, self._config_register_funcs)
         self._config_initialized = True
 
     def init_exec_db(self):
@@ -190,6 +230,16 @@ class WRFRUNProxy:
         """
         self._recorder = ExecutableRecorder(self._config, save_path, include_data)
         self._recorder_initialized = True
+
+    def init_uri_manager(self, work_dir: str):
+        """
+        Initialize URI manager.
+
+        :param work_dir: wrfrun work directory path.
+        :type work_dir: str
+        """
+        self._uri_manager = WRFRUNURI(work_dir)
+        self._uri_manager_initialized = True
 
 
 WRFRUN = WRFRUNProxy()

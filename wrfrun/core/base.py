@@ -156,6 +156,10 @@ def call_subprocess(
     if stdin_path is None:
         status = subprocess.run(command, shell=False, capture_output=True)
     else:
+        if not exists(stdin_path):
+            logger.error(f"File not found: '{stdin_path}'")
+            raise FileNotFoundError(stdin_path)
+
         with open(stdin_path, "rb") as stdin_file:
             status = subprocess.run(command, shell=False, stdin=stdin_file, capture_output=True)
 
@@ -215,6 +219,7 @@ class ExecutableBase:
         mpi_use=False,
         mpi_cmd: Optional[str] = None,
         mpi_core_num: Optional[int] = None,
+        stdin_file: Optional[str] = None,
     ):
         """
 
@@ -232,6 +237,8 @@ class ExecutableBase:
         :type mpi_cmd: str
         :param mpi_core_num: How many cores you use. Defaults to None.
         :type mpi_core_num: int
+        :param stdin_file: The file which content will be passed to the external program via stdin.
+        :type stdin_file: str
         """
         if mpi_use and isinstance(cmd, list):
             logger.error("If you want to use mpi, then `cmd` must be a single string.")
@@ -240,6 +247,7 @@ class ExecutableBase:
         self.name = name
         self.cmd = cmd
         self.work_path = work_path
+        self.stdin_file = stdin_file
         self.mpi_use = mpi_use
         self.mpi_cmd = mpi_cmd
         self.mpi_core_num = mpi_core_num
@@ -250,7 +258,7 @@ class ExecutableBase:
         self.output_file_config: list[FileConfigDict] = []
 
         # directory to save outputs
-        self._output_save_path = f"{WRFRUN.config.WRFRUN_OUTPUT_PATH}/{self.name}"
+        self._output_save_path = f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/{self.name}"
         self._log_save_path = f"{self._output_save_path}/logs"
 
     def __new__(cls, *args, **kwargs):
@@ -442,7 +450,7 @@ class ExecutableBase:
     ):
         """
         Find and save model's outputs to the output save path.
-        An :class:`OutputFileError <wrfrun.core.error.OutputFileError>` exception will be raised 
+        An :class:`OutputFileError <wrfrun.core.error.OutputFileError>` exception will be raised
         if no file can be found and ``no_file_error==True``.
 
         You can give the specific path of a file or multiple files.
@@ -486,7 +494,7 @@ class ExecutableBase:
             output_dir = self.work_path
 
         if save_path is None:
-            save_path = f"{WRFRUN.config.WRFRUN_OUTPUT_PATH}/{self.name}"
+            save_path = f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/{self.name}"
 
         file_list = listdir(WRFRUN.config.parse_resource_uri(output_dir))
         save_file_list = []
@@ -667,7 +675,7 @@ class ExecutableBase:
 
         log_save_path = WRFRUN.config.parse_resource_uri(self._log_save_path)
         log_save_prefix = f"{log_save_path}/{self.name}"
-        call_subprocess(_cmd, work_path=work_path, log_save_prefix=log_save_prefix)
+        call_subprocess(_cmd, work_path=work_path, log_save_prefix=log_save_prefix, stdin_path=self.stdin_file)
 
         if WRFRUN.config.DEBUG_MODE_EXECUTABLE:
             self.exec_debug()

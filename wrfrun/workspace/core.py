@@ -86,13 +86,14 @@ def prepare_workspace():
     global PREPARE_FUNC_MAP
 
     WRFRUNConfig = WRFRUN.config
+    uri_manager = WRFRUN.uri
     workspace_backup_path = None
     initialize_success = False
 
-    wrfrun_temp_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_TEMP_PATH)
-    workspace_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_ROOT)
-    replay_work_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_REPLAY)
-    output_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_OUTPUT_PATH)
+    wrfrun_temp_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_TEMP_PATH)
+    workspace_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_WORKSPACE_ROOT)
+    replay_work_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_WORKSPACE_REPLAY)
+    output_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_OUTPUT_PATH)
 
     if exists(workspace_path):
         logger.info(f"Reinitialize main workspace at: '{workspace_path}'")
@@ -143,11 +144,12 @@ def check_workspace() -> bool:
     global CHECK_FUNC_MAP
 
     WRFRUNConfig = WRFRUN.config
+    uri_manager = WRFRUN.uri
 
-    wrfrun_temp_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_TEMP_PATH)
-    workspace_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_ROOT)
-    replay_work_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_REPLAY)
-    output_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_OUTPUT_PATH)
+    wrfrun_temp_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_TEMP_PATH)
+    workspace_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_WORKSPACE_ROOT)
+    replay_work_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_WORKSPACE_REPLAY)
+    output_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_OUTPUT_PATH)
 
     flag = True
     flag = flag & exists(wrfrun_temp_path) & exists(replay_work_path) & exists(output_path) & exists(workspace_path)

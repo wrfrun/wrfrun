@@ -43,6 +43,8 @@ from collections.abc import Generator
 from os.path import abspath, dirname
 from typing import Optional, Tuple, Union
 
+import tomli
+
 from wrfrun.core.base import ExecutableBase
 
 from .core import WRFRunBasicError, WRFRunServer, WRFRunServerHandler, replay_config_generator, stop_server
@@ -129,6 +131,9 @@ class WRFRun:
         # make sure we can read the config file,
         # because sometimes the user may run the Python script in a different path.
         abs_config_path = f"{self._entry_file_dir_path}/{config_file}"
+        with open(abs_config_path) as f:
+            config = tomli.load(f)
+        WRFRUN.init_uri_manager(config["work_dir"])
         WRFRUN.init_wrfrun_config(abs_config_path)
 
         self._WRFRUNReplay: Optional[ExecutableRecorder] = None
@@ -163,7 +168,7 @@ class WRFRun:
                 confirm_model_area()
 
         # save a copy of config to the output path
-        WRFRUN.config.save_wrfrun_config(f"{WRFRUN.config.WRFRUN_OUTPUT_PATH}/config.toml")
+        WRFRUN.config.save_wrfrun_config(f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/config.toml")
 
         # check if we need to start a server
         if self._start_server:

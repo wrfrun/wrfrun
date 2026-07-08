@@ -94,7 +94,7 @@ def parse_geographical_data_index(index_path: str) -> OrderedDict:
     # we can manually add "&index" and "/" and parse it as a namelist
     # temp file store path
     WRFRUNConfig = WRFRUN.config
-    temp_file = f"{WRFRUNConfig.WRFRUN_TEMP_PATH}/geogrid_data.index"
+    temp_file = f"{WRFRUN.uri.WRFRUN_TEMP_PATH}/geogrid_data.index"
     temp_file = WRFRUNConfig.parse_resource_uri(temp_file)
 
     # open file and add header and tail

@@ -16,7 +16,7 @@ from os.path import abspath, exists
 from pathlib import Path
 from typing import Literal
 
-from wrfrun.core import WRFRUN, WRFRunConfig
+from wrfrun.core import WRFRUN, WRFRUNURI
 from wrfrun.log import logger
 from wrfrun.utils import check_path
 
@@ -25,21 +25,21 @@ from .utils import create_copy
 WORKSPACE_PALM = ""
 
 
-def _register_palm_workspace_uri(wrfrun_config: WRFRunConfig):
+def _palm_workspace_uri_hook(uri_manager: WRFRUNURI):
     """
     This function doesn't register any URI.
 
     This is a hook to initializes some global strings.
 
-    :param wrfrun_config: ``WRFRunConfig`` instance.
-    :type wrfrun_config: WRFRunConfig
+    :param uri_manager: ``WRFRUNURI`` instance.
+    :type uri_manager: WRFRUNURI
     """
     global WORKSPACE_PALM
 
-    WORKSPACE_PALM = f"{wrfrun_config.WRFRUN_WORKSPACE_MODEL}/PALM"
+    WORKSPACE_PALM = f"{uri_manager.WRFRUN_WORKSPACE_MODEL}/PALM"
 
 
-WRFRUN.set_config_register_func(_register_palm_workspace_uri)
+WRFRUN.set_uri_register_func(_palm_workspace_uri_hook)
 
 
 def get_palm_workspace_path(node: Literal["root", "job", "input", "output"] = "root") -> str:

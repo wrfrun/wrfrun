@@ -16,7 +16,7 @@ from os import listdir, makedirs, symlink
 from os.path import exists
 from typing import Literal
 
-from wrfrun.core import WRFRUN, WRFRunConfig
+from wrfrun.core import WRFRUN, WRFRUNURI
 from wrfrun.log import logger
 from wrfrun.utils import check_path
 
@@ -27,23 +27,23 @@ WORKSPACE_MODEL_WRF = ""
 WORKSPACE_MODEL_WRFDA = ""
 
 
-def _register_wrf_workspace_uri(wrfrun_config: WRFRunConfig):
+def _wrf_workspace_uri_hook(uri_manager: WRFRUNURI):
     """
     This function doesn't register any URI.
 
     This is a hook to initializes some global strings.
 
-    :param wrfrun_config: ``WRFRUNProxy`` instance.
-    :type wrfrun_config: WRFRUNProxy
+    :param uri_manager: ``WRFRUNURI`` instance.
+    :type wrfrunuri_manager_config: WRFRUNURI
     """
     global WORKSPACE_MODEL_WPS, WORKSPACE_MODEL_WRF, WORKSPACE_MODEL_WRFDA
 
-    WORKSPACE_MODEL_WPS = f"{wrfrun_config.WRFRUN_WORKSPACE_MODEL}/WPS"
-    WORKSPACE_MODEL_WRF = f"{wrfrun_config.WRFRUN_WORKSPACE_MODEL}/WRF"
-    WORKSPACE_MODEL_WRFDA = f"{wrfrun_config.WRFRUN_WORKSPACE_MODEL}/WRFDA"
+    WORKSPACE_MODEL_WPS = f"{uri_manager.WRFRUN_WORKSPACE_MODEL}/WPS"
+    WORKSPACE_MODEL_WRF = f"{uri_manager.WRFRUN_WORKSPACE_MODEL}/WRF"
+    WORKSPACE_MODEL_WRFDA = f"{uri_manager.WRFRUN_WORKSPACE_MODEL}/WRFDA"
 
 
-WRFRUN.set_config_register_func(_register_wrf_workspace_uri)
+WRFRUN.set_uri_register_func(_wrf_workspace_uri_hook)
 
 
 def get_wrf_workspace_path(name: Literal["wps", "wrf", "wrfda"]) -> str:

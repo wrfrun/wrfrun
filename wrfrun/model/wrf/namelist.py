@@ -129,10 +129,9 @@ def _check_start_end_date(
 def prepare_wps_namelist():
     """
     This function read WPS template namelist and update its value based on the config file and user custom namelist.
-
     """
     # prepare namelist
-    wrf_config = WRFRUN.config.get_model_config("wps")
+    wrf_config = WRFRUN.config.get_model_config("wrf")
 
     wps_namelist_template = wrf_config["wps_namelist_template"] if "wps_namelist_template" in wrf_config else ""
 

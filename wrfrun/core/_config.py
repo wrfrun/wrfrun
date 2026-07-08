@@ -28,29 +28,42 @@ import tomli
 import tomli_w
 
 from ..log import logger
-from ._constant import ConstantMixIn
 from ._debug import DebugMixIn
 from ._namelist import NamelistMixIn
-from ._resource import ResourceMixIn
-from .error import ModelNameError
+from .error import ModelNameError, WRFRunContextError
+from .uri import WRFRUNURI
 
 
-class WRFRunConfig(ConstantMixIn, NamelistMixIn, ResourceMixIn, DebugMixIn):
+class WRFRunConfig(NamelistMixIn, DebugMixIn):
     """
     Comprehensive class to manage wrfrun config, runtime constants, namelists and resource files.
     """
 
-    def __init__(self, work_dir: str):
+    def __init__(self, uri_manager: WRFRUNURI):
         """
 
         :param work_dir: ``wrfrun`` work directory path.
         :type work_dir: str
         """
-        super().__init__(work_dir=work_dir)
+        self._URI_manager = uri_manager
+
+        super().__init__(uri_parse_func=self._URI_manager.parse_resource_uri)
 
         self._config = {}
 
         self._config_template_file_path = None
+
+        # record context status
+        self._WRFRUN_CONTEXT_STATUS = False
+        # record WRF progress status
+        self._WRFRUN_WORK_STATUS = ""
+
+        self.IS_IN_REPLAY: bool = False
+        self.IS_RECORDING: bool = False
+
+        # in this mode, wrfrun will do all things except call the numerical model.
+        # all output rules will also not be executed.
+        self.FAKE_SIMULATION_MODE = False
 
         self._register_wrfrun_uris()
 
@@ -66,7 +79,9 @@ class WRFRunConfig(ConstantMixIn, NamelistMixIn, ResourceMixIn, DebugMixIn):
             _func(self)
 
     @classmethod
-    def from_config_file(cls, config_file: str, register_funcs: list[Callable[["WRFRunConfig"], None]]) -> "WRFRunConfig":
+    def from_config_file(
+        cls, uri_manager: WRFRUNURI, config_file: str, register_funcs: list[Callable[["WRFRunConfig"], None]]
+    ) -> "WRFRunConfig":
         """
         Read the config file and create a instance.
 
@@ -77,17 +92,14 @@ class WRFRunConfig(ConstantMixIn, NamelistMixIn, ResourceMixIn, DebugMixIn):
         :return: New instance
         :rtype: WRFRunConfig
         """
-        with open(config_file, "rb") as f:
-            config = tomli.load(f)
-
-        instance = cls(work_dir=config["work_dir"])
+        instance = cls(uri_manager)
         instance.apply_register_func(register_funcs)
         instance.load_wrfrun_config(config_file)
 
         return instance
 
     def _register_wrfrun_uris(self):
-        for key, value in self._get_uri_map().items():
+        for key, value in self._URI_manager._get_uri_map().items():
             self.register_resource_uri(key, value)
 
     def set_config_template_path(self, file_path: str):
@@ -155,8 +167,8 @@ class WRFRunConfig(ConstantMixIn, NamelistMixIn, ResourceMixIn, DebugMixIn):
 
         # register URI for output directory.
         output_path = abspath(self["output_path"])
-        self.unregister_resource_uri(self.WRFRUN_OUTPUT_PATH)
-        self.register_resource_uri(self.WRFRUN_OUTPUT_PATH, output_path)
+        self.unregister_resource_uri(self._URI_manager.WRFRUN_OUTPUT_PATH)
+        self.register_resource_uri(self._URI_manager.WRFRUN_OUTPUT_PATH, output_path)
 
         # some additional check
         if self._config["input_data_path"] == "":
@@ -303,6 +315,74 @@ class WRFRunConfig(ConstantMixIn, NamelistMixIn, ResourceMixIn, DebugMixIn):
         """
         save_path = self.parse_resource_uri(save_path)
         super().write_namelist(save_path, namelist_id, overwrite)
+
+    def check_wrfrun_context(self, error=False) -> bool:
+        """
+        Check if in WRFRun context or not.
+
+        :param error: An exception :class:`WRFRunContextError` will be raised
+                      if ``error==True`` when we are not in WRFRun context.
+        :type error: bool
+        :return: True or False.
+        :rtype: bool
+        """
+        if self._WRFRUN_CONTEXT_STATUS:
+            return self._WRFRUN_CONTEXT_STATUS
+
+        if not error:
+            logger.warning("You are using wrfrun without entering `WRFRun` context, which may cause some functions don't work.")
+            return self._WRFRUN_CONTEXT_STATUS
+
+        logger.error("You need to enter `WRFRun` context to use wrfrun.")
+        raise WRFRunContextError("You need to enter `WRFRun` context to use wrfrun.")
+
+    def set_wrfrun_context(self, status: bool):
+        """
+        Change ``WRFRun`` context status to True or False.
+
+        :param status: ``True`` or ``False``.
+        :type status: bool
+        """
+        self._WRFRUN_CONTEXT_STATUS = status
+
+    @property
+    def WRFRUN_WORK_STATUS(self) -> str:
+        """
+        ``wrfrun`` work status.
+
+        This attribute can be changed by ``Executable`` to reflect the current work progress of ``wrfrun``.
+        The returned string is the name of ``Executable``.
+
+        :return: A string reflect the current work progress.
+        :rtype: str
+        """
+        return self._WRFRUN_WORK_STATUS
+
+    @WRFRUN_WORK_STATUS.setter
+    def WRFRUN_WORK_STATUS(self, value: str):
+        """
+        Set ``wrfrun`` work status.
+
+        ``wrfrun`` recommends ``Executable`` set the status string with their name,
+        so to avoid the possible conflicts with other ``Executable``,
+        and the user can easily understand the current work progress.
+
+        :param value: A string represents the work status.
+        :type value: str
+        """
+        self._WRFRUN_WORK_STATUS = value
+
+    def check_resource_uri(self, unique_uri: str) -> bool:
+        return self._URI_manager.check_resource_uri(unique_uri)
+
+    def register_resource_uri(self, unique_uri: str, res_space_path: str):
+        return self._URI_manager.register_resource_uri(unique_uri, res_space_path)
+
+    def unregister_resource_uri(self, unique_uri: str):
+        return self._URI_manager.unregister_resource_uri(unique_uri)
+
+    def parse_resource_uri(self, resource_path: str) -> str:
+        return self._URI_manager.parse_resource_uri(resource_path)
 
 
 __all__ = ["WRFRunConfig"]
