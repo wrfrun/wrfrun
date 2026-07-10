@@ -22,7 +22,7 @@ from copy import deepcopy
 from os import makedirs
 from os.path import abspath, dirname, exists
 from shutil import copyfile
-from typing import Callable, Tuple
+from typing import Callable, Optional, Tuple
 
 import tomli
 import tomli_w
@@ -221,14 +221,21 @@ class WRFRunConfig(NamelistMixIn, DebugMixIn):
             logger.error(f"Can't find key '{key}' in your config.")
             raise KeyError(f"Can't find key '{key}' in your config.")
 
-    def get_input_data_path(self) -> str:
+    def get_input_data_path(self, model_name: Optional[str] = None) -> str:
         """
         Get the path of directory in which stores the input data.
 
+        :param model_name: ``Executable`` name, defaults to None. If None, return the root path.
+        :type model_name: Optional[str]
         :return: Directory path.
         :rtype: str
         """
-        return deepcopy(self["input_data_path"])
+        root_path = deepcopy(self["input_data_path"])
+
+        if model_name is None:
+            return root_path
+        else:
+            return f"{root_path}/{model_name}"
 
     def get_model_config(self, model_name: str) -> dict:
         """

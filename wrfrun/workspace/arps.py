@@ -87,5 +87,17 @@ def prepare_arps_workspace(model_config: dict):
             symlink(f"{arps_bin_dir}/{_submodel}", f"{arps_work_path}/{_submodel}/{_submodel}")
             model_config.update({_submodel: {"is_valid": True}})
 
+    # arps core has two version: arps and arps_mpi, we also need to check arps_mpi
+    if not exists(f"{arps_bin_dir}/arps_mpi"):
+        logger.warning(
+            f"[magenta]arps_mpi[/magenta] not found in {arps_bin_dir}. "
+            "If you want to run arps with MPI, make sure you have compiled MPI version of ARPS core."
+        )
+        model_config.update({"arps_mpi": {"is_valid": False}})
+    else:
+        check_path(f"{arps_work_path}/arps_mpi", force=True)
+        symlink(f"{arps_bin_dir}/arps_mpi", f"{arps_work_path}/arps_mpi/arps_mpi")
+        model_config.update({"arps_mpi": {"is_valid": True}})
+
 
 __all__ = ["prepare_arps_workspace", "get_arps_workspace_path"]

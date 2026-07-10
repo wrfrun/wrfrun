@@ -12,8 +12,6 @@ Implementation of ``arpstrn`` submodel.
 """
 
 import logging
-from os import makedirs
-from os.path import exists
 
 from wrfrun.core import WRFRUN, ExecutableBase, ExecutableDB
 from wrfrun.workspace.arps import get_arps_workspace_path
@@ -32,7 +30,7 @@ def _check_and_prepare_namelist():
 
     dir_terrain_data = model_config["dir_terrain_data"]
     user_namelist = model_config["user_namelist"]
-    run_name = global_config["run_name"]
+    run_name = "wrfrun"
 
     if not WRFRUNConfig.check_namelist_id("arpstrn"):
         WRFRUNConfig.register_namelist_id("arpstrn")
@@ -61,18 +59,17 @@ class ARPSTrn(ExecutableBase):
         mpi_cmd = None
         mpi_core_num = None
 
-        self.namelist_file_name = "wrfrun.input"
-        self.log_file_name = "arpstrn.log"
-
-        cmd = f"./arpstrn < {self.namelist_file_name} > {self.log_file_name} 2>&1"
+        self.work_path = f"{get_arps_workspace_path()}/arpstrn"
+        self.namelist_path = f"{self.work_path}/arpstrn.nml"
 
         super().__init__(
             "arpstrn",
-            cmd,
+            "./arpstrn",
             f"{get_arps_workspace_path()}/arpstrn",
-            mpi_use,
-            mpi_cmd,
-            mpi_core_num,
+            stdin_file=self.namelist_path,
+            mpi_use=mpi_use,
+            mpi_cmd=mpi_cmd,
+            mpi_core_num=mpi_core_num,
         )
 
         _check_and_prepare_namelist()
@@ -102,13 +99,12 @@ class ARPSTrn(ExecutableBase):
         WRFRUNConfig.check_wrfrun_context(True)
         WRFRUNConfig.WRFRUN_WORK_STATUS = "arpstrn"
 
-        arpstrn_workspace_path = WRFRUNConfig.parse_resource_uri(f"{get_arps_workspace_path()}/arpstrn")
+        WRFRUN.check_path(f"{self.work_path}/outputs")
 
-        if not exists(f"{arpstrn_workspace_path}/outputs"):
-            makedirs(f"{arpstrn_workspace_path}/outputs")
+        WRFRUNConfig.update_namelist({"jobname": {"runname": self.name}}, "arpstrn")
 
         WRFRUNConfig.write_namelist(
-            f"{arpstrn_workspace_path}/wrfrun.input",
+            self.namelist_path,
             "arpstrn",
         )
 
@@ -116,24 +112,15 @@ class ARPSTrn(ExecutableBase):
 
     def after_exec(self):
         if not WRFRUN.config.IS_IN_REPLAY:
-            run_name = WRFRUN.config.get_model_config("arps")["arpstrn"]["run_name"]
-
             self.add_output_files(
-                outputs=f"{run_name}.trndata",
+                filenames=f"{self.name}.trndata",
                 output_dir=f"{get_arps_workspace_path()}/arpstrn/outputs",
                 save_path=f"{self._output_save_path}",
             )
 
             # also save namelist files.
             self.add_output_files(
-                outputs=self.log_file_name,
-                output_dir=f"{get_arps_workspace_path()}/arpstrn",
-                save_path=f"{self._output_save_path}/logs",
-            )
-
-            # also save namelist files.
-            self.add_output_files(
-                outputs="wrfrun.input",
+                filenames="arpstrn.nml",
                 output_dir=f"{get_arps_workspace_path()}/arpstrn",
                 save_path=f"{self._output_save_path}/logs",
             )

@@ -4,8 +4,6 @@
 [global]
 # For example, /home/syize/Apps/ARPS/bin
 arps_bin_directory = "/path/to/your/ARPS/binary/folder"
-# This will affect the outputs name of arps core and its all submodules.
-run_name = "wrfrun"
 # Namelist for arps core and some arps' submodule.
 user_namelist = "/path/to/the/namelist"
 
@@ -42,8 +40,8 @@ grid_projection_true_lon = 118.784
 
 # Integrate settings, unit: seconds
 integrate_large_time_step = 6.0
-integrate_model_start_time = 0.0
-integrate_model_end_time = 43200.0
+
+is_restart = false
 
 # ########################## Config for submodels ##############################
 # NOTE:

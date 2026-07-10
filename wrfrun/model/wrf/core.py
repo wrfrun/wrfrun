@@ -142,7 +142,7 @@ class GeoGrid(ExecutableBase):
 
     def after_exec(self):
         if not WRFRUN.config.IS_IN_REPLAY:
-            self.add_output_files(save_path=self._log_save_path, startswith="geogrid.log", outputs=NamelistName.WPS)
+            self.add_output_files(save_path=self._log_save_path, startswith="geogrid.log", filenames=NamelistName.WPS)
             self.add_output_files(save_path=self._output_save_path, startswith="geo_em")
 
         super().after_exec()
@@ -299,7 +299,7 @@ class UnGrib(ExecutableBase):
             self.add_output_files(
                 output_dir=get_ungrib_out_dir_path(), save_path=self._output_save_path, startswith=get_ungrib_out_prefix()
             )
-            self.add_output_files(save_path=self._log_save_path, outputs=["ungrib.log", "namelist.wps"])
+            self.add_output_files(save_path=self._log_save_path, filenames=["ungrib.log", "namelist.wps"])
 
         super().after_exec()
 
@@ -470,7 +470,7 @@ class MetGrid(ExecutableBase):
 
     def after_exec(self):
         if not WRFRUN.config.IS_IN_REPLAY:
-            self.add_output_files(save_path=self._log_save_path, startswith="metgrid.log", outputs="namelist.wps")
+            self.add_output_files(save_path=self._log_save_path, startswith="metgrid.log", filenames="namelist.wps")
             self.add_output_files(save_path=self._output_save_path, startswith="met_em")
 
         super().after_exec()
@@ -570,7 +570,7 @@ class Real(ExecutableBase):
     def after_exec(self):
         if not WRFRUN.config.IS_IN_REPLAY:
             self.add_output_files(save_path=self._output_save_path, startswith=("wrfbdy", "wrfinput", "wrflow"))
-            self.add_output_files(save_path=self._log_save_path, startswith="rsl.", outputs="namelist.input")
+            self.add_output_files(save_path=self._log_save_path, startswith="rsl.", filenames="namelist.input")
 
         super().after_exec()
 
@@ -722,7 +722,7 @@ class WRF(ExecutableBase):
 
     def after_exec(self):
         if not WRFRUN.config.IS_IN_REPLAY:
-            self.add_output_files(save_path=self._log_save_path, startswith="rsl.", outputs="namelist.input")
+            self.add_output_files(save_path=self._log_save_path, startswith="rsl.", filenames="namelist.input")
             self.add_output_files(save_path=self._output_save_path, startswith="wrfout")
             if self.save_restarts:
                 restart_save_path = f"{self._output_save_path}/restart"
@@ -842,7 +842,7 @@ class DFI(ExecutableBase):
 
     def after_exec(self):
         if not WRFRUN.config.IS_IN_REPLAY:
-            self.add_output_files(save_path=self._log_save_path, startswith="rsl.", outputs="namelist.input")
+            self.add_output_files(save_path=self._log_save_path, startswith="rsl.", filenames="namelist.input")
             self.add_output_files(save_path=self._output_save_path, startswith="wrfinput_initialized_")
 
         super().after_exec()
@@ -976,8 +976,8 @@ class NDown(ExecutableBase):
         WRFRUN.config.write_namelist(f"{get_wrf_workspace_path('wrf')}/{NamelistName.WRF}", "wrf")
 
     def after_exec(self):
-        self.add_output_files(save_path=self._log_save_path, startswith="rsl.", outputs="namelist.input")
-        self.add_output_files(save_path=self._output_save_path, outputs=["wrfinput_d02", "wrfbdy_d02"])
+        self.add_output_files(save_path=self._log_save_path, startswith="rsl.", filenames="namelist.input")
+        self.add_output_files(save_path=self._output_save_path, filenames=["wrfinput_d02", "wrfbdy_d02"])
         # also save other outputs of real.exe, so WRF can directly use them.
         self.add_output_files(
             output_dir=f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/real",

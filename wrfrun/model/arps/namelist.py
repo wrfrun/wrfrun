@@ -10,6 +10,9 @@ Functions to read and change ARPS namelist.
 
 """
 
+import logging
+from datetime import datetime
+
 from wrfrun.core import WRFRUN
 
 PROJECTION_MAP = {
@@ -20,6 +23,7 @@ PROJECTION_MAP = {
     "mercator": 3,
     "": 0,
 }
+LOGGER = logging.getLogger("wrfrun")
 
 
 def prepare_arps_namelist():
@@ -31,9 +35,22 @@ def prepare_arps_namelist():
 
     model_config = wrfrun_config.get_model_config("arps")
     user_namelist = model_config["user_namelist"]
-    run_name = model_config["run_name"]
+    run_name = "wrfrun"
 
     wrfrun_config.read_namelist(user_namelist, "arps")
+
+    if wrfrun_config.get_namelist("arps")["initialization"].get("inisplited", -1) != 0:
+        LOGGER.error(
+            "It is recommended to let arps core read input data and split it on-the-fly. "
+            "Set [magenta]inisplited=0[/magenta] in 'initialization' block to fix this error."
+        )
+        raise ValueError(
+            "It is recommended to let arps core read input data and split it on-the-fly. "
+            "Set inisplited=0 in 'initialization' block to fix this error."
+        )
+
+    # User's namelist has the highest priority.
+    return
 
     # Update namelist
     # Grid settings
@@ -62,12 +79,40 @@ def prepare_arps_namelist():
 
     # Integrate settings.
     integrate_large_time_step = model_config["integrate_large_time_step"]
-    integrate_model_start_time = model_config["integrate_model_start_time"]
-    integrate_model_end_time = model_config["integrate_model_end_time"]
+    start_date: datetime = wrfrun_config["simulation"]["time"]["start_time"]
+    end_date: datetime = wrfrun_config["simulation"]["time"]["end_time"]
+    simulation_time = (end_date - start_date).seconds
 
     update_value = {
         "grid_dims": {"nx": grid_nx, "ny": grid_ny, "nz": grid_nz},
         "jobname": {"runname": run_name},
+        "initialization": {
+            "initime": start_date.strftime("%Y-%m-%d.%H:%M:%S"),
+            "initopt": 2 if model_config["is_restart"] else 3,
+        },
+        "grid": {
+            "dx": grid_dx,
+            "dy": grid_dy,
+            "dz": grid_dz,
+            "strhopt": 2,
+            "dzmin": grid_min_dz,
+            "zrefsfc": grid_z_bottom_height,
+            "dlayer1": grid_z_stretch_start_height,
+            "dlayer2": grid_z_stretch_end_height,
+            "zflat": grid_z_start_flat_height,
+            "ctrlat": grid_center_latitude,
+            "ctrlon": grid_center_longitude,
+        },
+        "projection": {
+            "mapproj": grid_projection_num,
+            "trulat1": grid_projection_true_lat_1,
+            "trulat2": grid_projection_true_lat_2,
+            "trulon": grid_projection_true_lon,
+        },
+        "timestep": {"dtbig": integrate_large_time_step, "tstop": simulation_time},
         "output": {"dirname": "./outputs/"},
     }
     wrfrun_config.update_namelist(update_value, "arps")
+
+
+__all__ = ["prepare_arps_namelist"]

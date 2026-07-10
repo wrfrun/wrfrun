@@ -20,6 +20,8 @@ Through this global variable, other submodules of wrfrun and users can access at
 
 from typing import Callable, Literal
 
+from wrfrun.utils import check_path
+
 from ..log import logger
 from ._config import WRFRunConfig
 from ._exec_db import ExecutableDB
@@ -240,6 +242,16 @@ class WRFRUNProxy:
         """
         self._uri_manager = WRFRUNURI(work_dir)
         self._uri_manager_initialized = True
+
+    def check_path(self, *args):
+        """
+        Helper function to check and create directories.
+
+        This helper wraps the utility function :func:`check_path <wrfrun.utils.check_path>`,
+        it will convert URIs to real path first.
+        """
+        real_path = [self.uri.parse_resource_uri(_path) for _path in args]
+        check_path(real_path)
 
 
 WRFRUN = WRFRUNProxy()

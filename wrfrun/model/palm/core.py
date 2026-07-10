@@ -166,7 +166,7 @@ class PALMRun(ExecutableBase):
             self.add_output_files(
                 output_dir=get_palm_workspace_path("input"),
                 save_path=f"{self._output_save_path}/{job_name}/logs",
-                outputs=get_namelist_save_name(),
+                filenames=get_namelist_save_name(),
             )
 
         super().after_exec()

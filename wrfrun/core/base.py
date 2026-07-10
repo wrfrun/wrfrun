@@ -445,7 +445,7 @@ class ExecutableBase:
         save_path: Optional[str] = None,
         startswith: Union[None, str, tuple[str, ...]] = None,
         endswith: Union[None, str, tuple[str, ...]] = None,
-        outputs: Union[None, str, list[str]] = None,
+        filenames: Union[None, str, list[str]] = None,
         no_file_error=True,
     ):
         """
@@ -455,8 +455,8 @@ class ExecutableBase:
 
         You can give the specific path of a file or multiple files.
 
-        >>> self.add_output_files(outputs="wrfout.d01")
-        >>> self.add_output_files(outputs=["wrfout.d01", "wrfout.d02"])
+        >>> self.add_output_files(filenames="wrfout.d01")
+        >>> self.add_output_files(filenames=["wrfout.d01", "wrfout.d02"])
 
         If you have too many outputs, but they have the same prefix or postfix,
         you can use ``startswith`` or ``endswith``.
@@ -470,7 +470,7 @@ class ExecutableBase:
         ``output_dir`` specify the search path of outputs, by default it is the work path of the executable.
         You can change its value if the output path of the executable isn't its work path.
 
-        >>> self.add_output_files(output_dir=f"/absolute/dir/path", outputs=...)
+        >>> self.add_output_files(output_dir=f"/absolute/dir/path", filenames=...)
 
         :param output_dir: Search path of outputs.
         :type output_dir: str
@@ -481,8 +481,8 @@ class ExecutableBase:
         :type startswith: str | list
         :param endswith: Postfix string or postfix list of output files.
         :type endswith: str | list
-        :param outputs: Files name list. All files in the list will be saved.
-        :type outputs: str | list
+        :param filenames: Files name list. All files in the list will be saved.
+        :type filenames: str | list
         :param no_file_error: If True, an OutputFileError will be raised if no output file can be found.
                               Defaults to True.
         :type no_file_error: bool
@@ -517,25 +517,25 @@ class ExecutableBase:
 
             logger.debug(f"Collect files match `endswith`: {_list}")
 
-        if outputs is not None:
-            if isinstance(outputs, str) and outputs in file_list:
-                save_file_list.append(outputs)
+        if filenames is not None:
+            if isinstance(filenames, str) and filenames in file_list:
+                save_file_list.append(filenames)
             else:
-                outputs = [x for x in outputs if x in file_list]
-                save_file_list += outputs
+                filenames = [x for x in filenames if x in file_list]
+                save_file_list += filenames
 
         if len(save_file_list) < 1:
             if no_file_error:
                 logger.error(
                     (
                         "Can't find any files match the giving rules: "
-                        f"startswith='{startswith}', endswith='{endswith}', outputs='{outputs}'"
+                        f"startswith='{startswith}', endswith='{endswith}', outputs='{filenames}'"
                     )
                 )
                 raise OutputFileError(
                     (
                         "Can't find any files match the giving rules: "
-                        f"startswith='{startswith}', endswith='{endswith}', outputs='{outputs}'"
+                        f"startswith='{startswith}', endswith='{endswith}', outputs='{filenames}'"
                     )
                 )
 
@@ -543,7 +543,7 @@ class ExecutableBase:
                 logger.warning(
                     (
                         "Can't find any files match the giving rules: "
-                        f"startswith='{startswith}', endswith='{endswith}', outputs='{outputs}'. Skip it."
+                        f"startswith='{startswith}', endswith='{endswith}', outputs='{filenames}'. Skip it."
                     )
                 )
                 return
