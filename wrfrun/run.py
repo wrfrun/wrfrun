@@ -131,7 +131,7 @@ class WRFRun:
         # make sure we can read the config file,
         # because sometimes the user may run the Python script in a different path.
         abs_config_path = f"{self._entry_file_dir_path}/{config_file}"
-        with open(abs_config_path) as f:
+        with open(abs_config_path, "rb") as f:
             config = tomli.load(f)
         WRFRUN.init_uri_manager(config["work_dir"])
         WRFRUN.init_wrfrun_config(abs_config_path)

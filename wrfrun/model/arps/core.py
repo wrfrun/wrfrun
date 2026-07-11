@@ -318,7 +318,7 @@ class EXT2ARPS(ExecutableBase):
             {
                 "jobname": {"runname": self.name},
                 "terrain": {"terndta": "./arpstrn.trndata"},
-                "extdfile": {"dir_extd": "./"},
+                "extdfile": {"dir_extd": "./", "grdbasopt": 1},
             },
             "arps",
         )
@@ -447,7 +447,7 @@ class ARPS(ExecutableBase):
 
         if "arpssfc.sfcdata" not in file_list:
             if self.arpssfc_data_path is None:
-                self.arpssfc_data_path = f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/arpssfc/arpssfc.trndata"
+                self.arpssfc_data_path = f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/arpssfc/arpssfc.sfcdata"
             arpssfc_data_path = WRFRUN.uri.parse_resource_uri(self.arpssfc_data_path)
 
             if not exists(arpssfc_data_path):
@@ -477,13 +477,14 @@ class ARPS(ExecutableBase):
 
             else:
                 ext2arps_outputs = listdir(ext2arps_data_path)
-                self.add_input_files([f"{self.arpssfc_data_path}/{_file}" for _file in ext2arps_outputs])
+                self.add_input_files([f"{self.ext2arps_data_path}/{_file}" for _file in ext2arps_outputs])
 
         wrfrun_config.update_namelist(
             {
                 "jobname": {"runname": self.name},
                 "initialization": {"inifile": "./ext2arps.hdf000000", "inigbf": "./ext2arps.hdfgrdbas"},
                 "soil_ebm": {"sfcdtfl": "./arpssfc.sfcdata"},
+                "exbcpara": {"exbcname": "./ext2arps"},
             },
             "arps",
         )
@@ -511,7 +512,7 @@ class ARPS(ExecutableBase):
                 simulation_start_time = arps_namelist["timestep"]["tstart"]
                 simulate_time = arps_namelist["timestep"]["tstop"]
 
-                files_num = simulate_time // dump_time_step
+                files_num = int(simulate_time // dump_time_step)
                 dump_time_point = [int(i * dump_time_step) for i in range(files_num)]
                 real_dump_start_time = dump_time_start if dump_time_start > simulation_start_time else simulation_start_time
                 dump_time_point = [x for x in dump_time_point if x > real_dump_start_time]

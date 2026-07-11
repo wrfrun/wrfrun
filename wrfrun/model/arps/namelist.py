@@ -34,7 +34,7 @@ def prepare_arps_namelist():
     wrfrun_config = WRFRUN.config
 
     model_config = wrfrun_config.get_model_config("arps")
-    user_namelist = model_config["user_namelist"]
+    user_namelist = model_config["global"]["user_namelist"]
     run_name = "wrfrun"
 
     wrfrun_config.read_namelist(user_namelist, "arps")

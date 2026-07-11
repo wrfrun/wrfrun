@@ -37,6 +37,8 @@ def _check_and_prepare_namelist():
 
     WRFRUNConfig.read_namelist(user_namelist, "arpstrn")
 
+    # User's namelist should have the highest priority.
+    return
     update_value = {
         "jobname": {"runname": run_name},
         "dem_trn": {"dir_trndata": dir_terrain_data},
@@ -101,7 +103,13 @@ class ARPSTrn(ExecutableBase):
 
         WRFRUN.check_path(f"{self.work_path}/outputs")
 
-        WRFRUNConfig.update_namelist({"jobname": {"runname": self.name}}, "arpstrn")
+        WRFRUNConfig.update_namelist(
+            {
+                "jobname": {"runname": self.name},
+                "trn_output": {"dirname": "./outputs"},
+            },
+            "arpstrn",
+        )
 
         WRFRUNConfig.write_namelist(
             self.namelist_path,

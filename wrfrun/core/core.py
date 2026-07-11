@@ -241,6 +241,9 @@ class WRFRUNProxy:
         :type work_dir: str
         """
         self._uri_manager = WRFRUNURI(work_dir)
+        for _func in self._uri_register_funcs:
+            _func(self._uri_manager)
+        self._uri_register_funcs = []
         self._uri_manager_initialized = True
 
     def check_path(self, *args):
@@ -250,8 +253,8 @@ class WRFRUNProxy:
         This helper wraps the utility function :func:`check_path <wrfrun.utils.check_path>`,
         it will convert URIs to real path first.
         """
-        real_path = [self.uri.parse_resource_uri(_path) for _path in args]
-        check_path(real_path)
+        real_path = (self.uri.parse_resource_uri(_path) for _path in args)
+        check_path(*real_path)
 
 
 WRFRUN = WRFRUNProxy()

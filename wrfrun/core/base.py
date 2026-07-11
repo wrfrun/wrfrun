@@ -72,6 +72,27 @@ def _format_command(command: list[str], stdin_path: str | None = None) -> str:
     return formatted_command
 
 
+def _mpi_need_oversubscribe(mpi_cmd: str) -> bool:
+    """
+    Check whether the MPI launcher supports and likely needs ``--oversubscribe``.
+
+    Currently this flag is only enabled for Open MPI launchers.
+    """
+    try:
+        status = subprocess.run(
+            [mpi_cmd, "--version"],
+            shell=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError:
+        logger.debug(f"Failed to probe MPI launcher '{mpi_cmd}', skip '--oversubscribe'.")
+        return False
+
+    version_text = f"{status.stdout}\n{status.stderr}".lower()
+    return "open mpi" in version_text or "openrte" in version_text
+
+
 def _save_subprocess_logs(log_save_prefix: str, stdout_text: str, stderr_text: str):
     save_dir = dirname(log_save_prefix)
     if not exists(save_dir):
@@ -402,6 +423,7 @@ class ExecutableBase:
         :type is_output: bool
         """
         if isinstance(input_files, str):
+            logger.debug(f"Mark '{input_files}' as input file for [magenta]{self.name}[/magenta]")
             self.input_file_config.append(
                 {
                     "file_path": input_files,
@@ -415,9 +437,11 @@ class ExecutableBase:
         elif isinstance(input_files, list):
             for _file in input_files:
                 if isinstance(_file, dict):
+                    logger.debug(f"Mark '{_file['file_path']}' as input file for [magenta]{self.name}[/magenta]")  # type: ignore
                     self.input_file_config.append(_file)  # type: ignore
 
                 elif isinstance(_file, str):
+                    logger.debug(f"Mark '{_file}' as input file for [magenta]{self.name}[/magenta]")
                     self.input_file_config.append(
                         {
                             "file_path": _file,
@@ -433,6 +457,7 @@ class ExecutableBase:
                     raise TypeError(f"Input file config should be string or `FileConfigDict`, but got '{type(_file)}'")
 
         elif isinstance(input_files, dict):
+            logger.debug(f"Mark '{input_files['file_path']}' as input file for [magenta]{self.name}[/magenta]")  # type: ignore
             self.input_file_config.append(input_files)  # type: ignore
 
         else:
@@ -575,15 +600,17 @@ class ExecutableBase:
             save_path = input_file["save_path"]
             save_name = input_file["save_name"]
 
-            file_path = WRFRUN.config.parse_resource_uri(file_path)
+            file_real_path = WRFRUN.config.parse_resource_uri(file_path)
             save_path = WRFRUN.config.parse_resource_uri(save_path)
 
-            file_path = abspath(file_path)
+            file_real_path = abspath(file_real_path)
             save_path = abspath(save_path)
 
-            if not exists(file_path):
-                logger.error(f"File not found: '{file_path}'")
-                raise FileNotFoundError(f"File not found: '{file_path}'")
+            logger.debug(f"Parse input file '{file_path}' to '{file_real_path}'")
+
+            if not exists(file_real_path):
+                logger.error(f"File not found: '{file_real_path}'")
+                raise FileNotFoundError(f"File not found: '{file_real_path}'")
 
             if not exists(save_path):
                 makedirs(save_path)
@@ -593,7 +620,7 @@ class ExecutableBase:
                 logger.debug(f"Target file {save_name} exists, overwrite it.")
                 remove(target_path)
 
-            symlink(file_path, target_path)
+            symlink(file_real_path, target_path)
 
         if WRFRUN.config.DEBUG_MODE_EXECUTABLE:
             self.before_exec_debug()
@@ -666,8 +693,12 @@ class ExecutableBase:
             _cmd = self.cmd
 
         else:
-            logger.info(f"Running [magenta]{self.mpi_cmd} --oversubscribe -np {self.mpi_core_num} {self.cmd}[/] ...")
-            _cmd = [self.mpi_cmd, "--oversubscribe", "-np", str(self.mpi_core_num), self.cmd]
+            if _mpi_need_oversubscribe(self.mpi_cmd):
+                _cmd = [self.mpi_cmd, "--oversubscribe", "-np", str(self.mpi_core_num), self.cmd]
+            else:
+                _cmd = [self.mpi_cmd, "-np", str(self.mpi_core_num), self.cmd]
+
+            logger.info(f"Running [magenta]{' '.join(_cmd)}[/] ...")
 
         if WRFRUN.config.FAKE_SIMULATION_MODE:
             logger.info(f"We are in fake simulation mode, skip calling numerical model for '{self.name}'")
@@ -675,7 +706,11 @@ class ExecutableBase:
 
         log_save_path = WRFRUN.config.parse_resource_uri(self._log_save_path)
         log_save_prefix = f"{log_save_path}/{self.name}"
-        call_subprocess(_cmd, work_path=work_path, log_save_prefix=log_save_prefix, stdin_path=self.stdin_file)
+        if self.stdin_file is not None:
+            stdin_file = WRFRUN.uri.parse_resource_uri(self.stdin_file)
+        else:
+            stdin_file = self.stdin_file
+        call_subprocess(_cmd, work_path=work_path, log_save_prefix=log_save_prefix, stdin_path=stdin_file)
 
         if WRFRUN.config.DEBUG_MODE_EXECUTABLE:
             self.exec_debug()

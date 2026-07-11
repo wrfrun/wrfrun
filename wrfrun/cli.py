@@ -24,7 +24,7 @@ from shutil import copyfile
 import tomli
 import tomli_w
 
-from .core import WRFRunConfig
+from .core import WRFRUNURI, WRFRunConfig
 from .log import logger
 from .res import (
     CONFIG_ARPS_TOML_TEMPLATE,
@@ -44,8 +44,9 @@ MODEL_MAP = {
 }
 
 # need some mannual calls to make cli work without a config file.
-wrfrun_config = WRFRunConfig("./.wrfrun")
-_register_res_uri(wrfrun_config)
+uri_manager = WRFRUNURI("./.wrfrun")
+wrfrun_config = WRFRunConfig(uri_manager)
+_register_res_uri(uri_manager)
 
 
 def _entry_init(args: argparse.Namespace):
