@@ -2,6 +2,10 @@
 
 These instructions apply to the entire repository.
 
+## Development Skills
+
+Repository-specific development skills are stored in `.skills/`. Consult `.skills/index.md` when a task matches one of the listed workflows, and follow the linked skill before changing the associated implementation. Keep `.skills/` documentation aligned with the current code when its documented contract changes.
+
 ## Commit Messages
 
 When you are asked to create a git commit, use one of the following two commit message styles.
