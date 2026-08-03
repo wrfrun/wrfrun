@@ -46,6 +46,7 @@ import subprocess
 from copy import deepcopy
 from os import chdir, getcwd, listdir, makedirs, remove, symlink
 from os.path import abspath, basename, dirname, exists
+from shlex import join
 from shutil import move
 from typing import Optional, Union
 
@@ -55,7 +56,69 @@ from .error import CommandError, ConfigError, OutputFileError
 from .type import ExecutableClassConfig, ExecutableConfig, FileConfigDict
 
 
-def check_subprocess_status(status: subprocess.CompletedProcess):
+def _decode_command_output(output: bytes | None) -> str:
+    if output is None:
+        return ""
+
+    return output.decode(errors="replace")
+
+
+def _format_command(command: list[str], stdin_path: str | None = None) -> str:
+    formatted_command = join(command)
+
+    if stdin_path is not None:
+        return f"{formatted_command} < {stdin_path}"
+
+    return formatted_command
+
+
+def _mpi_need_oversubscribe(mpi_cmd: str) -> bool:
+    """
+    Check whether the MPI launcher supports and likely needs ``--oversubscribe``.
+
+    Currently this flag is only enabled for Open MPI launchers.
+    """
+    try:
+        status = subprocess.run(
+            [mpi_cmd, "--version"],
+            shell=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError:
+        logger.debug(f"Failed to probe MPI launcher '{mpi_cmd}', skip '--oversubscribe'.")
+        return False
+
+    version_text = f"{status.stdout}\n{status.stderr}".lower()
+    return "open mpi" in version_text or "openrte" in version_text
+
+
+def _save_subprocess_logs(log_save_prefix: str, stdout_text: str, stderr_text: str):
+    save_dir = dirname(log_save_prefix)
+    if not exists(save_dir):
+        makedirs(save_dir)
+
+    stdout_file = f"{log_save_prefix}.stdout"
+    stderr_file = f"{log_save_prefix}.stderr"
+
+    if exists(stdout_file):
+        old_stdout_file = f"{stdout_file}.bak"
+        logger.warning(f"stdout file exists. Backup it to '{old_stdout_file}'")
+
+    if exists(stderr_file):
+        old_stderr_file = f"{stderr_file}.bak"
+        logger.warning(f"stderr file exists. Backup it to '{old_stderr_file}'")
+
+    with open(stdout_file, "w") as f:
+        f.write(stdout_text)
+
+    with open(stderr_file, "w") as f:
+        f.write(stderr_text)
+
+    logger.info(f"Logs saved to '{save_dir}'")
+
+
+def check_subprocess_status(status: subprocess.CompletedProcess, command_display: str):
     """
     Check subprocess return code.
 
@@ -67,15 +130,14 @@ def check_subprocess_status(status: subprocess.CompletedProcess):
     """
     if status.returncode != 0:
         # print command
-        command = status.args
-        logger.error(f"Failed to exec command: {command}")
+        logger.error(f"Failed to exec command: {command_display}")
 
         # print log
         logger.error("====== stdout ======")
-        logger.error(status.stdout.decode())
+        logger.error(_decode_command_output(status.stdout))
         logger.error("====== ====== ======")
         logger.error("====== stderr ======")
-        logger.error(status.stderr.decode())
+        logger.error(_decode_command_output(status.stderr))
         logger.error("====== ====== ======")
 
         # raise error
@@ -87,9 +149,10 @@ def call_subprocess(
     work_path: Optional[str] = None,
     print_output=False,
     log_save_prefix: str | None = None,
+    stdin_path: str | None = None,
 ):
     """
-    Execute the given command in the system shell.
+    Execute the given command.
 
     :param command: A list contains the command and parameters to be executed.
     :type command: list
@@ -100,6 +163,8 @@ def call_subprocess(
     :type print_output: bool
     :param log_save_prefix: Save external command output and error to log files. If None, don't save.
                             Defaults to None.
+    :param stdin_path: Read command's standard input from the given file path. Defaults to None.
+    :type stdin_path: str | None
     """
     if work_path is not None:
         origin_path = getcwd()
@@ -107,40 +172,32 @@ def call_subprocess(
     else:
         origin_path = None
 
-    status = subprocess.run(" ".join(command), shell=True, capture_output=True)
+    command_display = _format_command(command, stdin_path)
+
+    if stdin_path is None:
+        status = subprocess.run(command, shell=False, capture_output=True)
+    else:
+        if not exists(stdin_path):
+            logger.error(f"File not found: '{stdin_path}'")
+            raise FileNotFoundError(stdin_path)
+
+        with open(stdin_path, "rb") as stdin_file:
+            status = subprocess.run(command, shell=False, stdin=stdin_file, capture_output=True)
 
     if origin_path is not None:
         chdir(origin_path)
 
-    check_subprocess_status(status)
-
-    if print_output:
-        logger.info(status.stdout.decode())
-        logger.warning(status.stderr.decode())
+    stdout_text = _decode_command_output(status.stdout)
+    stderr_text = _decode_command_output(status.stderr)
 
     if log_save_prefix:
-        save_dir = dirname(log_save_prefix)
-        if not exists(save_dir):
-            makedirs(save_dir)
+        _save_subprocess_logs(log_save_prefix, stdout_text, stderr_text)
 
-        stdout_file = f"{log_save_prefix}.stdout"
-        stderr_file = f"{log_save_prefix}.stderr"
+    check_subprocess_status(status, command_display)
 
-        if exists(stdout_file):
-            old_stdout_file = f"{stdout_file}.bak"
-            logger.warning(f"stdout file exists. Backup it to '{old_stdout_file}'")
-
-        if exists(stderr_file):
-            old_stderr_file = f"{stderr_file}.bak"
-            logger.warning(f"stderr file exists. Backup it to '{old_stderr_file}'")
-
-        with open(stdout_file, "w") as f:
-            f.write(status.stdout.decode())
-
-        with open(stderr_file, "w") as f:
-            f.write(status.stderr.decode())
-
-        logger.info(f"Logs saved to '{save_dir}'")
+    if print_output:
+        logger.info(stdout_text)
+        logger.warning(stderr_text)
 
 
 class ExecutableBase:
@@ -183,13 +240,14 @@ class ExecutableBase:
         mpi_use=False,
         mpi_cmd: Optional[str] = None,
         mpi_core_num: Optional[int] = None,
+        stdin_file: Optional[str] = None,
     ):
         """
 
         :param name: Unique name to identify different executables.
         :type name: str
         :param cmd: Command to execute, can be a single string or a list contains the command and its parameters.
-                    For example, ``"./geogrid.exe"``, ``["./link_grib.csh", "data/*", "."]``.
+                    For example, ``"./geogrid.exe"``, ``["./script.sh", "arg1", "arg2"]``.
                     If you want to use mpi, then ``cmd`` must be a string.
         :type cmd: str
         :param work_path: Working directory path.
@@ -200,6 +258,8 @@ class ExecutableBase:
         :type mpi_cmd: str
         :param mpi_core_num: How many cores you use. Defaults to None.
         :type mpi_core_num: int
+        :param stdin_file: The file which content will be passed to the external program via stdin.
+        :type stdin_file: str
         """
         if mpi_use and isinstance(cmd, list):
             logger.error("If you want to use mpi, then `cmd` must be a single string.")
@@ -208,6 +268,7 @@ class ExecutableBase:
         self.name = name
         self.cmd = cmd
         self.work_path = work_path
+        self.stdin_file = stdin_file
         self.mpi_use = mpi_use
         self.mpi_cmd = mpi_cmd
         self.mpi_core_num = mpi_core_num
@@ -218,7 +279,7 @@ class ExecutableBase:
         self.output_file_config: list[FileConfigDict] = []
 
         # directory to save outputs
-        self._output_save_path = f"{WRFRUN.config.WRFRUN_OUTPUT_PATH}/{self.name}"
+        self._output_save_path = f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/{self.name}"
         self._log_save_path = f"{self._output_save_path}/logs"
 
     def __new__(cls, *args, **kwargs):
@@ -362,6 +423,7 @@ class ExecutableBase:
         :type is_output: bool
         """
         if isinstance(input_files, str):
+            logger.debug(f"Mark '{input_files}' as input file for [magenta]{self.name}[/magenta]")
             self.input_file_config.append(
                 {
                     "file_path": input_files,
@@ -375,9 +437,11 @@ class ExecutableBase:
         elif isinstance(input_files, list):
             for _file in input_files:
                 if isinstance(_file, dict):
+                    logger.debug(f"Mark '{_file['file_path']}' as input file for [magenta]{self.name}[/magenta]")  # type: ignore
                     self.input_file_config.append(_file)  # type: ignore
 
                 elif isinstance(_file, str):
+                    logger.debug(f"Mark '{_file}' as input file for [magenta]{self.name}[/magenta]")
                     self.input_file_config.append(
                         {
                             "file_path": _file,
@@ -393,6 +457,7 @@ class ExecutableBase:
                     raise TypeError(f"Input file config should be string or `FileConfigDict`, but got '{type(_file)}'")
 
         elif isinstance(input_files, dict):
+            logger.debug(f"Mark '{input_files['file_path']}' as input file for [magenta]{self.name}[/magenta]")  # type: ignore
             self.input_file_config.append(input_files)  # type: ignore
 
         else:
@@ -405,18 +470,18 @@ class ExecutableBase:
         save_path: Optional[str] = None,
         startswith: Union[None, str, tuple[str, ...]] = None,
         endswith: Union[None, str, tuple[str, ...]] = None,
-        outputs: Union[None, str, list[str]] = None,
+        filenames: Union[None, str, list[str]] = None,
         no_file_error=True,
     ):
         """
         Find and save model's outputs to the output save path.
-        An :class:`OutputFileError <wrfrun.core.error.OutputFileError>` exception will be raised 
+        An :class:`OutputFileError <wrfrun.core.error.OutputFileError>` exception will be raised
         if no file can be found and ``no_file_error==True``.
 
         You can give the specific path of a file or multiple files.
 
-        >>> self.add_output_files(outputs="wrfout.d01")
-        >>> self.add_output_files(outputs=["wrfout.d01", "wrfout.d02"])
+        >>> self.add_output_files(filenames="wrfout.d01")
+        >>> self.add_output_files(filenames=["wrfout.d01", "wrfout.d02"])
 
         If you have too many outputs, but they have the same prefix or postfix,
         you can use ``startswith`` or ``endswith``.
@@ -430,7 +495,7 @@ class ExecutableBase:
         ``output_dir`` specify the search path of outputs, by default it is the work path of the executable.
         You can change its value if the output path of the executable isn't its work path.
 
-        >>> self.add_output_files(output_dir=f"/absolute/dir/path", outputs=...)
+        >>> self.add_output_files(output_dir=f"/absolute/dir/path", filenames=...)
 
         :param output_dir: Search path of outputs.
         :type output_dir: str
@@ -441,8 +506,8 @@ class ExecutableBase:
         :type startswith: str | list
         :param endswith: Postfix string or postfix list of output files.
         :type endswith: str | list
-        :param outputs: Files name list. All files in the list will be saved.
-        :type outputs: str | list
+        :param filenames: Files name list. All files in the list will be saved.
+        :type filenames: str | list
         :param no_file_error: If True, an OutputFileError will be raised if no output file can be found.
                               Defaults to True.
         :type no_file_error: bool
@@ -454,7 +519,7 @@ class ExecutableBase:
             output_dir = self.work_path
 
         if save_path is None:
-            save_path = f"{WRFRUN.config.WRFRUN_OUTPUT_PATH}/{self.name}"
+            save_path = f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/{self.name}"
 
         file_list = listdir(WRFRUN.config.parse_resource_uri(output_dir))
         save_file_list = []
@@ -477,25 +542,25 @@ class ExecutableBase:
 
             logger.debug(f"Collect files match `endswith`: {_list}")
 
-        if outputs is not None:
-            if isinstance(outputs, str) and outputs in file_list:
-                save_file_list.append(outputs)
+        if filenames is not None:
+            if isinstance(filenames, str) and filenames in file_list:
+                save_file_list.append(filenames)
             else:
-                outputs = [x for x in outputs if x in file_list]
-                save_file_list += outputs
+                filenames = [x for x in filenames if x in file_list]
+                save_file_list += filenames
 
         if len(save_file_list) < 1:
             if no_file_error:
                 logger.error(
                     (
                         "Can't find any files match the giving rules: "
-                        f"startswith='{startswith}', endswith='{endswith}', outputs='{outputs}'"
+                        f"startswith='{startswith}', endswith='{endswith}', outputs='{filenames}'"
                     )
                 )
                 raise OutputFileError(
                     (
                         "Can't find any files match the giving rules: "
-                        f"startswith='{startswith}', endswith='{endswith}', outputs='{outputs}'"
+                        f"startswith='{startswith}', endswith='{endswith}', outputs='{filenames}'"
                     )
                 )
 
@@ -503,7 +568,7 @@ class ExecutableBase:
                 logger.warning(
                     (
                         "Can't find any files match the giving rules: "
-                        f"startswith='{startswith}', endswith='{endswith}', outputs='{outputs}'. Skip it."
+                        f"startswith='{startswith}', endswith='{endswith}', outputs='{filenames}'. Skip it."
                     )
                 )
                 return
@@ -535,15 +600,17 @@ class ExecutableBase:
             save_path = input_file["save_path"]
             save_name = input_file["save_name"]
 
-            file_path = WRFRUN.config.parse_resource_uri(file_path)
+            file_real_path = WRFRUN.config.parse_resource_uri(file_path)
             save_path = WRFRUN.config.parse_resource_uri(save_path)
 
-            file_path = abspath(file_path)
+            file_real_path = abspath(file_real_path)
             save_path = abspath(save_path)
 
-            if not exists(file_path):
-                logger.error(f"File not found: '{file_path}'")
-                raise FileNotFoundError(f"File not found: '{file_path}'")
+            logger.debug(f"Parse input file '{file_path}' to '{file_real_path}'")
+
+            if not exists(file_real_path):
+                logger.error(f"File not found: '{file_real_path}'")
+                raise FileNotFoundError(f"File not found: '{file_real_path}'")
 
             if not exists(save_path):
                 makedirs(save_path)
@@ -553,7 +620,7 @@ class ExecutableBase:
                 logger.debug(f"Target file {save_name} exists, overwrite it.")
                 remove(target_path)
 
-            symlink(file_path, target_path)
+            symlink(file_real_path, target_path)
 
         if WRFRUN.config.DEBUG_MODE_EXECUTABLE:
             self.before_exec_debug()
@@ -626,8 +693,12 @@ class ExecutableBase:
             _cmd = self.cmd
 
         else:
-            logger.info(f"Running [magenta]{self.mpi_cmd} --oversubscribe -np {self.mpi_core_num} {self.cmd}[/] ...")
-            _cmd = [self.mpi_cmd, "--oversubscribe", "-np", str(self.mpi_core_num), self.cmd]
+            if _mpi_need_oversubscribe(self.mpi_cmd):
+                _cmd = [self.mpi_cmd, "--oversubscribe", "-np", str(self.mpi_core_num), self.cmd]
+            else:
+                _cmd = [self.mpi_cmd, "-np", str(self.mpi_core_num), self.cmd]
+
+            logger.info(f"Running [magenta]{' '.join(_cmd)}[/] ...")
 
         if WRFRUN.config.FAKE_SIMULATION_MODE:
             logger.info(f"We are in fake simulation mode, skip calling numerical model for '{self.name}'")
@@ -635,7 +706,11 @@ class ExecutableBase:
 
         log_save_path = WRFRUN.config.parse_resource_uri(self._log_save_path)
         log_save_prefix = f"{log_save_path}/{self.name}"
-        call_subprocess(_cmd, work_path=work_path, log_save_prefix=log_save_prefix)
+        if self.stdin_file is not None:
+            stdin_file = WRFRUN.uri.parse_resource_uri(self.stdin_file)
+        else:
+            stdin_file = self.stdin_file
+        call_subprocess(_cmd, work_path=work_path, log_save_prefix=log_save_prefix, stdin_path=stdin_file)
 
         if WRFRUN.config.DEBUG_MODE_EXECUTABLE:
             self.exec_debug()

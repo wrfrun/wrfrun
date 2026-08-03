@@ -26,6 +26,7 @@ import numpy as np
 from ..log import check_path, logger
 from ._config import WRFRunConfig
 from .type import ExecutableConfig
+from .uri import WRFRUNURI
 
 
 def _json_default(obj):
@@ -50,21 +51,24 @@ class ExecutableRecorder:
     This class provides methods to record simulations.
     """
 
-    def __init__(self, wrfrun_config: WRFRunConfig, save_path="./wrfrun.replay", include_data=False):
+    def __init__(self, wrfrun_config: WRFRunConfig, uri_manager: WRFRUNURI, save_path="./wrfrun.replay", include_data=False):
         """
         :param wrfrun_config: `WRFRunConfig` instance.
         :type wrfrun_config: WRFRunConfig
+        :param uri_manager: `WRFRUNURI` instance.
+        :type uri_manager: WRFRUNURI
         :param save_path: Save path of the replay file, defaults to "./wrfrun.replay"
         :type save_path: str, optional
         :param include_data: If includes data files, defaults to False
         :type include_data: bool, optional
         """
         self._wrfrun_config = wrfrun_config
+        self._uri_manager = uri_manager
 
         self.save_path = save_path
         self.include_data = include_data
 
-        self.work_path = self._wrfrun_config.parse_resource_uri(self._wrfrun_config.WRFRUN_WORKSPACE_REPLAY)
+        self.work_path = self._wrfrun_config.parse_resource_uri(self._uri_manager.WRFRUN_WORKSPACE_REPLAY)
         self.content_path = f"{self.work_path}/config_and_data"
 
         self._recorded_config = []
@@ -93,7 +97,7 @@ class ExecutableRecorder:
             self._name_count[name] = 1
             index = 1
 
-        data_save_uri = f"{self._wrfrun_config.WRFRUN_WORKSPACE_REPLAY}/{name}/{index}"
+        data_save_uri = f"{self._uri_manager.WRFRUN_WORKSPACE_REPLAY}/{name}/{index}"
         data_save_path = f"{self.content_path}/{name}/{index}"
         makedirs(data_save_path)
 
@@ -154,25 +158,27 @@ class ExecutableRecorder:
         with open(f"{self.content_path}/config.json", "w") as f:
             f.write(dumps(self._recorded_config, indent=4, default=_json_default))
 
-        if exists(self.save_path):
-            if isdir(self.save_path):
-                self.save_path = f"{self.save_path}/wrfrun.replay"
+        save_path = self._uri_manager.parse_resource_uri(self.save_path)
+
+        if exists(save_path):
+            if isdir(save_path):
+                save_path = f"{self.save_path}/wrfrun.replay"
             else:
-                if not self.save_path.endswith(".replay"):
-                    self.save_path = f"{self.save_path}.replay"
+                if not save_path.endswith(".replay"):
+                    save_path = f"{self.save_path}.replay"
 
-                if exists(self.save_path):
-                    logger.warning(f"Found existed replay file with the same name '{basename(self.save_path)}', overwrite it")
-                    remove(self.save_path)
+                if exists(save_path):
+                    logger.warning(f"Found existed replay file with the same name '{basename(save_path)}', overwrite it")
+                    remove(save_path)
 
-        if not exists(dirname(self.save_path)):
-            makedirs(dirname(self.save_path))
+        if not exists(dirname(save_path)):
+            makedirs(dirname(save_path))
 
         temp_file = f"{self.work_path}/config_and_data"
         make_archive(temp_file, "zip", self.content_path)
-        move(f"{temp_file}.zip", self.save_path)
+        move(f"{temp_file}.zip", save_path)
 
-        logger.info(f"Replay config exported to {self.save_path}")
+        logger.info(f"Replay config exported to {save_path}")
 
 
 __all__ = ["ExecutableRecorder"]

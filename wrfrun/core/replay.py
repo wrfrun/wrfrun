@@ -38,7 +38,7 @@ def replay_config_generator(replay_config_file: str) -> Generator[tuple[str, Exe
     :rtype: Generator
     """
     logger.info(f"Loading replay resources from: {replay_config_file}")
-    work_path = WRFRUN.config.parse_resource_uri(WRFRUN.config.WRFRUN_WORKSPACE_REPLAY)
+    work_path = WRFRUN.config.parse_resource_uri(WRFRUN.uri.WRFRUN_WORKSPACE_REPLAY)
 
     unpack_archive(replay_config_file, work_path, "zip")
 

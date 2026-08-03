@@ -4,6 +4,44 @@
 [global]
 # For example, /home/syize/Apps/ARPS/bin
 arps_bin_directory = "/path/to/your/ARPS/binary/folder"
+# Namelist for arps core and some arps' submodule.
+user_namelist = "/path/to/the/namelist"
+
+# Grid settings
+grid_nx = 42
+grid_dx = 30000.0
+grid_ny = 38
+grid_dy = 30000.0
+grid_nz = 53
+grid_dz = 500.0
+grid_center_latitude = 31.971
+grid_center_longitude = 118.784
+# # Vertical stretching settings
+# # Minimum vertical grid spacing 
+grid_min_dz = 50.0
+# # The height of the bottom level of the grid.
+grid_z_bottom_height = 10.0
+# # The height above which the stretch will be applied.
+grid_z_stretch_start_height = 3000.0
+# # The height above which the stretch will be stopped.
+grid_z_stretch_end_height = 1.0e5
+# # The height above which the grid will start to become 
+# # flat in terrain-following coordinate transformation.
+grid_z_start_flat_height = 20000.0
+# Supported projection:
+# - "": no projection
+# - "polar": Polar projection, wrfrun will determine its type (north or south) based on your grid_center_latitude
+# - "lambert": Lambert projection, wrfrun will determine its type (north or south) based on your grid_center_latitude
+# - "mercator": Mercator projection.
+grid_projection = "lambert"
+grid_projection_true_lat_1 = 31.971
+grid_projection_true_lat_2 = 31.971
+grid_projection_true_lon = 118.784
+
+# Integrate settings, unit: seconds
+integrate_large_time_step = 6.0
+
+is_restart = false
 
 # ########################## Config for submodels ##############################
 # NOTE:
@@ -19,12 +57,19 @@ arps_bin_directory = "/path/to/your/ARPS/binary/folder"
 #
 #     WRFRUN.config.update_model_config("arps", {"arpstrn": {"is_valid": True}})
 
+# Config for arpssfc
+[arpssfc]
+
 # Config for arpstrn
 [arpstrn]
 # For example, /share/ARPS/terrain/arpstopo30.data
 dir_terrain_data = "/path/to/your/terrain/base/data/folder"
-# This will affect the outputs name of arpstrn
-run_name = "wrfrun"
 user_namelist = "/path/to/the/namelist/for/arpstrn"
+
+# Config for ext2arps
+[ext2arps]
+
+# Config for arps
+[arps]
 
 # ##############################################################################

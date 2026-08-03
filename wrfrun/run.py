@@ -43,15 +43,17 @@ from collections.abc import Generator
 from os.path import abspath, dirname
 from typing import Optional, Tuple, Union
 
+import tomli
+
 from wrfrun.core.base import ExecutableBase
 
-from .core import WRFRunBasicError, WRFRunServer, WRFRunServerHandler, call_subprocess, replay_config_generator, stop_server
+from .core import WRFRunBasicError, WRFRunServer, WRFRunServerHandler, replay_config_generator, stop_server
 from .core._record import ExecutableRecorder
 from .core.core import WRFRUN
 from .data import prepare_wps_input_data
 from .log import logger, logger_add_file_handler
 from .model import clear_model_logs, generate_domain_area
-from .scheduler import in_job_scheduler, prepare_scheduler_script
+from .scheduler import in_job_scheduler, submit_scheduler_task
 from .workspace import check_workspace, prepare_workspace
 
 
@@ -129,6 +131,9 @@ class WRFRun:
         # make sure we can read the config file,
         # because sometimes the user may run the Python script in a different path.
         abs_config_path = f"{self._entry_file_dir_path}/{config_file}"
+        with open(abs_config_path, "rb") as f:
+            config = tomli.load(f)
+        WRFRUN.init_uri_manager(config["work_dir"])
         WRFRUN.init_wrfrun_config(abs_config_path)
 
         self._WRFRUNReplay: Optional[ExecutableRecorder] = None
@@ -136,7 +141,7 @@ class WRFRun:
     def __enter__(self):
         # check workspace
         if not check_workspace():
-            logger.info("Force re-create workspace because it is broken.")
+            logger.info("Reinitialize workspace because it is broken.")
             self._init_workspace = True
 
         # here is the condition we need to initialize workspace:
@@ -151,10 +156,8 @@ class WRFRun:
             if not self._skip_domain_confirm:
                 confirm_model_area()
 
-            prepare_scheduler_script(self._entry_file_path)
-
-            call_subprocess(["qsub", f"{self._entry_file_dir_path}/run.sh"])
-            logger.info("Work has been submit to PBS system")
+            submit_scheduler_task(self._entry_file_path)
+            logger.info("Work has been submitted to the configured scheduler")
             exit(0)
 
         elif not self._submit_job:
@@ -165,7 +168,7 @@ class WRFRun:
                 confirm_model_area()
 
         # save a copy of config to the output path
-        WRFRUN.config.save_wrfrun_config(f"{WRFRUN.config.WRFRUN_OUTPUT_PATH}/config.toml")
+        WRFRUN.config.save_wrfrun_config(f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/config.toml")
 
         # check if we need to start a server
         if self._start_server:
@@ -193,9 +196,14 @@ class WRFRun:
         if self._start_server:
             stop_server(self._ip, self._port)  # type: ignore
 
-        if exc_type is None and self._WRFRUNReplay is not None:
-            self._WRFRUNReplay.export_replay_file()
+        if self._WRFRUNReplay is not None:
+            if exc_type is None:
+                self._WRFRUNReplay.export_replay_file()
+
             self._WRFRUNReplay.clear_records()
+            self._WRFRUNReplay = None
+
+        WRFRUN.config.IS_RECORDING = False
 
         # change status
         WRFRUN.config.set_wrfrun_context(False)
@@ -271,7 +279,8 @@ class WRFRun:
         except WRFRunBasicError:
             logger.error("Failed to replay the simulation")
 
-        WRFRUN.config.IS_IN_REPLAY = False
+        finally:
+            WRFRUN.config.IS_IN_REPLAY = False
 
     def replay_executables(self, replay_file: str) -> Generator[tuple[str, ExecutableBase], None, None]:
         """
@@ -295,10 +304,12 @@ class WRFRun:
 
         WRFRUN.config.IS_IN_REPLAY = True
 
-        for name, executable in self._replay_configs:
-            yield name, executable
+        try:
+            for name, executable in self._replay_configs:
+                yield name, executable
 
-        WRFRUN.config.IS_IN_REPLAY = False
+        finally:
+            WRFRUN.config.IS_IN_REPLAY = False
 
 
 __all__ = ["WRFRun"]

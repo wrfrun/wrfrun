@@ -64,6 +64,7 @@ def clear_wrf_logs() -> None:
     output directory of the ``Executable``.
     """
     WRFRUNConfig = WRFRUN.config
+    uri_manager = WRFRUN.uri
 
     # wps
     work_path = WRFRUNConfig.parse_resource_uri(get_wrf_workspace_path("wps"))
@@ -74,7 +75,7 @@ def clear_wrf_logs() -> None:
         if len(log_files) > 0:
             logger.warning("Found unprocessed log files of WPS model.")
 
-            log_save_path = f"{WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_OUTPUT_PATH)}/wps_unsaved_logs"
+            log_save_path = f"{WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_OUTPUT_PATH)}/wps_unsaved_logs"
             check_path(log_save_path)
 
             for _file in log_files:
@@ -91,7 +92,7 @@ def clear_wrf_logs() -> None:
         if len(log_files) > 0:
             logger.warning("Found unprocessed log files of WRF model.")
 
-            log_save_path = f"{WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_OUTPUT_PATH)}/wrf_unsaved_logs"
+            log_save_path = f"{WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_OUTPUT_PATH)}/wrf_unsaved_logs"
             check_path(log_save_path)
 
             for _file in log_files:

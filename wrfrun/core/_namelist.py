@@ -70,7 +70,7 @@ which enables wrfrun to manage multiple namelist settings simultaneously.
 
 from copy import deepcopy
 from os.path import exists
-from typing import Union
+from typing import Callable, Union
 
 import f90nml
 
@@ -78,14 +78,32 @@ from ..log import logger
 from .error import NamelistError, NamelistIDError
 
 
+def _default_uri_parse_func(path: str):
+    return path
+
+
 class NamelistMixIn:
     """
     Manage namelist settings of NWP models.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self,
+        uri_parse_func: Callable[[str], str] = _default_uri_parse_func,
+        *args,
+        **kwargs,
+    ):
         self._namelist_dict = {}
-        self._namelist_id_list: tuple[str, ...] = ("param", "geog_static_data", "wps", "wrf", "wrfda", "palm")
+        self._namelist_id_list: tuple[str, ...] = (
+            "param",
+            "geog_static_data",
+            "wps",
+            "wrf",
+            "wrfda",
+            "palm",
+            "arps",
+        )
+        self._uri_parse_func = uri_parse_func
 
         super().__init__(*args, **kwargs)
 
@@ -138,28 +156,37 @@ class NamelistMixIn:
         else:
             return False
 
-    def read_namelist(self, file_path: str, namelist_id: str):
+    def read_namelist(self, new_values: Union[str, dict], namelist_id: str):
         """
-        Read namelist values from a file and store them with the ``namelist_id``.
+        Read namelist values from a file or a dictionary, and store them with the ``namelist_id``.
 
         If ``wrfrun`` can't read the file, :class:`FileNotFoundError` will be raised.
         If ``namelist_id`` isn't registered, :class:`NamelistIDError <wrfrun.core.error.NamelistIDError>` will be raised.
 
-        :param file_path: Namelist file path.
-        :type file_path: str
+        :param new_values: Namelist file path, or a Python dictionary.
+        :type new_values: Union[str, dict]
         :param namelist_id: Registered ``namelist_id``.
         :type namelist_id: str
         """
-        # check the file path
-        if not exists(file_path):
-            logger.error(f"File not found: {file_path}")
-            raise FileNotFoundError
+        if isinstance(new_values, str):
+            new_values = self._uri_parse_func(new_values)
+            # check the file path
+            if not exists(new_values):
+                logger.error(f"File not found: {new_values}")
+                raise FileNotFoundError
 
-        if namelist_id not in self._namelist_id_list:
-            logger.error(f"Unknown namelist id: {namelist_id}, register it first.")
-            raise NamelistIDError(f"Unknown namelist id: {namelist_id}, register it first.")
+            if namelist_id not in self._namelist_id_list:
+                logger.error(f"Unknown namelist id: {namelist_id}, register it first.")
+                raise NamelistIDError(f"Unknown namelist id: {namelist_id}, register it first.")
 
-        self._namelist_dict[namelist_id] = f90nml.read(file_path).todict()
+            self._namelist_dict[namelist_id] = f90nml.read(new_values).todict()
+
+        elif isinstance(new_values, dict):
+            self._namelist_dict[namelist_id] = deepcopy(new_values)
+
+        else:
+            logger.error(f"Unknow type of 'new_values': {type(new_values)}")
+            raise TypeError(f"Unknow type of 'new_values': {type(new_values)}")
 
     def write_namelist(self, save_path: str, namelist_id: str, overwrite=True):
         """
@@ -175,6 +202,8 @@ class NamelistMixIn:
         :param overwrite: If overwrite the existed file.
         :type overwrite: bool
         """
+        save_path = self._uri_parse_func(save_path)
+
         if namelist_id not in self._namelist_id_list:
             logger.error(f"Unknown namelist id: {namelist_id}, register it first.")
             raise NamelistIDError(f"Unknown namelist id: {namelist_id}, register it first.")
@@ -211,6 +240,13 @@ class NamelistMixIn:
         :param namelist_id: Registered ``namelist_id``.
         :type namelist_id: str
         """
+        if isinstance(new_values, str):
+            new_values = self._uri_parse_func(new_values)
+            if not exists(new_values):
+                logger.error(f"File not found: {new_values}")
+                raise FileNotFoundError(f"File not found: {new_values}")
+            new_values = f90nml.read(new_values).todict()
+
         if namelist_id not in self._namelist_id_list:
             logger.error(f"Unknown namelist id: {namelist_id}, register it first.")
             raise NamelistIDError(f"Unknown namelist id: {namelist_id}, register it first.")
@@ -222,17 +258,18 @@ class NamelistMixIn:
         else:
             reference = self._namelist_dict[namelist_id]
 
-        if isinstance(new_values, str):
-            if not exists(new_values):
-                logger.error(f"File not found: {new_values}")
-                raise FileNotFoundError(f"File not found: {new_values}")
-            new_values = f90nml.read(new_values).todict()
-
         for key in new_values:
             if key in reference:
-                reference[key].update(new_values[key])
+                if isinstance(reference[key], dict):
+                    reference[key].update(new_values[key])
+
+                else:
+                    reference[key] = new_values[key]
+
             else:
                 reference[key] = new_values[key]
+
+        self._namelist_dict[namelist_id] = reference
 
     def get_namelist(self, namelist_id: str) -> dict:
         """

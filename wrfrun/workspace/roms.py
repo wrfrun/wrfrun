@@ -12,29 +12,28 @@ Functions to prepare workspace for WPS/WRF model.
     check_roms_workspace
 """
 
-
-from wrfrun.core import WRFRUN, WRFRunConfig
+from wrfrun.core import WRFRUN, WRFRUNURI
 from wrfrun.log import logger
 from wrfrun.utils import check_path
 
 WORKSPACE_MODEL_ROMS = ""
 
 
-def _register_roms_workspace_uri(wrfrun_config: WRFRunConfig):
+def _roms_workspace_uri_hook(uri_manager: WRFRUNURI):
     """
     This function doesn't register any URI.
 
     This is a hook to initializes some global strings.
 
-    :param wrfrun_config: ``WRFRUNProxy`` instance.
-    :type wrfrun_config: WRFRUNProxy
+    :param uri_manager: ``WRFRUNURI`` instance.
+    :type uri_manager: WRFRUNURI
     """
     global WORKSPACE_MODEL_ROMS
 
-    WORKSPACE_MODEL_ROMS = f"{wrfrun_config.WRFRUN_WORKSPACE_MODEL}/ROMS"
+    WORKSPACE_MODEL_ROMS = f"{uri_manager.WRFRUN_WORKSPACE_MODEL}/ROMS"
 
 
-WRFRUN.set_config_register_func(_register_roms_workspace_uri)
+WRFRUN.set_uri_register_func(_roms_workspace_uri_hook)
 
 
 def get_roms_workspace_path() -> str:

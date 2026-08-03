@@ -12,15 +12,15 @@ Core functions to prepare ``wrfrun`` workspace.
     check_workspace
 """
 
-from os.path import exists
-from shutil import rmtree
+from os.path import dirname, exists
+from shutil import move, rmtree
 from typing import Callable, Literal
 
 from wrfrun.core import WRFRUN
 from wrfrun.log import check_path, logger
 
 from .arps import prepare_arps_workspace
-from .palm import prepare_palm_workspace
+from .palm import check_palm_workspace, prepare_palm_workspace
 from .roms import prepare_roms_workspace
 from .wrf import check_wrf_workspace, prepare_wrf_workspace
 
@@ -30,7 +30,7 @@ PREPARE_FUNC_MAP = {
     "palm": prepare_palm_workspace,
     "roms": prepare_roms_workspace,
 }
-CHECK_FUNC_MAP = {"wrf": check_wrf_workspace}
+CHECK_FUNC_MAP = {"wrf": check_wrf_workspace, "palm": check_palm_workspace}
 
 
 def register_workspace_func(model_name: str, func: Callable[[dict], bool], func_type: Literal["prepare", "check"]) -> bool:
@@ -86,17 +86,23 @@ def prepare_workspace():
     global PREPARE_FUNC_MAP
 
     WRFRUNConfig = WRFRUN.config
+    uri_manager = WRFRUN.uri
+    workspace_backup_path = None
+    initialize_success = False
 
-    wrfrun_temp_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_TEMP_PATH)
-    workspace_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_ROOT)
-    replay_work_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_REPLAY)
-    output_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_OUTPUT_PATH)
-
-    logger.info(f"Initialize main workspace at: '{workspace_path}'")
+    wrfrun_temp_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_TEMP_PATH)
+    workspace_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_WORKSPACE_ROOT)
+    replay_work_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_WORKSPACE_REPLAY)
+    output_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_OUTPUT_PATH)
 
     if exists(workspace_path):
-        logger.info("Remove old files in workspace.")
-        rmtree(workspace_path)
+        logger.info(f"Reinitialize main workspace at: '{workspace_path}'")
+        # backup old workspace, so we can restore it if we failed to create new workspace.
+        workspace_backup_path = f"{dirname(workspace_path)}/.workspace_backup"
+        move(workspace_path, workspace_backup_path)
+
+    else:
+        logger.info(f"Initialize main workspace at: '{workspace_path}'")
 
     # check folder
     check_path(wrfrun_temp_path)
@@ -105,12 +111,27 @@ def prepare_workspace():
 
     model_configs = WRFRUNConfig["model"]
 
-    for model_name in model_configs:
-        if model_name not in PREPARE_FUNC_MAP:
-            logger.warning(f"Function to prepare '{model_name}' workspace not found, workspace may be incomplete")
-            continue
+    try:
+        for model_name in model_configs:
+            if model_name not in PREPARE_FUNC_MAP:
+                logger.warning(f"Function to prepare '{model_name}' workspace not found, workspace may be incomplete")
+                continue
 
-        PREPARE_FUNC_MAP[model_name](model_configs[model_name])
+            PREPARE_FUNC_MAP[model_name](model_configs[model_name])
+
+        initialize_success = True
+
+    finally:
+        if initialize_success and workspace_backup_path:
+            rmtree(workspace_backup_path)
+
+        else:
+            logger.warning("Failed to initialize workspace.")
+
+            if workspace_backup_path:
+                rmtree(workspace_path)
+                move(workspace_backup_path, workspace_path)
+                logger.warning("Old workspace restored.")
 
 
 def check_workspace() -> bool:
@@ -123,11 +144,12 @@ def check_workspace() -> bool:
     global CHECK_FUNC_MAP
 
     WRFRUNConfig = WRFRUN.config
+    uri_manager = WRFRUN.uri
 
-    wrfrun_temp_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_TEMP_PATH)
-    workspace_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_ROOT)
-    replay_work_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_WORKSPACE_REPLAY)
-    output_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_OUTPUT_PATH)
+    wrfrun_temp_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_TEMP_PATH)
+    workspace_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_WORKSPACE_ROOT)
+    replay_work_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_WORKSPACE_REPLAY)
+    output_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_OUTPUT_PATH)
 
     flag = True
     flag = flag & exists(wrfrun_temp_path) & exists(replay_work_path) & exists(output_path) & exists(workspace_path)
@@ -144,7 +166,7 @@ def check_workspace() -> bool:
 
         flag = flag & CHECK_FUNC_MAP[model_name](model_configs[model_name])
 
-    return True
+    return flag
 
 
 __all__ = ["prepare_workspace", "check_workspace"]

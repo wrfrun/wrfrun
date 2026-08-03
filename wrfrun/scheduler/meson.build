@@ -4,7 +4,7 @@ py3.install_sources(
         'env.py',
         'lsf.py',
         'pbs.py',
-        'script.py',
+        'core.py',
         'slurm.py',
         'utils.py',
     ],

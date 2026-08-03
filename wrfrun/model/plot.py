@@ -230,7 +230,7 @@ def generate_domain_area():
     :rtype: bool
     """
     WRFRUNConfig = WRFRUN.config
-    save_path = WRFRUNConfig.parse_resource_uri(WRFRUNConfig.WRFRUN_OUTPUT_PATH)
+    save_path = WRFRUNConfig.parse_resource_uri(WRFRUN.uri.WRFRUN_OUTPUT_PATH)
     check_path(save_path)
     save_path = abspath(save_path)
 

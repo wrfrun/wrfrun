@@ -16,32 +16,34 @@ from os import listdir, makedirs, symlink
 from os.path import exists
 from typing import Literal
 
-from wrfrun.core import WRFRUN, WRFRunConfig
+from wrfrun.core import WRFRUN, WRFRUNURI
 from wrfrun.log import logger
 from wrfrun.utils import check_path
+
+from .utils import create_copy
 
 WORKSPACE_MODEL_WPS = ""
 WORKSPACE_MODEL_WRF = ""
 WORKSPACE_MODEL_WRFDA = ""
 
 
-def _register_wrf_workspace_uri(wrfrun_config: WRFRunConfig):
+def _wrf_workspace_uri_hook(uri_manager: WRFRUNURI):
     """
     This function doesn't register any URI.
 
     This is a hook to initializes some global strings.
 
-    :param wrfrun_config: ``WRFRUNProxy`` instance.
-    :type wrfrun_config: WRFRUNProxy
+    :param uri_manager: ``WRFRUNURI`` instance.
+    :type wrfrunuri_manager_config: WRFRUNURI
     """
     global WORKSPACE_MODEL_WPS, WORKSPACE_MODEL_WRF, WORKSPACE_MODEL_WRFDA
 
-    WORKSPACE_MODEL_WPS = f"{wrfrun_config.WRFRUN_WORKSPACE_MODEL}/WPS"
-    WORKSPACE_MODEL_WRF = f"{wrfrun_config.WRFRUN_WORKSPACE_MODEL}/WRF"
-    WORKSPACE_MODEL_WRFDA = f"{wrfrun_config.WRFRUN_WORKSPACE_MODEL}/WRFDA"
+    WORKSPACE_MODEL_WPS = f"{uri_manager.WRFRUN_WORKSPACE_MODEL}/WPS"
+    WORKSPACE_MODEL_WRF = f"{uri_manager.WRFRUN_WORKSPACE_MODEL}/WRF"
+    WORKSPACE_MODEL_WRFDA = f"{uri_manager.WRFRUN_WORKSPACE_MODEL}/WRFDA"
 
 
-WRFRUN.set_config_register_func(_register_wrf_workspace_uri)
+WRFRUN.set_uri_register_func(_wrf_workspace_uri_hook)
 
 
 def get_wrf_workspace_path(name: Literal["wps", "wrf", "wrfda"]) -> str:
@@ -87,8 +89,8 @@ def prepare_wrf_workspace(model_config: dict):
     wrfda_path = model_config["wrfda_path"]
 
     if not (wps_path and wrf_path):
-        logger.warning("No WPS/WRF model installation path given, skip initialization.")
-        return
+        logger.error("WPS/WRF model installation path isn't set in config file.")
+        raise ValueError("WPS/WRF model installation path isn't set in config file.")
 
     if wps_path:
         if not exists(wps_path):
@@ -101,7 +103,7 @@ def prepare_wrf_workspace(model_config: dict):
         file_list = [x for x in listdir(wps_path) if x not in ["geogrid", "namelist.wps"]]
         _ = [symlink(f"{wps_path}/{file}", f"{wps_work_path}/{file}") for file in file_list]
         makedirs(f"{wps_work_path}/geogrid")
-        symlink(f"{wps_path}/geogrid/GEOGRID.TBL", f"{wps_work_path}/geogrid/GEOGRID.TBL")
+        create_copy(f"{wps_path}/geogrid/GEOGRID.TBL", f"{wps_work_path}/geogrid/GEOGRID.TBL")
 
     if wrf_path:
         if not exists(wrf_path):
@@ -123,12 +125,12 @@ def prepare_wrf_workspace(model_config: dict):
         check_path(wrfda_work_path, force=True)
 
         file_list = ["da_wrfvar.exe", "da_update_bc.exe"]
-        _ = [symlink(f"{wrfda_path}/var/build/{file}", f"{wrfda_work_path}/{file}") for file in file_list]
+        _ = [create_copy(f"{wrfda_path}/var/build/{file}", f"{wrfda_work_path}/{file}") for file in file_list]
 
         file_list = listdir(f"{wrfda_path}/var/run")
         _ = [symlink(f"{wrfda_path}/var/run/{file}", f"{wrfda_work_path}/{file}") for file in file_list]
 
-        symlink(f"{wrfda_path}/run/LANDUSE.TBL", f"{wrfda_work_path}/LANDUSE.TBL")
+        create_copy(f"{wrfda_path}/run/LANDUSE.TBL", f"{wrfda_work_path}/LANDUSE.TBL")
 
 
 def check_wrf_workspace(model_config: dict) -> bool:

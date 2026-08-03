@@ -39,7 +39,7 @@ def extension_postprocess(output_dir: str, extension_id: str, outputs: Optional[
     :type outputs: list
     """
     WRFRUNConfig = WRFRUN.config
-    output_path = WRFRUNConfig.WRFRUN_OUTPUT_PATH
+    output_path = WRFRUN.uri.WRFRUN_OUTPUT_PATH
     output_save_path = f"{output_path}/{extension_id}"
     log_save_path = f"{output_path}/{extension_id}/logs"
 

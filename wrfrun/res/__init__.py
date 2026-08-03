@@ -84,16 +84,16 @@ Then, the generated variable names in ``__init__.py`` are:
 
 from os.path import abspath, dirname
 
-from wrfrun.core import WRFRUN, WRFRunConfig
+from wrfrun.core import WRFRUN, WRFRUNURI, WRFRunConfig
 
 RES_PATH = abspath(dirname(__file__))
 
 
-def _register_res_uri(wrfrun_config: WRFRunConfig):
-    wrfrun_config.register_resource_uri(wrfrun_config.WRFRUN_RESOURCE_PATH, RES_PATH)
+def _register_res_uri(uri_manager: WRFRUNURI):
+    uri_manager.register_resource_uri(uri_manager.WRFRUN_RESOURCE_PATH, RES_PATH)
 
 
-WRFRUN.set_config_register_func(_register_res_uri)
+WRFRUN.set_uri_register_func(_register_res_uri)
 
 
 RUN_SH_TEMPLATE = ":WRFRUN_RESOURCE_PATH:/run.template.sh"
