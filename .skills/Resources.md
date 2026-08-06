@@ -78,6 +78,10 @@ When adding a model TOML template:
 5. If `wrfrun init --models ...` or `wrfrun add ...` should support the model, import and register the generated constant in `wrfrun/cli.py`'s `MODEL_MAP`.
 6. Keep template keys synchronized with the model, workspace, executable, and documentation consumers that implement them.
 
+## Synchronize documentation
+
+When a resource change affects a user-editable template, configuration key, CLI-generated project, or public workflow, read [Documentation.md](Documentation.md). Keep resource comments and the relevant user documentation synchronized with the implementation.
+
 ## Validate the change
 
 Before handing off a resource change:

@@ -105,6 +105,10 @@ When adding an executable or changing its static runtime prerequisites, review [
 
 When adding or changing an executable, review [Resources.md](Resources.md). Update `wrfrun/res` when the executable requires a new built-in namelist or parameter-table template, scheduler template, extension script, or model TOML setting. Keep every resource constant, `name_map.json`, generated `wrfrun/res/__init__.py`, Meson install list, and model-specific consumer synchronized. Do not add a resource merely for files generated per run; those belong to the executable lifecycle.
 
+## Synchronize documentation
+
+When an executable change affects a public class or wrapper, configuration, required inputs, outputs, replay behavior, or user workflow, read [Documentation.md](Documentation.md). Update the smallest appropriate documentation surface with implementation-verified behavior.
+
 ## Validate the change
 
 Before handing off an executable change:

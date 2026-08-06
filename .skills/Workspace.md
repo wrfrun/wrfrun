@@ -64,6 +64,10 @@ When adding or changing an `ExecutableBase` subclass, review its `work_path` and
 
 Keep the boundary explicit: workspace preparation owns static installation-derived resources; the executable owns generated configuration, run-specific input staging, execution, and output collection. See [Executables.md](Executables.md) for the executable lifecycle.
 
+## Synchronize documentation
+
+When a workspace change affects a public path, required installation resource, setup procedure, supported model component, or user workflow, read [Documentation.md](Documentation.md). Document the visible contract without duplicating private workspace implementation details.
+
 ## Validate the change
 
 Before handing off a workspace change:
