@@ -66,7 +66,7 @@ def prepare_arps_workspace(model_config: dict):
     WRFRUNConfig = WRFRUN.config
 
     arps_bin_dir = model_config["global"]["arps_bin_directory"]
-    submodel_name_list = [x for x in model_config if x not in ("use", "global", "arps")]
+    submodel_name_list = [x for x in model_config if x not in ("use", "global")]
     arps_bin_dir = abspath(arps_bin_dir)
 
     if not exists(arps_bin_dir):
@@ -80,12 +80,12 @@ def prepare_arps_workspace(model_config: dict):
             logger.warning(
                 f"[magenta]{_submodel}[/magenta] not found in {arps_bin_dir}, mark it with [magenta]is_valid=False[/magenta]."
             )
-            model_config.update({_submodel: {"is_valid": False}})
+            model_config.setdefault(_submodel, {})["is_valid"] = False
 
         else:
             check_path(f"{arps_work_path}/{_submodel}", force=True)
             symlink(f"{arps_bin_dir}/{_submodel}", f"{arps_work_path}/{_submodel}/{_submodel}")
-            model_config.update({_submodel: {"is_valid": True}})
+            model_config.setdefault(_submodel, {})["is_valid"] = True
 
     # arps core has two version: arps and arps_mpi, we also need to check arps_mpi
     if not exists(f"{arps_bin_dir}/arps_mpi"):
@@ -93,11 +93,36 @@ def prepare_arps_workspace(model_config: dict):
             f"[magenta]arps_mpi[/magenta] not found in {arps_bin_dir}. "
             "If you want to run arps with MPI, make sure you have compiled MPI version of ARPS core."
         )
-        model_config.update({"arps_mpi": {"is_valid": False}})
+        model_config.setdefault("arps_mpi", {})["is_valid"] = False
     else:
         check_path(f"{arps_work_path}/arps_mpi", force=True)
         symlink(f"{arps_bin_dir}/arps_mpi", f"{arps_work_path}/arps_mpi/arps_mpi")
-        model_config.update({"arps_mpi": {"is_valid": True}})
+        model_config.setdefault("arps_mpi", {})["is_valid"] = True
 
 
-__all__ = ["prepare_arps_workspace", "get_arps_workspace_path"]
+def check_arps_workspace(model_config: dict) -> bool:
+    """
+    Check that enabled ARPS executables have been staged in their workspaces.
+
+    :param model_config: ARPS model configuration.
+    :type model_config: dict
+    :return: ``True`` when every enabled ARPS executable is available.
+    :rtype: bool
+    """
+    arps_work_path = WRFRUN.uri.parse_resource_uri(WORKSPACE_ARPS)
+    executable_names = [name for name in model_config if name not in ("use", "global")]
+    executable_names.append("arps_mpi")
+
+    flag = True
+    for executable_name in executable_names:
+        executable_config = model_config.get(executable_name, {})
+        if executable_config.get("is_valid") is False:
+            continue
+
+        executable_path = f"{arps_work_path}/{executable_name}/{executable_name}"
+        flag = flag & exists(executable_path)
+
+    return flag
+
+
+__all__ = ["prepare_arps_workspace", "check_arps_workspace", "get_arps_workspace_path"]
