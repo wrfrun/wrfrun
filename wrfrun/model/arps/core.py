@@ -11,6 +11,7 @@ If you prefer function interfaces, please see :doc:`function wrapper </api/model
 
     ARPSSFC
     ARPS
+    ARPS3DVar
     EXT2ARPS
 """
 
@@ -531,6 +532,16 @@ class ARPS(ExecutableBase):
                 save_path=self._output_save_path,
             )
 
+            # ARPS3DVAR uses the initial ARPS history file as its background.
+            # The calculated periodic dump list above intentionally excludes
+            # tstart, so preserve this file separately when ARPS produced it.
+            self.add_output_files(
+                filenames=f"{self.name}.hdf000000",
+                output_dir=f"{self.work_path}/outputs",
+                save_path=self._output_save_path,
+                no_file_error=False,
+            )
+
             self.add_output_files(
                 filenames="arps.nml",
                 output_dir=self.work_path,
@@ -542,6 +553,122 @@ class ARPS(ExecutableBase):
         LOGGER.info(f"All arps output files have been copied to {WRFRUN.uri.parse_resource_uri(self._output_save_path)}")
 
 
+class ARPS3DVar(ExecutableBase):
+    """
+    ``Executable`` for ``arps3dvar``.
+
+    The program uses an ARPS history file and its matching grid/base-state
+    file as the background. Observation files and error-statistics tables are
+    configured by the ADAS and 3DVAR sections of the ARPS namelist.
+
+    :param arps_data_path: Directory containing the ARPS background files
+                           ``arps.hdf000000`` and ``arps.hdfgrdbas``.  If it
+                           is ``None``, use the archived ``arps`` output
+                           directory.
+    :type arps_data_path: str | None
+    """
+
+    def __init__(self, arps_data_path: Optional[str] = None):
+        """
+        ``Executable`` for ``arps3dvar``.
+
+        :param arps_data_path: Directory containing the ARPS background
+                               history and grid/base-state files.  If it is
+                               ``None``, try the configured ARPS output path.
+        :type arps_data_path: str | None
+        """
+        self.work_path = f"{get_arps_workspace_path()}/arps3dvar"
+        self.namelist_path = f"{self.work_path}/arps3dvar.nml"
+        self.arps_data_path = arps_data_path
+
+        super().__init__(
+            name="arps3dvar",
+            cmd="./arps3dvar",
+            work_path=self.work_path,
+            stdin_file=self.namelist_path,
+        )
+
+        self.class_config["class_kwargs"] = {"arps_data_path": arps_data_path}
+        _check_and_prepare_namelist()
+
+    def generate_custom_config(self):
+        """Store the ARPS namelist and selected background directory."""
+        self.custom_config.update(
+            {
+                "namelist": WRFRUN.config.get_namelist("arps"),
+                "arps_data_path": self.arps_data_path,
+            }
+        )
+
+    def load_custom_config(self):
+        """Restore the ARPS namelist and selected background directory."""
+        WRFRUN.config.update_namelist(self.custom_config["namelist"], "arps")
+        self.arps_data_path = self.custom_config["arps_data_path"]
+
+    def before_exec(self):
+        wrfrun_config = WRFRUN.config
+        background_files = ["arps.hdf000000", "arps.hdfgrdbas"]
+
+        wrfrun_config.check_wrfrun_context(True)
+        wrfrun_config.WRFRUN_WORK_STATUS = "arps3dvar"
+        WRFRUN.check_path(f"{self.work_path}/outputs")
+
+        work_dir = WRFRUN.uri.parse_resource_uri(self.work_path)
+        existing_files = listdir(work_dir)
+        missing_background_files = [file_name for file_name in background_files if file_name not in existing_files]
+
+        if missing_background_files:
+            if self.arps_data_path is None:
+                self.arps_data_path = f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/arps"
+
+            arps_data_path = WRFRUN.uri.parse_resource_uri(self.arps_data_path)
+            missing_source_files = [
+                file_name for file_name in missing_background_files if not exists(f"{arps_data_path}/{file_name}")
+            ]
+            if missing_source_files:
+                message = (
+                    "Can't find required ARPS background files in the arps3dvar work directory or "
+                    f"'{arps_data_path}': {', '.join(missing_source_files)}"
+                )
+                LOGGER.error(message)
+                raise FileNotFoundError(message)
+
+            self.add_input_files([f"{self.arps_data_path}/{file_name}" for file_name in missing_background_files])
+
+        namelist_updates = {
+            "jobname": {"runname": self.name},
+            "initialization": {
+                "inifile": "./arps.hdf000000",
+                "inigbf": "./arps.hdfgrdbas",
+            },
+            "output": {"dirname": "./outputs/"},
+        }
+        if wrfrun_config.get_namelist("arps")["incr_out"]["incrdmp"] > 0:
+            namelist_updates["incr_out"] = {"incdmpf": f"./outputs/{self.name}.incr"}
+
+        wrfrun_config.update_namelist(namelist_updates, "arps")
+        wrfrun_config.write_namelist(self.namelist_path, "arps")
+
+        super().before_exec()
+
+    def after_exec(self):
+        if not WRFRUN.config.IS_IN_REPLAY:
+            self.add_output_files(
+                startswith=f"{self.name}.",
+                output_dir=f"{self.work_path}/outputs",
+                save_path=self._output_save_path,
+            )
+            self.add_output_files(
+                filenames=[f"{self.name}.lst", f"{self.name}.adasstat", f"{self.name}.adasstn", "arps3dvar.nml"],
+                output_dir=self.work_path,
+                save_path=f"{self._output_save_path}/logs",
+            )
+
+        super().after_exec()
+
+        LOGGER.info(f"All arps3dvar output files have been copied to {WRFRUN.uri.parse_resource_uri(self._output_save_path)}")
+
+
 def _exec_register_func(exec_db: ExecutableDB):
     """
     Function to register ``Executable``.
@@ -549,8 +676,8 @@ def _exec_register_func(exec_db: ExecutableDB):
     :param exec_db: ``ExecutableDB`` instance.
     :type exec_db: ExecutableDB
     """
-    class_list = [ARPSSFC, ARPS, EXT2ARPS]
-    class_id_list = ["arpssfc", "arps", "ext2arps"]
+    class_list = [ARPSSFC, ARPS, ARPS3DVar, EXT2ARPS]
+    class_id_list = ["arpssfc", "arps", "arps3dvar", "ext2arps"]
 
     for _class, _id in zip(class_list, class_id_list):
         if not exec_db.is_registered(_id):
@@ -560,4 +687,4 @@ def _exec_register_func(exec_db: ExecutableDB):
 WRFRUN.set_exec_db_register_func(_exec_register_func)
 
 
-__all__ = ["ARPSSFC", "ARPS", "EXT2ARPS"]
+__all__ = ["ARPSSFC", "ARPS", "ARPS3DVar", "EXT2ARPS"]

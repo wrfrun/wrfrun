@@ -97,6 +97,14 @@ def my_program(input_path: str | None = None):
 
 Keep wrappers thin: lifecycle preparation, file staging, and output collection belong in the executable class.
 
+## Review workspace integration
+
+When adding an executable or changing its static runtime prerequisites, review [Workspace.md](Workspace.md). Update the relevant workspace module if the executable needs a new component directory, executable binary, immutable table, or another installation-derived resource before `before_exec` runs. Keep generated configuration, run-specific input staging, and output collection in the executable lifecycle rather than workspace preparation.
+
+## Review resource integration
+
+When adding or changing an executable, review [Resources.md](Resources.md). Update `wrfrun/res` when the executable requires a new built-in namelist or parameter-table template, scheduler template, extension script, or model TOML setting. Keep every resource constant, `name_map.json`, generated `wrfrun/res/__init__.py`, Meson install list, and model-specific consumer synchronized. Do not add a resource merely for files generated per run; those belong to the executable lifecycle.
+
 ## Validate the change
 
 Before handing off an executable change:
@@ -105,3 +113,5 @@ Before handing off an executable change:
 2. Run the executable or a focused substitute and verify result files, stdout, and stderr reach their expected archive paths.
 3. When recording is supported, record one run and replay it to verify constructor arguments, custom configuration, and `ExecutableDB` registration.
 4. Test MPI behavior only with the intended launcher; do not assume Open-MPI-specific flags work with every launcher.
+5. Confirm that the executable's workspace exists and contains every required static runtime resource; update the relevant workspace module when this contract changes.
+6. Confirm that all required packaged templates or scripts exist and remain compatible with the executable; update the relevant resource definitions when this contract changes.
