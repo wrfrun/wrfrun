@@ -1,70 +1,56 @@
 Property ``WRFRUN.config``
 ##########################
 
-The :py:meth:`config <wrfrun.core.core.WRFRUNProxy.config>` property holds an instance of :class:`WRFRunConfig <wrfrun.core._config.WRFRunConfig>`, 
-which is the core configuration management class in ``wrfrun``, designed as a composite class that inherits from four specialized mixin classes to provide a complete, 
-all-in-one configuration solution for the entire framework. 
-It centralizes all configuration-related functionality, eliminating the need to manage separate configuration systems for different components.
+The :py:meth:`config <wrfrun.core.core.WRFRUNProxy.config>` property holds the
+active :class:`WRFRunConfig <wrfrun.core._config.WRFRunConfig>` instance. It
+loads the TOML configuration, manages namelists and debug settings, and tracks
+the current ``wrfrun`` context. URI names and URI-to-path resolution belong to
+the separate :py:meth:`WRFRUN.uri <wrfrun.core.core.WRFRUNProxy.uri>` manager.
 
 Class Architecture
 ******************
 
-:class:`WRFRunConfig <wrfrun.core._config.WRFRunConfig>` uses multiple inheritance to combine functionality from four mixin classes, each responsible for a specific aspect of configuration management:
+``WRFRunConfig`` inherits two mixins:
 
-.. .. inheritance-diagram:: wrfrun.core._config.WRFRunConfig
-..     :parts: 1
+- :class:`NamelistMixIn <wrfrun.core._namelist.NamelistMixIn>` manages
+  registered Fortran namelists.
+- :class:`DebugMixIn <wrfrun.core._debug.DebugMixIn>` provides debug-mode
+  settings.
 
-+ :class:`ConstantMixIn <wrfrun.core._constant.ConstantMixIn>`: Manages runtime constants, standard paths, and global state
-+ :class:`ResourceMixIn <wrfrun.core._resource.ResourceMixIn>`: Handles resource URI registration and path resolution
-+ :class:`NamelistMixIn <wrfrun.core._namelist.NamelistMixIn>`: Manages Fortran namelist files for numerical models
-+ :class:`DebugMixIn <wrfrun.core._debug.DebugMixIn>`: Provides debug mode controls and logging configuration
+The associated :class:`WRFRUNURI <wrfrun.core.uri.WRFRUNURI>` instance is not
+a ``WRFRunConfig`` mixin. It owns URI registration and resolution and exposes
+standard URI names such as ``WRFRUN_TEMP_PATH``, ``WRFRUN_WORKSPACE_ROOT``,
+``WRFRUN_WORKSPACE_MODEL``, ``WRFRUN_WORKSPACE_REPLAY``,
+``WRFRUN_OUTPUT_PATH``, and ``WRFRUN_RESOURCE_PATH`` through ``WRFRUN.uri``.
 
-This modular design allows for separation of concerns while providing a unified interface to all configuration functionality through a single class instance.
+``WRFRunConfig`` also stores the configuration dictionary and framework state,
+including ``IS_IN_REPLAY``, ``IS_RECORDING``, ``FAKE_SIMULATION_MODE``, and
+``WRFRUN_WORK_STATUS``. Use ``check_wrfrun_context()`` when code requires an
+active :class:`WRFRun <wrfrun.run.WRFRun>` context.
 
-Mixin Class Functionality
-*************************
+Working with URIs
+*****************
 
-ConstantMixIn
-=============
-
-The :class:`ConstantMixIn <wrfrun.core._constant.ConstantMixIn>` provides management of runtime constants, standard directory paths, and global framework state:
-
-+ **Standard Path Management**: Defines and manages standard directory paths used throughout the framework:
-   - ``WRFRUN_HOME_PATH``: Root directory for wrfrun configuration and data
-   - ``WRFRUN_TEMP_PATH``: Temporary working directory for model runs
-   - ``WRFRUN_WORKSPACE_ROOT``: Root directory for all workspaces
-   - ``WRFRUN_WORKSPACE_MODEL``: Directory for model execution
-   - ``WRFRUN_WORKSPACE_REPLAY``: Directory for simulation replay files
-   - ``WRFRUN_OUTPUT_PATH``: Output directory for simulation results
-   - ``WRFRUN_RESOURCE_PATH``: Directory for built-in resource files
-+ **Global State Management**: Tracks global framework state:
-   - ``IS_IN_REPLAY``: Flag indicating if a simulation replay is in progress
-   - ``IS_RECORDING``: Flag indicating if simulation recording is active
-   - ``FAKE_SIMULATION_MODE``: Flag for dry-run mode where models are not actually executed
-   - ``WRFRUN_CONTEXT_STATUS``: Tracks whether we are inside a :class:`WRFRun <wrfrun.run.WRFRun>` context
-   - ``WRFRUN_WORK_STATUS``: Tracks the current execution step for progress reporting
-+ **Context Validation**: Provides methods to check if the code is running within a valid :class:`WRFRun <wrfrun.run.WRFRun>` context, preventing incorrect usage of framework components.
-
-ResourceMixIn
-=============
-
-The :class:`ResourceMixIn <wrfrun.core._resource.ResourceMixIn>` implements a URI-based resource management system that ensures code portability across different environments:
-
-- **URI Registration**: Allows registering custom resource URIs that map to physical file paths. URIs follow the format ``:WRFRUN_*:`` (e.g., ``:WRFRUN_TEMP_PATH:``).
-- **URI Resolution**: Automatically resolves URIs to their corresponding physical paths at runtime.
-- **Portability**: Enables the same code to run on different machines without modification, as URIs are resolved based on the local environment configuration.
-- **Built-in URIs**: Provides pre-registered URIs for all standard framework paths.
+Use ``WRFRUN.uri`` for all new URI operations. A URI begins with
+``:WRFRUN_`` and ends with ``:``; resolve it before passing it to a filesystem
+API.
 
 .. code-block:: python
     :caption: Using resource URIs
 
     from wrfrun.core import WRFRUN
 
-    # Resolve a URI to an absolute path
-    temp_file = WRFRUN.config.parse_resource_uri(":WRFRUN_TEMP_PATH:/test.txt")
-    
-    # Register a custom URI
-    WRFRUN.config.register_resource_uri(":WRFRUN_MY_DATA:", "/path/to/my/data")
+    temp_file_uri = f"{WRFRUN.uri.WRFRUN_TEMP_PATH}/test.txt"
+    temp_file = WRFRUN.uri.parse_resource_uri(temp_file_uri)
+
+    custom_uri = ":WRFRUN_MY_DATA:"
+    if not WRFRUN.uri.check_resource_uri(custom_uri):
+        WRFRUN.uri.register_resource_uri(custom_uri, "/path/to/my/data")
+
+``WRFRUN.config`` still forwards ``check_resource_uri()``,
+``register_resource_uri()``, ``unregister_resource_uri()``, and
+``parse_resource_uri()`` to the URI manager for backward compatibility. New
+code and documentation should call ``WRFRUN.uri`` directly.
 
 NamelistMixIn
 =============
@@ -124,7 +110,7 @@ The :class:`DebugMixIn <wrfrun.core._debug.DebugMixIn>` provides debug configura
 Core WRFRunConfig Functionality
 *******************************
 
-Beyond the functionality inherited from mixins, :class:`WRFRunConfig <wrfrun.core._config.WRFRunConfig>` provides the following core configuration management features:
+Beyond its mixins, :class:`WRFRunConfig <wrfrun.core._config.WRFRunConfig>` provides the following core configuration management features:
 
 Configuration Loading
 =====================
@@ -181,15 +167,17 @@ Working with URIs
 
 .. code-block:: python
 
-    # Resolve a standard URI
-    temp_dir = WRFRUN.config.parse_resource_uri(WRFRUN.config.WRFRUN_TEMP_PATH)
-    
-    # Use URIs in file paths
-    namelist_path = WRFRUN.config.parse_resource_uri(f"{WRFRUN.config.WRFRUN_TEMP_PATH}/namelist.wps")
-    
-    # Register a custom URI
-    WRFRUN.config.register_resource_uri(":WRFRUN_MY_PROJECT:", "/home/user/my_project")
-    my_data_path = WRFRUN.config.parse_resource_uri(":WRFRUN_MY_PROJECT:/data/input.nc")
+    # Resolve a standard URI.
+    temp_dir = WRFRUN.uri.parse_resource_uri(WRFRUN.uri.WRFRUN_TEMP_PATH)
+
+    # Use a URI in a path.
+    namelist_path = WRFRUN.uri.parse_resource_uri(
+        f"{WRFRUN.uri.WRFRUN_TEMP_PATH}/namelist.wps"
+    )
+
+    # Register and resolve a custom URI.
+    WRFRUN.uri.register_resource_uri(":WRFRUN_MY_PROJECT:", "/home/user/my_project")
+    my_data_path = WRFRUN.uri.parse_resource_uri(":WRFRUN_MY_PROJECT:/data/input.nc")
 
 Modifying Namelists
 ===================
@@ -229,9 +217,9 @@ Best Practices
 **************
 
 + **Access through WRFRUN proxy**: Always access the configuration through ``WRFRUN.config`` rather than creating your own :class:`WRFRunConfig <wrfrun.core._config.WRFRunConfig>` instances. The framework manages the configuration lifecycle automatically.
-+ **Use within WRFRun context**: Never access ``WRFRUN.config`` outside of a :class:`WRFRun <wrfrun.run.WRFRun>` context, as it will not be fully initialized yet and may cause errors.
++ **Initialize before access**: Construct :class:`WRFRun <wrfrun.run.WRFRun>` before accessing ``WRFRUN.config`` or ``WRFRUN.uri``. Operations that require an active simulation context should call ``check_wrfrun_context(True)``.
 + **Prefer convenience methods**: Use the dedicated accessor methods (:py:meth:`get_model_config <wrfrun.core._config.WRFRunConfig.get_model_config>`, :py:meth:`get_log_path <wrfrun.core._config.WRFRunConfig.get_log_path>`, etc.) instead of direct dictionary access for better type safety and error handling.
-+ **Avoid runtime modifications**: The configuration is designed to be immutable once loaded. Avoid modifying values at runtime unless absolutely necessary, as it may lead to unexpected behavior.
++ **Make deliberate runtime updates**: ``update_model_config()`` and namelist updates are supported. Keep such changes explicit so that the effective configuration remains understandable and reproducible.
 + **Use URIs for path management**: Always use resource URIs instead of hard-coded paths to ensure your code is portable across different environments.
 + **Save configuration snapshots**: Always save a copy of your configuration with your simulation outputs to ensure full reproducibility of results.
 + **Use environment variables for debug mode**: Set debug mode via environment variables during development to avoid modifying code to enable/disable debugging.

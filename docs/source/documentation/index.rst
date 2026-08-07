@@ -62,9 +62,9 @@ This is particularly important if you're interested in developing extensions to 
 
 The :doc:`global_var_wrfrun_config` document provides a comprehensive look at the :class:`WRFRunConfig <wrfrun.core._config.WRFRunConfig>` class:
 
-- The mixin architecture and what each mixin provides
-- Detailed explanations of :class:`ConstantMixIn <wrfrun.core._constant.ConstantMixIn>`, :class:`ResourceMixIn <wrfrun.core._resource.ResourceMixIn>`, :class:`NamelistMixIn <wrfrun.core._namelist.NamelistMixIn>`, and :class:`DebugMixIn <wrfrun.core._debug.DebugMixIn>`
-- How to work with resource URIs for cross-environment compatibility
+- The configuration, namelist, debug, and URI-management responsibilities
+- Detailed explanations of :class:`NamelistMixIn <wrfrun.core._namelist.NamelistMixIn>`, :class:`DebugMixIn <wrfrun.core._debug.DebugMixIn>`, and :class:`WRFRUNURI <wrfrun.core.uri.WRFRUNURI>`
+- How to resolve resource URIs through ``WRFRUN.uri`` for cross-environment compatibility
 - Namelist management for numerical models
 - Debug mode configuration and usage
 - Complete API reference for all configuration-related functionality
