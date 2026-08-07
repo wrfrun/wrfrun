@@ -7,7 +7,7 @@ Functions to read and change ARPS namelist.
 .. autosummary::
     :toctree: generated/
 
-
+    prepare_arps_namelist
 """
 
 import logging

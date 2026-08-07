@@ -1,5 +1,5 @@
 """
-wrfrun.worksapce.utils
+wrfrun.workspace.utils
 ######################
 
 Utility functions for workspace creation.

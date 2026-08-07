@@ -10,12 +10,13 @@ wrfrun.core._config
 WRFRunConfig
 ************
 
-This class inherits :class:`ConstantMixIn <wrfrun.core._constant.ConstantMixIn>`,
-:class:`NamelistMixIn <wrfrun.core._namelist.NamelistMixIn>`,
-:class:`ResourceMixIn <wrfrun.core._resource.ResourceMixIn>`,
-and :class:`DebugMixIn <wrfrun.core._debug.DebugMixIn>`
+This class inherits :class:`NamelistMixIn <wrfrun.core._namelist.NamelistMixIn>`
+and :class:`DebugMixIn <wrfrun.core._debug.DebugMixIn>`.
+URI registration and resolution are delegated to
+:class:`WRFRUNURI <wrfrun.core.uri.WRFRUNURI>`; use ``WRFRUN.uri`` for new code.
 
 Besides the methods from its parents, :class:`WRFRunConfig` provides methods to read and access user config files.
+Its URI methods remain compatibility interfaces.
 """
 
 from copy import deepcopy

@@ -4,7 +4,7 @@ wrfrun.model.arps.core
 
 Core implementation of ARPS model.
 
-If you prefer function interfaces, please see :doc:`function wrapper </api/model.wrf.exec_wrap>` for these ``Executable``.
+If you prefer function interfaces, please see :doc:`function wrapper </api/model.arps.exec_wrap>` for these ``Executable``.
 
 .. autosummary::
     :toctree: generated/

@@ -14,18 +14,17 @@ Submodules
 
 ====================================== ========================================================
 :doc:`_config </api/core._config>`     Definition of ``WRFRunConfig``.
-:doc:`_constant </api/core._constant>` Definition of ``ConstantMixIn``.
 :doc:`_debug </api/core._debug>`       Definition of ``DebugMixIn``.
 :doc:`_exec_db </api/core._exec_db>`   Definition of ``ExecutableDB``.
 :doc:`_namelist </api/core._namelist>` Definition of ``NamelistMixIn``.
 :doc:`_record </api/core._record>`     Definition of ``ExecutableRecorder``.
-:doc:`_resource </api/core._resource>` Definition of ``ResourceMixIn``.
 :doc:`base </api/core.base>`           Definition of ``Executable`` base class.
 :doc:`core </api/core.core>`           Definition of proxy class ``WRFRUNProxy``.
 :doc:`error </api/core.error>`         Definition of ``wrfrun`` error exceptions.
 :doc:`replay </api/core.replay>`       Functions and classes to replay simulations.
 :doc:`server </api/core.server>`       Functions and classes to start socket server.
 :doc:`type </api/core.type>`           Definition of various types used in ``wrfrun``.
+:doc:`uri </api/core.uri>`             Definition of ``WRFRUNURI``.
 ====================================== ========================================================
 
 .. toctree::
@@ -33,18 +32,17 @@ Submodules
     :hidden:
 
     _config <core._config>
-    _constant <core._constant>
     _debug <core._debug>
     _exec_db <core._exec_db>
     _namelist <core._namelist>
     _record <core._record>
-    _resource <core._resource>
     base <core.base>
     core <core.core>
     error <core.error>
     replay <core.replay>
     server <core.server>
     type <core.type>
+    uri <core.uri>
 """
 
 from ._config import *

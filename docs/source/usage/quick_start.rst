@@ -360,4 +360,4 @@ If you encounter issues:
 3. **Verify paths**: Double-check all paths in your config file are correct
 4. **Check domain settings**: Use the domain visualization to ensure your domain is correctly configured
 
-You can open an issue about ``wrfrun`` bugs on `GtiHub <https://github.com/wrfrun/wrfrun>_`.
+You can open an issue about ``wrfrun`` bugs on `GtiHub <https://github.com/wrfrun/wrfrun>`_.

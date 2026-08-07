@@ -1,4 +1,4 @@
-.. automodule:: wrfrun.core._constant
+.. automodule:: wrfrun.model.arps.namelist
     :no-members:
     :no-inherited-members:
     :no-special-members:

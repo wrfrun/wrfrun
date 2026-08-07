@@ -8,8 +8,11 @@ Submodules
 **********
 
 =================================    ===========================================================
+:doc:`arps </api/workspace.arps>`    Functions to prepare workspace for ARPS model.
 :doc:`core </api/workspace.core>`    Core functions of this submodule.
 :doc:`palm </api/workspace.palm>`    Functions to prepare workspace for PALM model.
+:doc:`roms </api/workspace.roms>`    Functions to prepare workspace for ROMS model.
+:doc:`utils </api/workspace.utils>`  Utility functions for workspace creation.
 :doc:`wrf </api/workspace.wrf>`      Functions to prepare workspace for WPS/WRF model.
 =================================    ===========================================================
 
@@ -33,8 +36,11 @@ Director Path                               Purpose
     :maxdepth: 1
     :hidden:
 
+    arps <workspace.arps>
     core <workspace.core>
     palm <workspace.palm>
+    roms <workspace.roms>
+    utils <workspace.utils>
     wrf <workspace.wrf>
 """
 

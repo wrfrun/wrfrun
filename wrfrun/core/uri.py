@@ -269,9 +269,9 @@ class WRFRUNURI:
         For example, you can get the real path of ``wrfrun`` workspace with this method:
 
         >>> from wrfrun.core import WRFRUN
-        >>> workspace_path = f"{WRFRUN.config.WRFRUN_WORKSPACE_ROOT}/WPS"    # ":WRFRUN_WORKSPACE_PATH:/WPS"
+        >>> workspace_path = f"{WRFRUN.uri.WRFRUN_WORKSPACE_ROOT}/WPS"    # ":WRFRUN_WORKSPACE_ROOT:/WPS"
         >>> # real_path should be a valid path like: "/home/syize/.config/wrfrun/workspace/WPS"
-        >>> real_path = WRFRUN.config.parse_resource_uri(workspace_path)
+        >>> real_path = WRFRUN.uri.parse_resource_uri(workspace_path)
 
         :param resource_path: Resource path string which may contain URI string.
         :type resource_path: str

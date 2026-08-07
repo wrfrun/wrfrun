@@ -2,14 +2,13 @@
 wrfrun.workspace.roms
 #####################
 
-Functions to prepare workspace for WPS/WRF model.
+Functions to prepare workspace for ROMS model.
 
 .. autosummary::
     :toctree: generated/
 
     get_roms_workspace_path
     prepare_roms_workspace
-    check_roms_workspace
 """
 
 from wrfrun.core import WRFRUN, WRFRUNURI
