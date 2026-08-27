@@ -27,6 +27,8 @@ from ._config import WRFRunConfig
 from ._exec_db import ExecutableDB
 from ._record import ExecutableRecorder
 from .error import ConfigError
+from .io import IOService
+from .resource import ResourceCatalog
 from .uri import WRFRUNURI
 
 
@@ -51,8 +53,11 @@ class WRFRUNProxy:
         self._exec_db_initialized = False
         self._recorder: ExecutableRecorder | None = None
         self._recorder_initialized = False
-        self._uri_manager: WRFRUNURI | None = None
+        self._uri_manager: ResourceCatalog | None = None
         self._uri_manager_initialized = False
+
+        self._io_service: IOService | None = None
+        self._io_service_initialized = False
 
         self._config_register_funcs: list[Callable[["WRFRunConfig"], None]] = []
         self._uri_register_funcs: list[Callable[["WRFRUNURI"], None]] = []
@@ -74,16 +79,16 @@ class WRFRUNProxy:
         return self._config
 
     @property
-    def uri(self) -> WRFRUNURI:
+    def uri(self) -> ResourceCatalog:
         """
-        Access WRFRUNURI.
+        Access ResourceCatalog.
 
-        :return: WRFRUNURIg.
-        :rtype: WRFRUNURI
+        :return: Resource manager.
+        :rtype: ResourceCatalog
         """
         if self._uri_manager is None:
-            logger.error("You haven't initialize `WRFRUNURI` yet.")
-            raise ConfigError("You haven't initialize `WRFRUNURI` yet.")
+            logger.error("You haven't initialize `ResourceCatalog` yet.")
+            raise ConfigError("You haven't initialize `ResourceCatalog` yet.")
         return self._uri_manager
 
     @property
@@ -111,6 +116,21 @@ class WRFRUNProxy:
             logger.error("You haven't initialize simulation recorder yet.")
             raise ConfigError("You haven't initialize simulation recorder yet.")
         return self._recorder
+
+    @property
+    def io(self) -> IOService:
+        """
+        Access IO service.
+
+        :raises ConfigError: IO service isn't initialized.
+        :return: IO service.
+        :rtype: IOService
+        """
+        if self._io_service is None:
+            logger.error("You haven't initialize IO service yet.")
+            raise ConfigError("You haven't initialize IO service yet.")
+
+        return self._io_service
 
     def set_exec_db(self, exec_db: ExecutableDB):
         """
@@ -151,8 +171,9 @@ class WRFRUNProxy:
         :param func: Register functions.
         :type func: Callable[["WRFRUNURI"], None]
         """
+        logger.warning("This hook is deprecated. Please use new resource manager.")
         if self._uri_manager_initialized:
-            func(self._uri_manager)
+            func(self._uri_manager.old_uri)  # type: ignore
 
         else:
             if func not in self._uri_register_funcs:
@@ -210,7 +231,7 @@ class WRFRUNProxy:
         :type config_file: str
         """
         logger.info(f"Read config: '{config_file}'")
-        self._config = WRFRunConfig.from_config_file(self.uri, config_file, self._config_register_funcs)
+        self._config = WRFRunConfig.from_config_file(self.uri.old_uri, config_file, self._config_register_funcs)
         self._config_initialized = True
 
     def init_exec_db(self):
@@ -240,11 +261,16 @@ class WRFRUNProxy:
         :param work_dir: wrfrun work directory path.
         :type work_dir: str
         """
-        self._uri_manager = WRFRUNURI(work_dir)
+        self._uri_manager = ResourceCatalog(work_dir)
         for _func in self._uri_register_funcs:
-            _func(self._uri_manager)
+            _func(self._uri_manager.old_uri)
+
+        self._io_service = IOService(self._uri_manager)
+
         self._uri_register_funcs = []
         self._uri_manager_initialized = True
+
+        self._io_service_initialized = True
 
     def check_path(self, *args):
         """
