@@ -121,7 +121,7 @@ class ARPSTrn(ExecutableBase):
     def after_exec(self):
         if not WRFRUN.config.IS_IN_REPLAY:
             self.add_output_files(
-                filenames=f"{self.name}.trndata",
+                startswith=f"{self.name}.trndata",
                 output_dir=f"{get_arps_workspace_path()}/arpstrn/outputs",
                 save_path=f"{self._output_save_path}",
             )

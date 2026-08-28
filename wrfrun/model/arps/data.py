@@ -1,0 +1,97 @@
+import cdsapi
+
+dataset = "reanalysis-era5-single-levels"
+request = {
+    "product_type": ["reanalysis"],
+    "variable": [
+        "10m_u_component_of_wind",
+        "10m_v_component_of_wind",
+        "2m_dewpoint_temperature",
+        "2m_temperature",
+        "sea_surface_temperature",
+        "surface_pressure",
+        "skin_temperature",
+        "soil_temperature_level_1",
+        "soil_temperature_level_2",
+        "soil_temperature_level_3",
+        "soil_temperature_level_4",
+        "volumetric_soil_water_layer_1",
+        "volumetric_soil_water_layer_2",
+        "volumetric_soil_water_layer_3",
+        "volumetric_soil_water_layer_4",
+        "geopotential",
+        "land_sea_mask",
+    ],
+    "year": ["2025"],
+    "month": ["07"],
+    "day": ["28"],
+    "time": ["16:00", "17:00"],
+    "data_format": "grib",
+    "download_format": "unarchived",
+    "area": [51.5, 109, 32.25, 129.25],
+}
+
+client = cdsapi.Client()
+client.retrieve(dataset, request).download()
+
+dataset = "reanalysis-era5-pressure-levels"
+request = {
+    "product_type": ["reanalysis"],
+    "variable": [
+        "geopotential",
+        "relative_humidity",
+        "specific_humidity",
+        "temperature",
+        "u_component_of_wind",
+        "v_component_of_wind",
+    ],
+    "year": ["2025"],
+    "month": ["07"],
+    "day": ["28"],
+    "time": ["16:00", "17:00"],
+    "pressure_level": [
+        "1",
+        "2",
+        "3",
+        "5",
+        "7",
+        "10",
+        "20",
+        "30",
+        "50",
+        "70",
+        "100",
+        "125",
+        "150",
+        "175",
+        "200",
+        "225",
+        "250",
+        "300",
+        "350",
+        "400",
+        "450",
+        "500",
+        "550",
+        "600",
+        "650",
+        "700",
+        "750",
+        "775",
+        "800",
+        "825",
+        "850",
+        "875",
+        "900",
+        "925",
+        "950",
+        "975",
+        "1000",
+    ],
+    "data_format": "grib",
+    "download_format": "unarchived",
+    "area": [51.5, 109, 32.5, 129.25],
+}
+
+client = cdsapi.Client()
+client.retrieve(dataset, request).download()

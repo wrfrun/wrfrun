@@ -18,6 +18,7 @@ and :class:`ExecutableRecorder <wrfrun.core._record.ExecutableRecorder>`.
 Through this global variable, other submodules of wrfrun and users can access attributes and methods of these classes.
 """
 
+from pathlib import Path
 from typing import Callable, Literal
 
 from wrfrun.utils import check_path
@@ -233,6 +234,8 @@ class WRFRUNProxy:
         logger.info(f"Read config: '{config_file}'")
         self._config = WRFRunConfig.from_config_file(self.uri.old_uri, config_file, self._config_register_funcs)
         self._config_initialized = True
+
+        self.uri.register_provider("project", Path(config_file).resolve().parent)
 
     def init_exec_db(self):
         """

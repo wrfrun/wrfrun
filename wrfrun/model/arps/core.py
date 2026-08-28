@@ -18,7 +18,7 @@ If you prefer function interfaces, please see :doc:`function wrapper </api/model
 import logging
 from datetime import datetime, timedelta
 from os import listdir
-from os.path import exists
+from os.path import basename, exists
 from typing import Optional
 
 from wrfrun.core import WRFRUN, ExecutableBase, ExecutableDB
@@ -313,12 +313,17 @@ class EXT2ARPS(ExecutableBase):
                 )
 
             else:
-                self.add_input_files(self.arpstrn_data_path)
+                self.add_input_files(arpstrn_data_path)
+
+            arpstrn_data_name = basename(arpstrn_data_path)
+
+        else:
+            arpstrn_data_name = "arpstrn.trndata"
 
         wrfrun_config.update_namelist(
             {
                 "jobname": {"runname": self.name},
-                "terrain": {"terndta": "./arpstrn.trndata"},
+                "terrain": {"terndta": f"./{arpstrn_data_name}"},
                 "extdfile": {"dir_extd": "./", "grdbasopt": 1},
             },
             "arps",

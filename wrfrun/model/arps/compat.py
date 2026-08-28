@@ -40,9 +40,9 @@ def copy_arps_namelist_template():
             case _:
                 namelist_name = "arps.input"
 
-        target = Path("namelists/arps") / namelist_name
+        target = Path("templates/arps") / namelist_name
         target = target.with_suffix(".nml")
-        target.parent.mkdir(exist_ok=True)
+        target.parent.mkdir(parents=True, exist_ok=True)
         LOGGER.info(f"Copy '{ARPS_INPUT_DIR / namelist_name}' to '{target}'")
         copyfile(ARPS_INPUT_DIR / namelist_name, target)
 

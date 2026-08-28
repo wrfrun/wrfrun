@@ -51,6 +51,7 @@ from .base import *
 from .core import *
 from .error import *
 from .replay import *
+from .resource import *
 from .server import *
 from .type import *
 from .uri import *
