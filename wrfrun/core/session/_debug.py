@@ -1,6 +1,6 @@
 """
-wrfrun.core._debug
-##################
+wrfrun.core.session._debug
+##########################
 
 .. autosummary::
     :toctree: generated/
@@ -34,7 +34,7 @@ Environmental parameters
 import logging
 from os import environ
 
-from wrfrun.log import logger
+LOGGER = logging.getLogger("wrfrun")
 
 
 class DebugMixIn:
@@ -144,12 +144,12 @@ class DebugMixIn:
             is_debug = False
 
         if is_debug:
-            logger.setLevel(logging.DEBUG)
-            logger.info("Logger debug mode is on.")
+            LOGGER.setLevel(logging.DEBUG)
+            LOGGER.info("Logger debug mode is on.")
 
         else:
-            logger.setLevel(logging.INFO)
-            logger.info("Logger debug mode is off.")
+            LOGGER.setLevel(logging.INFO)
+            LOGGER.info("Logger debug mode is off.")
 
 
 __all__ = ["DebugMixIn"]

@@ -1,6 +1,6 @@
 """
-wrfrun.core.resource
-####################
+wrfrun.core.runtime.resource
+############################
 
 Component which provides access to wrfrun and project resources.
 
@@ -19,7 +19,7 @@ from importlib import resources
 from pathlib import Path, PurePath
 from typing import Union
 
-from .uri import WRFRUNURI
+from ..uri import WRFRUNURI
 
 LOGGER = logging.getLogger("wrfrun")
 

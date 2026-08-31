@@ -28,8 +28,7 @@ from ._config import WRFRunConfig
 from ._exec_db import ExecutableDB
 from ._record import ExecutableRecorder
 from .error import ConfigError
-from .io import IOService
-from .resource import ResourceCatalog
+from .runtime import IOService, ResourceCatalog
 from .uri import WRFRUNURI
 
 

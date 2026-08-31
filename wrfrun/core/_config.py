@@ -29,9 +29,9 @@ import tomli
 import tomli_w
 
 from ..log import logger
-from ._debug import DebugMixIn
 from ._namelist import NamelistMixIn
 from .error import ModelNameError, WRFRunContextError
+from .session._debug import DebugMixIn
 from .uri import WRFRUNURI
 
 
