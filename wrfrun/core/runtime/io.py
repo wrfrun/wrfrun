@@ -16,9 +16,10 @@ from pathlib import Path
 from shutil import copyfile, move
 
 import f90nml
+import tomli_w
 
 from ..type import FileConfigDict
-from .resource import ResourceCatalog
+from .resource import ResourceCatalog, ResourceRef
 
 LOGGER = logging.getLogger("wrfrun")
 
@@ -106,6 +107,44 @@ class IOService:
         :type file_config: FileConfigDict
         """
         self.process(file_config)
+
+    def write_namelist(self, content: dict, file_path: str | ResourceRef):
+        """
+        Write namelist to file.
+
+        :param content: Namelist contents.
+        :type content: dict
+        :param file_path: File path, can be resource ref object or string.
+        :type file_path: str | ResourceRef
+        """
+        if isinstance(file_path, ResourceRef):
+            _save_path = self._resource.get_custom_resource(file_path)
+        else:
+            _save_path = Path(file_path)
+
+        _save_path.parent.mkdir(exist_ok=True, parents=True)
+
+        with open(_save_path, "w") as f:
+            f90nml.write(content, f, force=True)
+
+    def write_toml(self, content: dict, file_path: str | ResourceRef):
+        """
+        Write toml config.
+
+        :param content: Contents.
+        :type content: dict
+        :param file_path: File path, can be resource ref object or string.
+        :type file_path: str | ResourceRef
+        """
+        if isinstance(file_path, ResourceRef):
+            _save_path = self._resource.get_custom_resource(file_path)
+        else:
+            _save_path = Path(file_path)
+
+        _save_path.parent.mkdir(exist_ok=True, parents=True)
+
+        with open(_save_path, "wb") as f:
+            tomli_w.dump(content, f)
 
 
 __all__ = ["IOService"]

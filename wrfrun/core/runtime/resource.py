@@ -120,6 +120,9 @@ class ResourceCatalog:
 
         self.register_provider("core", "wrfrun.res")
 
+        # runtime resource ref obj
+        self._output = ResourceRef("project", "outputs")
+
     def register_provider(self, provider_name: str, provider_path: str) -> None:
         """
         Register a provider.
@@ -234,6 +237,48 @@ class ResourceCatalog:
         :rtype: Path
         """
         return self.get_resource(ref, ResourceType.REAL_FILE, check)
+
+    @property
+    def CORE_RESOURCE(self):
+        """
+        ``wrfrun`` core resource root dir.
+
+        :return: ResourceRef obj of ``wrfrun`` core resource root directory.
+        :rtype: ResourceRef
+        """
+        return ResourceRef("core", "")
+
+    @property
+    def OUTPUT_DIR(self):
+        """
+        ``wrfrun`` output root directory.
+
+        :return: ResourceRef obj of ``wrfrun`` output directory.
+        :rtype: ResourceRef
+        """
+        return ResourceRef("output", "")
+
+    @property
+    def INPUT_DIR(self):
+        """
+        ``wrfrun`` input root directory.
+
+        This is the directory to store input data.
+
+        :return: ResourceRef obj of ``wrfrun`` input directory.
+        :rtype: ResourceRef
+        """
+        return ResourceRef("input", "")
+
+    @property
+    def REPLAY_DIR(self):
+        """
+        ``wrfrun`` replay work directory.
+
+        :return: ResourceRef obj of ``wrfrun`` input directory.
+        :rtype: ResourceRef
+        """
+        return ResourceRef("replay", "")
 
     # ########################## Compatibility interface ###############################
 

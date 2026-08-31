@@ -106,7 +106,7 @@ from ..error import NamelistError, NamelistIDError
 LOGGER = logging.getLogger("wrfrun")
 
 
-class NamelistMixIn:
+class NamelistService:
     """
     Manage namelist settings.
 
@@ -314,4 +314,4 @@ class NamelistMixIn:
             return False
 
 
-__all__ = ["NamelistMixIn"]
+__all__ = ["NamelistService"]

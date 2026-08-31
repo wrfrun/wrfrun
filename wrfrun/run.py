@@ -40,7 +40,9 @@ Though you can do same things manually, why bother yourself while :class:`WRFRun
 import sys
 import threading
 from collections.abc import Generator
+from contextvars import Token
 from os.path import abspath, dirname
+from pathlib import Path
 from typing import Optional, Tuple, Union
 
 import tomli
@@ -48,8 +50,7 @@ import tomli
 from wrfrun.core.base import ExecutableBase
 
 from .core import WRFRunBasicError, WRFRunServer, WRFRunServerHandler, replay_config_generator, stop_server
-from .core._record import ExecutableRecorder
-from .core.core import WRFRUN
+from .core.core import WRFRUN_NEW, create_wrfrun_session
 from .data import prepare_wps_input_data
 from .log import logger, logger_add_file_handler
 from .model import clear_model_logs, generate_domain_area
@@ -76,7 +77,7 @@ def confirm_model_area():
             exit(1)
 
 
-class WRFRun:
+class WRFRunContext:
     """
     ``WRFRun`` is a context class to use all functions in ``wrfrun`` package.
     """
@@ -124,21 +125,21 @@ class WRFRun:
         self._prepare_wps_data = prepare_wps_data
         self._wps_data_area = wps_data_area
         self._skip_domain_confirm = skip_domain_confirm
+
+        self.config_file_path = Path(config_file).resolve()
+        self._token: Token | None = None
+
         self._entry_file_path = abspath(sys.argv[0])
         self._entry_file_dir_path = dirname(self._entry_file_path)
         self._replay_configs = None
 
-        # make sure we can read the config file,
-        # because sometimes the user may run the Python script in a different path.
-        abs_config_path = f"{self._entry_file_dir_path}/{config_file}"
-        with open(abs_config_path, "rb") as f:
-            config = tomli.load(f)
-        WRFRUN.init_uri_manager(config["work_dir"])
-        WRFRUN.init_wrfrun_config(abs_config_path)
-
-        self._WRFRUNReplay: Optional[ExecutableRecorder] = None
-
     def __enter__(self):
+        # Use new wrfrun global api
+        with open(self.config_file_path, "rb") as f:
+            config = tomli.load(f)
+        self._token = create_wrfrun_session(config.get("work_dir", "./.wrfrun"))
+        WRFRUN_NEW.config.load_wrfrun_config(self.config_file_path)
+
         # check workspace
         if not check_workspace():
             logger.info("Reinitialize workspace because it is broken.")
@@ -168,7 +169,7 @@ class WRFRun:
                 confirm_model_area()
 
         # save a copy of config to the output path
-        WRFRUN.config.save_wrfrun_config(f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/config.toml")
+        WRFRUN_NEW.config.save_wrfrun_config(WRFRUN_NEW.resource.OUTPUT_DIR / "config.toml")
 
         # check if we need to start a server
         if self._start_server:
@@ -176,9 +177,9 @@ class WRFRun:
             self._start_wrfrun_server()
 
         # change status
-        WRFRUN.config.set_wrfrun_context(True)
+        WRFRUN_NEW.states.set_wrfrun_context(True)
 
-        logger_add_file_handler(WRFRUN.config.get_log_path())
+        logger_add_file_handler(WRFRUN_NEW.config.get_log_path())
 
         if self._prepare_wps_data:
             if self._wps_data_area is None:
@@ -196,19 +197,19 @@ class WRFRun:
         if self._start_server:
             stop_server(self._ip, self._port)  # type: ignore
 
-        if self._WRFRUNReplay is not None:
+        if WRFRUN_NEW.states.IS_RECORDING:
             if exc_type is None:
-                self._WRFRUNReplay.export_replay_file()
+                WRFRUN_NEW.record.export_replay_file()
 
-            self._WRFRUNReplay.clear_records()
-            self._WRFRUNReplay = None
-
-        WRFRUN.config.IS_RECORDING = False
+        WRFRUN_NEW.states.IS_RECORDING = False
 
         # change status
-        WRFRUN.config.set_wrfrun_context(False)
+        WRFRUN_NEW.states.set_wrfrun_context(False)
 
         clear_model_logs()
+
+        # clean session
+        WRFRUN_NEW.reset_session(self._token)
 
         logger.debug(r"Exit wrfrun context")
 
@@ -217,11 +218,11 @@ class WRFRun:
         Start a WRFRunServer to report simulation progress.
         """
         # read ip and port settings from config
-        socket_ip, socket_port = WRFRUN.config.get_socket_server_config()
+        socket_ip, socket_port = WRFRUN_NEW.config.get_socket_server_config()
 
         # get simulate settings
-        start_date = WRFRUN.config.get_model_config("wrf")["time"]["start_date"]
-        end_date = WRFRUN.config.get_model_config("wrf")["time"]["end_date"]
+        start_date = WRFRUN_NEW.config.get_model_config("wrf")["time"]["start_date"]
+        end_date = WRFRUN_NEW.config.get_model_config("wrf")["time"]["end_date"]
 
         start_date = start_date[0] if isinstance(start_date, list) else start_date
         end_date = end_date[0] if isinstance(end_date, list) else end_date
@@ -252,9 +253,9 @@ class WRFRun:
         :param include_data: If includes data.
         :type include_data: bool
         """
-        WRFRUN.init_recorder(output_path, include_data)
-        WRFRUN.config.IS_RECORDING = True
-        self._WRFRUNReplay = WRFRUN.record
+        WRFRUN_NEW.record.set_save_path(output_path)
+        WRFRUN_NEW.record.set_include_data(include_data)
+        WRFRUN_NEW.states.IS_RECORDING = True
 
     def replay_simulation(self, replay_file: str):
         """
@@ -263,14 +264,14 @@ class WRFRun:
         :param replay_file: ``.replay`` file path.
         :type replay_file: str
         """
-        WRFRUN.config.check_wrfrun_context(True)
+        WRFRUN_NEW.states.check_wrfrun_context(True)
 
         if self._replay_configs is not None:
             del self._replay_configs
 
         self._replay_configs = replay_config_generator(replay_file)
 
-        WRFRUN.config.IS_IN_REPLAY = True
+        WRFRUN_NEW.states.IS_IN_REPLAY = True
 
         try:
             for _, executable in self._replay_configs:
@@ -280,7 +281,7 @@ class WRFRun:
             logger.error("Failed to replay the simulation")
 
         finally:
-            WRFRUN.config.IS_IN_REPLAY = False
+            WRFRUN_NEW.states.IS_IN_REPLAY = False
 
     def replay_executables(self, replay_file: str) -> Generator[tuple[str, ExecutableBase], None, None]:
         """
@@ -295,21 +296,21 @@ class WRFRun:
         :return: Generator that yields ``Executable`` name and instance.
         :rtype: Generator[tuple[str, ExecutableBase]]
         """
-        WRFRUN.config.check_wrfrun_context(True)
+        WRFRUN_NEW.states.check_wrfrun_context(True)
 
         if self._replay_configs is not None:
             del self._replay_configs
 
         self._replay_configs = replay_config_generator(replay_file)
 
-        WRFRUN.config.IS_IN_REPLAY = True
+        WRFRUN_NEW.states.IS_IN_REPLAY = True
 
         try:
             for name, executable in self._replay_configs:
                 yield name, executable
 
         finally:
-            WRFRUN.config.IS_IN_REPLAY = False
+            WRFRUN_NEW.states.IS_IN_REPLAY = False
 
 
-__all__ = ["WRFRun"]
+__all__ = ["WRFRunContext"]
