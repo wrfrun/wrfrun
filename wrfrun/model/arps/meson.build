@@ -6,6 +6,7 @@ py3.install_sources(
         'core.py',
         'exec_wrap.py',
         'namelist.py',
+        'plugin.py',
     ],
     subdir: 'wrfrun/model/arps'
 )

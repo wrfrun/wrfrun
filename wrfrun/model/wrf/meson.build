@@ -7,6 +7,7 @@ py3.install_sources(
         'log.py',
         'namelist.py',
         'plot.py',
+        'plugin.py',
         'scheme.py',
         'utils.py',
         'vtable.py',
