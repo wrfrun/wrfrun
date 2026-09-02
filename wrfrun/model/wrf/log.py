@@ -15,16 +15,18 @@ import subprocess
 from datetime import datetime
 from os import listdir
 from os.path import exists
+from pathlib import Path
 from shutil import move
 from typing import Optional
 
 from wrfrun.core import WRFRUN_NEW
 from wrfrun.log import logger
 from wrfrun.utils import check_path
-from wrfrun.workspace.wrf import get_wrf_workspace_path
+
+from ...core.type import ResourceRef
 
 
-def get_wrf_simulated_seconds(start_datetime: datetime, log_file_path: Optional[str] = None) -> int:
+def get_wrf_simulated_seconds(start_datetime: datetime, log_file_path: Optional[str | Path] = None) -> int:
     """
     Read the latest line of WRF's log file and calculate how many seconds WRF has integrated.
 
@@ -37,7 +39,7 @@ def get_wrf_simulated_seconds(start_datetime: datetime, log_file_path: Optional[
     """
     # use linux cmd to get the latest line of wrf log files
     if log_file_path is None:
-        log_file_path = WRFRUN_NEW.config.parse_resource_uri(f"{get_wrf_workspace_path('wrf')}/rsl.out.0000")
+        log_file_path = WRFRUN_NEW.resource.get_custom_resource(ResourceRef("workspace_wrf", "wrf") / "rsl.out.0000")
     res = subprocess.run(["tail", "-n", "1", log_file_path], capture_output=True)
     log_text = res.stdout.decode()
 
@@ -63,11 +65,8 @@ def clear_wrf_logs() -> None:
     Collect unsaved WPS/WRF log files and save them to the corresponding
     output directory of the ``Executable``.
     """
-    WRFRUNConfig = WRFRUN_NEW.config
-    uri_manager = WRFRUN_NEW.uri
-
     # wps
-    work_path = WRFRUNConfig.parse_resource_uri(get_wrf_workspace_path("wps"))
+    work_path = WRFRUN_NEW.resource.get_custom_resource(ResourceRef("workspace_wrf", "wps"))
 
     if exists(work_path):
         log_files = [x for x in listdir(work_path) if x.endswith(".log")]
@@ -75,7 +74,7 @@ def clear_wrf_logs() -> None:
         if len(log_files) > 0:
             logger.warning("Found unprocessed log files of WPS model.")
 
-            log_save_path = f"{WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_OUTPUT_PATH)}/wps_unsaved_logs"
+            log_save_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.OUTPUT_DIR) / "wps_unsaved_logs"
             check_path(log_save_path)
 
             for _file in log_files:
@@ -84,7 +83,7 @@ def clear_wrf_logs() -> None:
             logger.warning(f"Unprocessed log files of WPS model has been saved to {log_save_path}, check it")
 
     # wrf
-    work_path = WRFRUNConfig.parse_resource_uri(get_wrf_workspace_path("wrf"))
+    work_path = WRFRUN_NEW.resource.get_custom_resource(ResourceRef("workspace_wrf", "wps"))
 
     if exists(work_path):
         log_files = [x for x in listdir(work_path) if x.startswith("rsl.")]
@@ -92,7 +91,7 @@ def clear_wrf_logs() -> None:
         if len(log_files) > 0:
             logger.warning("Found unprocessed log files of WRF model.")
 
-            log_save_path = f"{WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_OUTPUT_PATH)}/wrf_unsaved_logs"
+            log_save_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.OUTPUT_DIR) / "wrf_unsaved_logs"
             check_path(log_save_path)
 
             for _file in log_files:

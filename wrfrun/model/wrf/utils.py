@@ -73,7 +73,7 @@ def reconcile_namelist_metgrid(metgrid_path: str):
         "physics": {"num_land_cat": metgrid_levels["num_land_cat"]},
     }
 
-    WRFRUN_NEW.config.update_namelist(update_values, "wrf")
+    WRFRUN_NEW.namelist.update_namelist(update_values, "wrf")
 
 
 def process_after_ndown():
@@ -84,8 +84,7 @@ def process_after_ndown():
     ``wrfrun`` provide this function to help you change these settings which have multiple values for each domain.
     The first value will be removed to ensure the value of higher resolution domain is the first value.
     """
-    WRFRUNConfig = WRFRUN_NEW.config
-    namelist_data = WRFRUNConfig.get_namelist("wrf")
+    namelist_data = WRFRUN_NEW.namelist.get_namelist("wrf")
 
     for section in namelist_data:
         if section in ["bdy_control", "namelist_quilt"]:
@@ -112,7 +111,7 @@ def process_after_ndown():
     time_ratio = namelist_data["domains"]["parent_time_step_ratio"][1]
     namelist_data["domains"]["time_step"] = namelist_data["domains"]["time_step"] // time_ratio
 
-    WRFRUNConfig.update_namelist(namelist_data, "wrf")
+    WRFRUN_NEW.namelist.update_namelist(namelist_data, "wrf")
 
     logger.info("Update namelist after running ndown.exe")
 

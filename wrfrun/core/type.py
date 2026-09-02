@@ -180,8 +180,8 @@ class FileConfigDict(TypedDict):
         If the file is model's output. Output file will never be saved to ``.replay`` file.
     """
 
-    file_path: str | ResourceRef
-    save_path: str | ResourceRef
+    file_path: str | ResourceRef | Path
+    save_path: str | ResourceRef | Path
     is_data: bool
     is_output: bool
 

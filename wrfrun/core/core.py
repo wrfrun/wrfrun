@@ -439,7 +439,7 @@ def create_wrfrun_session(work_dir: str) -> Token[WRFRunSession | None]:
     """
     resource = ResourceCatalog(work_dir)
     io = IOService(resource)
-    record = RecordService(resource)
+    record = RecordService(resource, io)
     registry = ExecutableRegistry()
     runner = RunnerService(resource)
 

@@ -24,6 +24,7 @@ from shutil import copyfile, make_archive, move, rmtree
 import numpy as np
 
 from ..type import ExecutableConfig
+from .io import IOService
 from .resource import ResourceCatalog
 
 LOGGER = logging.getLogger("wrfrun")
@@ -51,7 +52,7 @@ class RecordService:
     This class provides methods to record simulations.
     """
 
-    def __init__(self, resource: ResourceCatalog, save_path="./wrfrun.replay", include_data=False):
+    def __init__(self, resource: ResourceCatalog, io: IOService, save_path="./wrfrun.replay", include_data=False):
         """
         :param wrfrun_config: `WRFRunConfig` instance.
         :type wrfrun_config: WRFRunConfig
@@ -61,13 +62,13 @@ class RecordService:
         :type include_data: bool, optional
         """
         self._resource = resource
+        self._io = io
 
         self.save_path = save_path
         self.include_data = include_data
 
-        self.work_path = self._resource.get_custom_resource(self._resource.REPLAY_DIR)
+        self.work_path = self._resource.REPLAY_DIR
         self.content_path = self.work_path / "config_and_data"
-        self.content_path.mkdir(exist_ok=True, parents=True)
 
         self._recorded_config = []
         self._name_count = {}
@@ -113,7 +114,6 @@ class RecordService:
 
         data_save_uri = f"{name}/{index}"
         data_save_path = self.content_path / data_save_uri
-        data_save_path.mkdir(parents=True)
 
         input_file_config = exported_config["input_file_config"]
 
@@ -126,6 +126,14 @@ class RecordService:
 
             file_path = _config["file_path"]
             file_path = self._resource.get_custom_resource(file_path, check=True)
+            self._io.copy(
+                {
+                    "file_path": file_path,
+                    "save_path": data_save_path / file_path.name,
+                    "is_data": False,
+                    "is_output": False,
+                }
+            )
             copyfile(file_path, data_save_path / file_path.name)
 
             _config["file_path"] = f"{data_save_uri}/{file_path.name}"
