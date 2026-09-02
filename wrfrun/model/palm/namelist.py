@@ -13,7 +13,7 @@ Functions to process namelist for ``PALM``.
 import math
 from os.path import exists
 
-from wrfrun.core import WRFRUN
+from wrfrun.core import WRFRUN_NEW
 from wrfrun.log import logger
 
 from .utils import find_optimal_grid_number, is_valid_palm_dimension
@@ -23,14 +23,14 @@ def prepare_palm_namelist():
     """
     This function loads user PALM namelist file and save it in :doc:`WRFRUN </api/core.core>`.
     """
-    palm_config = WRFRUN.config.get_model_config("palm")
+    palm_config = WRFRUN_NEW.config.get_model_config("palm")
     namelist_file = palm_config["user_namelist"]
 
     if not exists(namelist_file):
         logger.error(f"Can't find PALM namelist: {namelist_file}")
         raise FileNotFoundError(f"Can't find PALM namelist: {namelist_file}")
 
-    WRFRUN.config.read_namelist(namelist_file, "palm")
+    WRFRUN_NEW.config.read_namelist(namelist_file, "palm")
 
 
 def get_namelist_save_name() -> str:
@@ -43,7 +43,7 @@ def get_namelist_save_name() -> str:
     """
     map_dict = {"d3#": "_p3d", "d3r": "_p3dr", "pcr": "_pcr"}
 
-    config = WRFRUN.config.get_model_config("palm")
+    config = WRFRUN_NEW.config.get_model_config("palm")
     simulation_type = config["simulation_type"]
     job_name = config["job_name"]
 
@@ -62,7 +62,7 @@ def check_palm_namelist_settings():
 
 
 def _find_optimal_npex_npey_with_core_num() -> tuple[int, int]:
-    core_num = WRFRUN.config.get_core_num()
+    core_num = WRFRUN_NEW.config.get_core_num()
     sqrt_num = math.floor(math.sqrt(core_num))
 
     for _num in range(sqrt_num, 1, -1):
@@ -93,7 +93,7 @@ def check_palm_grid_params():
     :raises NameError: 'nx', 'ny', 'npex' or 'npey' isn't integer.
     :raises ValueError: 'nx' and 'ny' 's value isn't right to work with other settings.
     """
-    namelist_dict = WRFRUN.config.get_namelist("palm")
+    namelist_dict = WRFRUN_NEW.config.get_namelist("palm")
     initialization_parameters: dict = namelist_dict["initialization_parameters"]
     runtime_parameters: dict = namelist_dict["runtime_parameters"]
 

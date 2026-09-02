@@ -14,57 +14,12 @@ Functions to prepare workspace for PALM model.
 from os import listdir
 from os.path import abspath, exists
 from pathlib import Path
-from typing import Literal
 
-from wrfrun.core import WRFRUN, WRFRUNURI
+from wrfrun.core import WRFRUN_NEW
 from wrfrun.log import logger
-from wrfrun.utils import check_path
 
+from ..core.type import ResourceRef
 from .utils import create_copy
-
-WORKSPACE_PALM = ""
-
-
-def _palm_workspace_uri_hook(uri_manager: WRFRUNURI):
-    """
-    This function doesn't register any URI.
-
-    This is a hook to initializes some global strings.
-
-    :param uri_manager: ``WRFRUNURI`` instance.
-    :type uri_manager: WRFRUNURI
-    """
-    global WORKSPACE_PALM
-
-    WORKSPACE_PALM = f"{uri_manager.WRFRUN_WORKSPACE_MODEL}/PALM"
-
-
-WRFRUN.set_uri_register_func(_palm_workspace_uri_hook)
-
-
-def get_palm_workspace_path(node: Literal["root", "job", "input", "output"] = "root") -> str:
-    """
-    Get workspace of PALM model.
-
-    :param node: Which dir.
-    :type node: str
-    :return: Workspace path.
-    :rtype: str
-    """
-    job_name = WRFRUN.config.get_model_config("palm")["job_name"]
-
-    match node:
-        case "root":
-            return WORKSPACE_PALM
-
-        case "job":
-            return f"{WORKSPACE_PALM}/job"
-
-        case "input":
-            return f"{WORKSPACE_PALM}/job/{job_name}/INPUT"
-
-        case "output":
-            return f"{WORKSPACE_PALM}/job/{job_name}/OUTPUT"
 
 
 def prepare_palm_workspace(model_config: dict):
@@ -81,8 +36,6 @@ def prepare_palm_workspace(model_config: dict):
     """
     logger.info("Initialize workspace for PALM.")
 
-    WRFRUNConfig = WRFRUN.config
-
     palm_path = model_config["palm_path"]
     # config_id = model_config["config_identifier"]
     # config_file = model_config["config_file_path"]
@@ -93,20 +46,26 @@ def prepare_palm_workspace(model_config: dict):
         logger.error("Your PALM path is wrong.")
         raise FileNotFoundError("Your PALM path is wrong.")
 
-    palm_work_path = WRFRUNConfig.parse_resource_uri(WORKSPACE_PALM)
-    job_name = WRFRUNConfig.get_model_config("palm")["job_name"]
-    workspace_job_path = f"{palm_work_path}/job"
-    workspace_input_path = f"{workspace_job_path}/{job_name}/INPUT"
-    check_path(palm_work_path, workspace_job_path, workspace_input_path, force=True)
+    palm_work_path = WRFRUN_NEW.resource.get_custom_resource(ResourceRef("workspace_palm", ""))
+    job_name = WRFRUN_NEW.config.get_model_config("palm")["job_name"]
+    workspace_job_path = palm_work_path / "job"
+    workspace_input_path = workspace_job_path / f"{job_name}/INPUT"
+
+    WRFRUN_NEW.resource.mkdir(palm_work_path)
+    WRFRUN_NEW.resource.mkdir(workspace_job_path)
+    WRFRUN_NEW.resource.mkdir(workspace_input_path)
+
+    # workspace_input_path's parents include palm_work_path and workspace_job_path
+    workspace_input_path.mkdir(exist_ok=True, parents=True)
 
     if not exists(f"{palm_path}/bin/palmrun"):
         logger.error("Script 'palmrun' not found in your PALM dir.")
         raise FileNotFoundError("Script 'palmrun' not found in your PALM dir.")
 
-    create_copy(f"{palm_path}/bin/palmrun", f"{palm_work_path}/palmrun")
+    create_copy(f"{palm_path}/bin/palmrun", palm_work_path / "palmrun")
 
     file_list = [x for x in listdir(palm_path) if not (x.startswith(".palm.config") or x == "JOBS")]
-    _ = [create_copy(f"{palm_path}/{x}", f"{palm_work_path}/{x}") for x in file_list]
+    _ = [create_copy(f"{palm_path}/{x}", palm_work_path / x) for x in file_list]
 
     # we need some tricks to hack palm runtime directory.
     # job_path = f"{palm_path}/JOBS"
@@ -151,14 +110,12 @@ def check_palm_workspace(model_config: dict) -> bool:
     :return: If check passed.
     :rtype: bool
     """
-    WRFRUNConfig = WRFRUN.config
-
     flag = True
 
-    palm_work_path = WRFRUNConfig.parse_resource_uri(WORKSPACE_PALM)
+    palm_work_path = WRFRUN_NEW.resource.get_custom_resource(ResourceRef("workspace_palm", ""))
     flag = flag & Path(palm_work_path).exists()
 
     return flag
 
 
-__all__ = ["get_palm_workspace_path", "prepare_palm_workspace", "check_palm_workspace"]
+__all__ = ["prepare_palm_workspace", "check_palm_workspace"]

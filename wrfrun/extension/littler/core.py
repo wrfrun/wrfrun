@@ -20,7 +20,7 @@ from zipfile import ZipFile
 import numpy as np
 from pandas import DataFrame, read_csv
 
-from wrfrun.core import WRFRUN
+from wrfrun.core import WRFRUN_NEW
 from wrfrun.log import logger
 
 
@@ -866,7 +866,7 @@ class LittleR(LittleRData):
         if not file_path.endswith(".zlr"):
             file_path = f"{file_path}.zlr"
 
-        file_path = WRFRUN.config.parse_resource_uri(file_path)
+        file_path = WRFRUN_NEW.config.parse_resource_uri(file_path)
 
         with ZipFile(file_path, "w") as zip_file:
             with zip_file.open("header", "w") as header_file:
@@ -885,7 +885,7 @@ class LittleR(LittleRData):
         :return: ``LittleR`` instance.
         :rtype: LittleR
         """
-        file_path = WRFRUN.config.parse_resource_uri(file_path)
+        file_path = WRFRUN_NEW.config.parse_resource_uri(file_path)
 
         with ZipFile(file_path, "r") as zip_file:
             with zip_file.open("header", "r") as header_file:

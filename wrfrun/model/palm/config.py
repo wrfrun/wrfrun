@@ -18,7 +18,7 @@ from os.path import abspath, dirname, exists
 from pprint import pformat
 from shutil import move
 
-from wrfrun.core import WRFRUN, NamelistError, NamelistIDError
+from wrfrun.core import WRFRUN_NEW, NamelistError, NamelistIDError
 from wrfrun.log import logger
 from wrfrun.workspace.palm import get_palm_workspace_path
 
@@ -66,7 +66,7 @@ def read_palm_config(file_path: str):
 
     :raises NamelistIDError: Failed to register namelist id "palm_config".
     """
-    WRFRUNConfig = WRFRUN.config
+    WRFRUNConfig = WRFRUN_NEW.config
 
     if not exists(file_path):
         logger.error(f"Can't find config file: '{file_path}'")
@@ -90,7 +90,7 @@ def write_palm_config(file_path: str):
     :type file_path: str
     :raises NamelistError: PALM config isn't read.
     """
-    WRFRUNConfig = WRFRUN.config
+    WRFRUNConfig = WRFRUN_NEW.config
 
     if not WRFRUNConfig.check_namelist_id("palm_config"):
         logger.error("You haven't read PALM config yet.")
@@ -125,7 +125,7 @@ def prepare_palm_config():
     """
     Read and process PALM configs.
     """
-    WRFRUNConfig = WRFRUN.config
+    WRFRUNConfig = WRFRUN_NEW.config
 
     model_config = WRFRUNConfig.get_model_config("palm")
     palm_path = abspath(model_config["palm_path"])

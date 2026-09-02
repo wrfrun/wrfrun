@@ -30,7 +30,7 @@ from ._config import WRFRunConfig
 from ._exec_db import ExecutableDB
 from ._record import ExecutableRecorder
 from .error import ConfigError, WRFRunContextError
-from .runtime import ExecutableRegistry, IOService, RecordService, ResourceCatalog, RuntimeService
+from .runtime import ExecutableRegistry, IOService, RecordService, ResourceCatalog, RunnerService, RuntimeService
 from .states import ConfigService, NamelistService, StatesService, WRFRunStates
 from .uri import WRFRUNURI
 
@@ -301,7 +301,7 @@ class WRFRUNProxy:
         check_path(*real_path)
 
 
-WRFRUN = WRFRUNProxy()
+# WRFRUN_NEW = WRFRUNProxy()
 
 
 class WRFRunVarAPI:
@@ -363,6 +363,16 @@ class WRFRunVarAPI:
         :rtype: ExecutableRegistry
         """
         return self.session.runtime.registry
+
+    @property
+    def runner(self) -> RunnerService:
+        """
+        External command runner service.
+
+        :return: Runner service.
+        :rtype: RunnerService
+        """
+        return self.session.runtime.runner
 
     @property
     def config(self) -> ConfigService:
@@ -431,9 +441,10 @@ def create_wrfrun_session(work_dir: str) -> Token[WRFRunSession | None]:
     io = IOService(resource)
     record = RecordService(resource)
     registry = ExecutableRegistry()
+    runner = RunnerService(resource)
 
     config = ConfigService(io, resource)
-    namelist = NamelistService()
+    namelist = NamelistService(io)
     states = WRFRunStates()
 
     wrfrun_session = WRFRunSession(
@@ -442,6 +453,7 @@ def create_wrfrun_session(work_dir: str) -> Token[WRFRunSession | None]:
             record=record,
             registry=registry,
             resource=resource,
+            runner=runner,
         ),
         states=StatesService(
             config=config,
@@ -453,4 +465,4 @@ def create_wrfrun_session(work_dir: str) -> Token[WRFRunSession | None]:
     return WRFRUN_NEW.set_session(wrfrun_session)
 
 
-__all__ = ["WRFRUN", "WRFRUNProxy", "WRFRunVarAPI", "WRFRUN_NEW", "create_wrfrun_session"]
+__all__ = ["WRFRUNProxy", "WRFRunVarAPI", "WRFRUN_NEW", "create_wrfrun_session"]

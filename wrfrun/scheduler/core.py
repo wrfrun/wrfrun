@@ -15,7 +15,7 @@ import re
 from os.path import abspath, dirname, exists
 from shlex import join, quote
 
-from wrfrun.core import WRFRUN, call_subprocess
+from wrfrun.core import WRFRUN_NEW, call_subprocess
 from wrfrun.log import logger
 from wrfrun.res import RUN_SH_TEMPLATE
 
@@ -35,7 +35,7 @@ def submit_scheduler_task(main_file_path: str):
     """
     script_path = prepare_scheduler_script(main_file_path)
 
-    scheduler_name = WRFRUN.config.get_job_scheduler_config()["job_scheduler"]
+    scheduler_name = WRFRUN_NEW.config.get_job_scheduler_config()["job_scheduler"]
 
     match scheduler_name:
         case "pbs":
@@ -68,8 +68,6 @@ def prepare_scheduler_script(main_file_path: str) -> str:
     :return: Absolute path of generated shell script.
     :rtype: str
     """
-    WRFRUNConfig = WRFRUN.config
-
     # check main file path
     if not exists(main_file_path):
         logger.error(f"Wrong path of main entry file: {main_file_path}")
@@ -78,7 +76,7 @@ def prepare_scheduler_script(main_file_path: str) -> str:
     # get absolute path of main entry file's parent directory
     dir_path = abspath(dirname(main_file_path))
 
-    scheduler_configs = WRFRUNConfig.get_job_scheduler_config()
+    scheduler_configs = WRFRUN_NEW.config.get_job_scheduler_config()
 
     # generate scheduler settings
     match scheduler_configs["job_scheduler"]:
@@ -110,7 +108,7 @@ def prepare_scheduler_script(main_file_path: str) -> str:
     exec_cmd = join([scheduler_configs["python_interpreter"], main_file_path])
 
     # generate shell script
-    shell_template_path = WRFRUNConfig.parse_resource_uri(RUN_SH_TEMPLATE)
+    shell_template_path = WRFRUN_NEW.resource.get_package_resource(RUN_SH_TEMPLATE)
     script_path = f"{dir_path}/run.sh"
 
     with open(script_path, "w") as f:

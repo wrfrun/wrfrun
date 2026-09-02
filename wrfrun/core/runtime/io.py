@@ -11,7 +11,7 @@ This module handles file processes.
 """
 
 import logging
-from os import symlink
+from os import remove, symlink
 from pathlib import Path
 from shutil import copyfile, move
 
@@ -38,7 +38,7 @@ class IOService:
         """
         self._resource = resource
 
-    def process(self, file_config: FileConfigDict, is_move=False, is_copy=False):
+    def process(self, file_config: FileConfigDict, is_move=False, is_copy=False, overwrite=False):
         """
         Handle file processes, copy, move, or link the target to the destination.
 
@@ -48,18 +48,19 @@ class IOService:
         :type is_move: bool, optional
         :param is_copy: If copy the file, defaults to False
         :type is_copy: bool, optional
+        :param overwrite: If overwrite exists file.
+        :type overwrite: bool
         :raises FileNotFoundError: File doesn't exist.
-        :raises FileNotFoundError: Target exists, but isn't a file.
+        :raises FileNotFoundError: Input target exists, but isn't a file.
+        :raises FileExistsError: Save target exists, but overwrite=False.
         """
         file_path = file_config["file_path"]
         save_path = file_config["save_path"]
-        save_name = file_config["save_name"]
 
-        file_path = self._resource.parse_resource_uri(file_path)
-        save_path = self._resource.parse_resource_uri(save_path)
+        file_path = self._resource.get_resource(file_path)
+        save_path = self._resource.get_custom_resource(save_path)
 
-        file_path = Path(file_path)
-        save_path = Path(save_path) / save_name
+        LOGGER.debug(f"Parse file '{file_path}' to '{file_path}'")
 
         if not file_path.exists():
             message = f"'{file_path}' doesn't exist."
@@ -72,6 +73,16 @@ class IOService:
 
         save_path.parent.mkdir(exist_ok=True)
 
+        if save_path.is_file():
+            if overwrite:
+                LOGGER.warning(f"Target file '{save_path}' exists, overwrite it.")
+                remove(save_path)
+
+            else:
+                message = f"Target file '{save_path}' exists, backup it or set overwrite=True."
+                LOGGER.error(message)
+                raise FileExistsError(message)
+
         if is_copy:
             copyfile(file_path, save_path)
 
@@ -81,32 +92,38 @@ class IOService:
         else:
             symlink(file_path, save_path)
 
-    def copy(self, file_config: FileConfigDict):
+    def copy(self, file_config: FileConfigDict, overwrite=False):
         """
         Copy file to the destination.
 
         :param file_config: File config.
         :type file_config: FileConfigDict
+        :param overwrite: If overwrite exists file.
+        :type overwrite: bool
         """
-        self.process(file_config, is_copy=True)
+        self.process(file_config, is_copy=True, overwrite=overwrite)
 
-    def move(self, file_config: FileConfigDict):
+    def move(self, file_config: FileConfigDict, overwrite=False):
         """
         Move file to the destination.
 
         :param file_config: File config.
         :type file_config: FileConfigDict
+        :param overwrite: If overwrite exists file.
+        :type overwrite: bool
         """
-        self.process(file_config, is_move=True)
+        self.process(file_config, is_move=True, overwrite=overwrite)
 
-    def symlink(self, file_config: FileConfigDict):
+    def symlink(self, file_config: FileConfigDict, overwrite=False):
         """
         Link file to the destination.
 
         :param file_config: File config.
         :type file_config: FileConfigDict
+        :param overwrite: If overwrite exists file.
+        :type overwrite: bool
         """
-        self.process(file_config)
+        self.process(file_config, overwrite=overwrite)
 
     def write_namelist(self, content: dict, file_path: str | ResourceRef):
         """

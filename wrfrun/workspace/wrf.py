@@ -12,58 +12,14 @@ Functions to prepare workspace for WPS/WRF model.
     check_wrf_workspace
 """
 
-from os import listdir, makedirs, symlink
+from os import listdir, symlink
 from os.path import exists
-from typing import Literal
 
-from wrfrun.core import WRFRUN, WRFRUNURI
+from wrfrun.core import WRFRUN_NEW
 from wrfrun.log import logger
-from wrfrun.utils import check_path
 
+from ..core.type import ResourceRef
 from .utils import create_copy
-
-WORKSPACE_MODEL_WPS = ""
-WORKSPACE_MODEL_WRF = ""
-WORKSPACE_MODEL_WRFDA = ""
-
-
-def _wrf_workspace_uri_hook(uri_manager: WRFRUNURI):
-    """
-    This function doesn't register any URI.
-
-    This is a hook to initializes some global strings.
-
-    :param uri_manager: ``WRFRUNURI`` instance.
-    :type wrfrunuri_manager_config: WRFRUNURI
-    """
-    global WORKSPACE_MODEL_WPS, WORKSPACE_MODEL_WRF, WORKSPACE_MODEL_WRFDA
-
-    WORKSPACE_MODEL_WPS = f"{uri_manager.WRFRUN_WORKSPACE_MODEL}/WPS"
-    WORKSPACE_MODEL_WRF = f"{uri_manager.WRFRUN_WORKSPACE_MODEL}/WRF"
-    WORKSPACE_MODEL_WRFDA = f"{uri_manager.WRFRUN_WORKSPACE_MODEL}/WRFDA"
-
-
-WRFRUN.set_uri_register_func(_wrf_workspace_uri_hook)
-
-
-def get_wrf_workspace_path(name: Literal["wps", "wrf", "wrfda"]) -> str:
-    """
-    Get workspace path of WRF model.
-
-    :param name: Model part name.
-    :type name: str
-    :return: Workspace path.
-    :rtype: str
-    """
-    match name:
-        case "wps":
-            return WORKSPACE_MODEL_WPS
-
-        case "wrf":
-            return WORKSPACE_MODEL_WRF
-
-        case "wrfda":
-            return WORKSPACE_MODEL_WRFDA
 
 
 def prepare_wrf_workspace(model_config: dict):
@@ -82,8 +38,6 @@ def prepare_wrf_workspace(model_config: dict):
     """
     logger.info("Initialize workspace for WPS/WRF.")
 
-    WRFRUNConfig = WRFRUN.config
-
     wps_path = model_config["wps_path"]
     wrf_path = model_config["wrf_path"]
     wrfda_path = model_config["wrfda_path"]
@@ -97,40 +51,40 @@ def prepare_wrf_workspace(model_config: dict):
             logger.error("Your WPS path is wrong.")
             raise FileNotFoundError("Your WPS path is wrong.")
 
-        wps_work_path = WRFRUNConfig.parse_resource_uri(WORKSPACE_MODEL_WPS)
-        check_path(wps_work_path, f"{wps_work_path}/outputs", force=True)
+        wps_work_path = WRFRUN_NEW.resource.get_custom_resource(ResourceRef("workspace_wrf", "wps"))
+        (wps_work_path / "outputs").mkdir(exist_ok=True, parents=True)
+        (wps_work_path / "geogrid").mkdir(exist_ok=True)
 
         file_list = [x for x in listdir(wps_path) if x not in ["geogrid", "namelist.wps"]]
-        _ = [symlink(f"{wps_path}/{file}", f"{wps_work_path}/{file}") for file in file_list]
-        makedirs(f"{wps_work_path}/geogrid")
-        create_copy(f"{wps_path}/geogrid/GEOGRID.TBL", f"{wps_work_path}/geogrid/GEOGRID.TBL")
+        _ = [symlink(f"{wps_path}/{file}", wps_work_path / file) for file in file_list]
+        create_copy(f"{wps_path}/geogrid/GEOGRID.TBL", wps_work_path / "geogrid/GEOGRID.TBL")
 
     if wrf_path:
         if not exists(wrf_path):
             logger.error("Your WRF path is wrong.")
             raise FileNotFoundError("Your WRF path is wrong.")
 
-        wrf_work_path = WRFRUNConfig.parse_resource_uri(WORKSPACE_MODEL_WRF)
-        check_path(wrf_work_path, force=True)
+        wrf_work_path = WRFRUN_NEW.resource.get_custom_resource(ResourceRef("workspace_wrf", "wrf"))
+        wrf_work_path.mkdir(exist_ok=True, parents=True)
 
         file_list = [x for x in listdir(f"{wrf_path}/run") if not x.startswith("namelist")]
-        _ = [symlink(f"{wrf_path}/run/{file}", f"{wrf_work_path}/{file}") for file in file_list]
+        _ = [symlink(f"{wrf_path}/run/{file}", wrf_work_path / file) for file in file_list]
 
     if wrfda_path:
         if not exists(wrfda_path):
             logger.error("Your WRFDA path is wrong.")
             raise FileNotFoundError("Your WRFDA path is wrong.")
 
-        wrfda_work_path = WRFRUNConfig.parse_resource_uri(WORKSPACE_MODEL_WRFDA)
-        check_path(wrfda_work_path, force=True)
+        wrfda_work_path = WRFRUN_NEW.resource.get_custom_resource(ResourceRef("workspace_wrf", "wrfda"))
+        wrfda_work_path.mkdir(exist_ok=True, parents=True)
 
         file_list = ["da_wrfvar.exe", "da_update_bc.exe"]
-        _ = [create_copy(f"{wrfda_path}/var/build/{file}", f"{wrfda_work_path}/{file}") for file in file_list]
+        _ = [create_copy(f"{wrfda_path}/var/build/{file}", wrfda_work_path / file) for file in file_list]
 
         file_list = listdir(f"{wrfda_path}/var/run")
-        _ = [symlink(f"{wrfda_path}/var/run/{file}", f"{wrfda_work_path}/{file}") for file in file_list]
+        _ = [symlink(f"{wrfda_path}/var/run/{file}", wrfda_work_path / file) for file in file_list]
 
-        create_copy(f"{wrfda_path}/run/LANDUSE.TBL", f"{wrfda_work_path}/LANDUSE.TBL")
+        create_copy(f"{wrfda_path}/run/LANDUSE.TBL", wrfda_work_path / "LANDUSE.TBL")
 
 
 def check_wrf_workspace(model_config: dict) -> bool:
@@ -142,8 +96,6 @@ def check_wrf_workspace(model_config: dict) -> bool:
     :return: ``True`` if WPS/WRF workspace exists, ``False`` otherwise.
     :rtype: bool
     """
-    WRFRUNConfig = WRFRUN.config
-
     wps_path = model_config["wps_path"]
     wrf_path = model_config["wrf_path"]
     wrfda_path = model_config["wrfda_path"]
@@ -151,18 +103,18 @@ def check_wrf_workspace(model_config: dict) -> bool:
     flag = True
 
     if wps_path:
-        wps_work_path = WRFRUNConfig.parse_resource_uri(WORKSPACE_MODEL_WPS)
-        flag = flag & exists(wps_work_path)
+        wps_work_path = WRFRUN_NEW.resource.get_custom_resource(ResourceRef("workspace_wrf", "wps"))
+        flag = flag & wps_work_path.is_dir()
 
     if wrf_path:
-        wrf_work_path = WRFRUNConfig.parse_resource_uri(WORKSPACE_MODEL_WRF)
-        flag = flag & exists(wrf_work_path)
+        wrf_work_path = WRFRUN_NEW.resource.get_custom_resource(ResourceRef("workspace_wrf", "wrf"))
+        flag = flag & wrf_work_path.is_dir()
 
     if wrfda_path:
-        wrfda_work_path = WRFRUNConfig.parse_resource_uri(WORKSPACE_MODEL_WRFDA)
-        flag = flag & exists(wrfda_work_path)
+        wrfda_work_path = WRFRUN_NEW.resource.get_custom_resource(ResourceRef("workspace_wrf", "wrfda"))
+        flag = flag & wrfda_work_path.is_dir()
 
     return flag
 
 
-__all__ = ["get_wrf_workspace_path", "prepare_wrf_workspace", "check_wrf_workspace"]
+__all__ = ["prepare_wrf_workspace", "check_wrf_workspace"]

@@ -102,6 +102,8 @@ from typing import Union
 import f90nml
 
 from ..error import NamelistError, NamelistIDError
+from ..runtime.io import IOService
+from ..type import ResourceRef
 
 LOGGER = logging.getLogger("wrfrun")
 
@@ -114,7 +116,13 @@ class NamelistService:
     If you want to save namelist to a file, get it and save it by yourself.
     """
 
-    def __init__(self):
+    def __init__(self, io: IOService):
+        """
+        Namelist stores.
+
+        :param io: IO service.
+        :type io: IOService
+        """
         self._namelist_dict = {}
         self._namelist_id_list: tuple[str, ...] = (
             "param",
@@ -126,7 +134,7 @@ class NamelistService:
             "arps",
         )
 
-        super().__init__()
+        self._io = io
 
     def register_namelist_id(self, namelist_id: str) -> bool:
         """
@@ -281,6 +289,20 @@ class NamelistService:
             raise NamelistError(f"Can't found namelist '{namelist_id}', maybe you forget to read it first")
         else:
             return deepcopy(self._namelist_dict[namelist_id])
+
+    def write_namelist(self, save_path: str | ResourceRef, namelist_id: str):
+        """
+        Write namelist to a file.
+
+        :param save_path: File path or resource ref.
+        :type save_path: str | ResourceRef
+        :param namelist_id: Namelist ID.
+        :type namelist_id: str
+        """
+        self._io.write_namelist(
+            self.get_namelist(namelist_id),
+            save_path,
+        )
 
     def delete_namelist(self, namelist_id: str):
         """

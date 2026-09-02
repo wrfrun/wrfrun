@@ -10,7 +10,7 @@ Utility functions used by ``wrfrun`` scheduler part.
     get_core_num
 """
 
-from wrfrun.core import WRFRUN
+from wrfrun.core import WRFRUN_NEW
 
 
 def get_core_num() -> int:
@@ -20,7 +20,7 @@ def get_core_num() -> int:
     :return: Core number.
     :rtype: int
     """
-    return WRFRUN.config["core_num"]
+    return WRFRUN_NEW.config["core_num"]
 
 
 __all__ = ["get_core_num"]

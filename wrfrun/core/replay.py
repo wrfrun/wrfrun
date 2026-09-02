@@ -10,15 +10,16 @@ This module provides methods to read configs from replay file and reproduce simu
     replay_config_generator
 """
 
+import logging
 from collections.abc import Generator
 from json import loads
-from os.path import exists
 from shutil import unpack_archive
 
-from ..log import logger
 from .base import ExecutableBase
-from .core import WRFRUN
+from .core import WRFRUN_NEW
 from .type import ExecutableConfig
+
+LOGGER = logging.getLogger("wrfrun")
 
 
 def replay_config_generator(replay_config_file: str) -> Generator[tuple[str, ExecutableBase], None, None]:
@@ -37,22 +38,23 @@ def replay_config_generator(replay_config_file: str) -> Generator[tuple[str, Exe
     :return: A generator that yields: ``(name, Executable)``
     :rtype: Generator
     """
-    logger.info(f"Loading replay resources from: {replay_config_file}")
-    work_path = WRFRUN.config.parse_resource_uri(WRFRUN.uri.WRFRUN_WORKSPACE_REPLAY)
+    LOGGER.info(f"Loading replay resources from: {replay_config_file}")
+    work_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.REPLAY_DIR)
+    simulation_json = work_path / "config.json"
 
     unpack_archive(replay_config_file, work_path, "zip")
 
-    if not exists(f"{work_path}/config.json"):
-        logger.error("Can't find replay config in the provided config file.")
+    if not simulation_json.exists():
+        LOGGER.error("Can't find replay config in the provided config file.")
         raise FileNotFoundError("Can't find replay config in the provided config file.")
 
-    with open(f"{work_path}/config.json", "r") as f:
+    with open(simulation_json, "r") as f:
         replay_config_list: list[ExecutableConfig] = loads(f.read())
 
     for _config in replay_config_list:
         args = _config["class_config"]["class_args"]
         kwargs = _config["class_config"]["class_kwargs"]
-        executable: ExecutableBase = WRFRUN.ExecDB.get_cls(_config["name"])(*args, **kwargs)
+        executable: ExecutableBase = WRFRUN_NEW.registry.get_cls(_config["name"])(*args, **kwargs)
         executable.load_config(_config)
         yield _config["name"], executable
 

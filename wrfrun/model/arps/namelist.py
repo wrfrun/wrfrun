@@ -14,7 +14,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
-from wrfrun.core import WRFRUN, ResourceRef
+from wrfrun.core import WRFRUN_NEW, ResourceRef
 
 PROJECTION_MAP = {
     "polar_north": 1,
@@ -32,8 +32,7 @@ def prepare_arps_namelist():
     This function read ARPS namelist and update its value based on the config.
     """
     global PROJECTION_MAP
-    wrfrun_config = WRFRUN.config
-    model_config = wrfrun_config.get_model_config("arps")
+    model_config = WRFRUN_NEW.config.get_model_config("arps")
 
     template_dir = ResourceRef("project", "templates/arps")
     submodule_list = [x for x in model_config.keys() if x not in ("global", "use")]
@@ -48,12 +47,12 @@ def prepare_arps_namelist():
                 template_name = template_dir / "arps.nml"
                 namelist_id = "arps"
 
-        if not wrfrun_config.check_namelist_id(namelist_id):
-            wrfrun_config.register_namelist_id(namelist_id)
+        if not WRFRUN_NEW.namelist.check_namelist_id(namelist_id):
+            WRFRUN_NEW.namelist.register_namelist_id(namelist_id)
 
-        template_file = WRFRUN.uri.get_custom_resource(template_name)
+        template_file = WRFRUN_NEW.resource.get_custom_resource(template_name)
         if template_file.is_file():
-            wrfrun_config.read_namelist(template_file.as_posix(), namelist_id)
+            WRFRUN_NEW.namelist.read_namelist(template_file.as_posix(), namelist_id)
 
     run_name = "wrfrun"
 
@@ -84,8 +83,8 @@ def prepare_arps_namelist():
 
     # Integrate settings.
     integrate_large_time_step = model_config["global"]["integrate_large_time_step"]
-    start_date: datetime = wrfrun_config["simulation"]["time"]["start_time"]
-    end_date: datetime = wrfrun_config["simulation"]["time"]["end_time"]
+    start_date: datetime = WRFRUN_NEW.config["simulation"]["time"]["start_time"]
+    end_date: datetime = WRFRUN_NEW.config["simulation"]["time"]["end_time"]
     simulation_time = (end_date - start_date).seconds
 
     update_value = {
@@ -121,14 +120,14 @@ def prepare_arps_namelist():
         "timestep": {"dtbig": integrate_large_time_step, "tstop": simulation_time},
         "output": {"dirname": "./outputs/"},
     }
-    wrfrun_config.update_namelist(update_value, "arps")
+    WRFRUN_NEW.namelist.update_namelist(update_value, "arps")
 
     user_namelist = model_config["global"]["user_namelist"]
 
     if Path(user_namelist).is_file():
-        wrfrun_config.update_namelist(user_namelist, "arps")
+        WRFRUN_NEW.namelist.update_namelist(user_namelist, "arps")
 
-        if wrfrun_config.get_namelist("arps")["initialization"].get("inisplited", -1) != 0:
+        if WRFRUN_NEW.namelist.get_namelist("arps")["initialization"].get("inisplited", -1) != 0:
             LOGGER.error(
                 "It is recommended to let arps core read input data and split it on-the-fly. "
                 "Set [magenta]inisplited=0[/magenta] in 'initialization' block to fix this error."

@@ -27,7 +27,7 @@ Attributes of :class:`VtableFiles` is a ``wrfrun`` URI, parse it will get the re
 
 from dataclasses import dataclass
 
-from wrfrun.core import WRFRUN, WRFRunConfig
+from wrfrun.core import WRFRUN_NEW, WRFRunConfig
 from wrfrun.workspace.wrf import get_wrf_workspace_path
 
 VTABLE_URI = ":WRFRUN_VTABLE:"
@@ -95,7 +95,7 @@ def _register_vtable_uri(wrfrun_config: WRFRunConfig):
         wrfrun_config.register_resource_uri(VTABLE_URI, f"{get_wrf_workspace_path('wps')}/ungrib/Variable_Tables")
 
 
-WRFRUN.set_config_register_func(_register_vtable_uri)
+WRFRUN_NEW.set_config_register_func(_register_vtable_uri)
 
 
 __all__ = ["VtableFiles"]

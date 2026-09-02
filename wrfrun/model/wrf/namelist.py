@@ -26,7 +26,7 @@ from wrfrun.log import logger
 from wrfrun.res import NAMELIST_DFI, NAMELIST_WPS, NAMELIST_WRF, NAMELIST_WRFDA
 from wrfrun.workspace.wrf import get_wrf_workspace_path
 
-from ...core.core import WRFRUN
+from ...core.core import WRFRUN_NEW
 from .scheme import SchemeCumulus, SchemeLandSurfaceModel, SchemeLongWave, SchemePBL, SchemeShortWave, SchemeSurfaceLayer
 
 UNGRIB_OUTPUT_DIR = "./outputs"
@@ -39,7 +39,7 @@ def get_ungrib_out_dir_path() -> str:
     :return: URI path.
     :rtype: str
     """
-    wif_prefix = WRFRUN.config.get_namelist("wps")["ungrib"]["prefix"]
+    wif_prefix = WRFRUN_NEW.config.get_namelist("wps")["ungrib"]["prefix"]
     wif_path = f"{get_wrf_workspace_path('wps')}/{dirname(wif_prefix)}"
 
     return wif_path
@@ -52,7 +52,7 @@ def get_ungrib_out_prefix() -> str:
     :return: Prefix string of ungrib output (WRF intermediate file).
     :rtype: str
     """
-    wif_prefix = WRFRUN.config.get_namelist("wps")["ungrib"]["prefix"]
+    wif_prefix = WRFRUN_NEW.config.get_namelist("wps")["ungrib"]["prefix"]
     wif_prefix = basename(wif_prefix)
     return wif_prefix
 
@@ -64,7 +64,7 @@ def set_ungrib_out_prefix(prefix: str):
     :param prefix: Prefix string of ungrib output (WRF intermediate file).
     :type prefix: str
     """
-    WRFRUN.config.update_namelist({"ungrib": {"prefix": f"{UNGRIB_OUTPUT_DIR}/{prefix}"}}, "wps")
+    WRFRUN_NEW.config.update_namelist({"ungrib": {"prefix": f"{UNGRIB_OUTPUT_DIR}/{prefix}"}}, "wps")
 
 
 def get_metgrid_fg_names() -> list[str]:
@@ -74,7 +74,7 @@ def get_metgrid_fg_names() -> list[str]:
     :return: Prefix strings list.
     :rtype: list
     """
-    fg_names = WRFRUN.config.get_namelist("wps")["metgrid"]["fg_name"]
+    fg_names = WRFRUN_NEW.config.get_namelist("wps")["metgrid"]["fg_name"]
     fg_names = [basename(x) for x in fg_names]
     return fg_names
 
@@ -91,7 +91,7 @@ def set_metgrid_fg_names(prefix: Union[str, list[str]]):
             prefix,
         ]
     fg_names = [f"{UNGRIB_OUTPUT_DIR}/{x}" for x in prefix]
-    WRFRUN.config.update_namelist({"metgrid": {"fg_name": fg_names}}, "wps")
+    WRFRUN_NEW.config.update_namelist({"metgrid": {"fg_name": fg_names}}, "wps")
 
 
 def _check_start_end_date(
@@ -131,16 +131,16 @@ def prepare_wps_namelist():
     This function read WPS template namelist and update its value based on the config file and user custom namelist.
     """
     # prepare namelist
-    wrf_config = WRFRUN.config.get_model_config("wrf")
+    wrf_config = WRFRUN_NEW.config.get_model_config("wrf")
 
     wps_namelist_template = wrf_config["wps_namelist_template"] if "wps_namelist_template" in wrf_config else ""
 
     if wps_namelist_template == "" or not exists(wps_namelist_template):
         logger.info(f"Use built-in namelist template because provided template doesn't exist: '{wps_namelist_template}'")
-        wps_namelist_template = WRFRUN.config.parse_resource_uri(NAMELIST_WPS)
+        wps_namelist_template = WRFRUN_NEW.config.parse_resource_uri(NAMELIST_WPS)
 
     # read template namelist
-    WRFRUN.config.read_namelist(wps_namelist_template, "wps")
+    WRFRUN_NEW.config.read_namelist(wps_namelist_template, "wps")
 
     # get domain number
     max_dom = wrf_config["domain"]["domain_num"]
@@ -180,11 +180,11 @@ def prepare_wps_namelist():
     }
 
     # # update namelist
-    WRFRUN.config.update_namelist(update_value, "wps")
+    WRFRUN_NEW.config.update_namelist(update_value, "wps")
 
     # # update settings from custom namelist
     if wrf_config["user_wps_namelist"] != "" and exists(wrf_config["user_wps_namelist"]):
-        WRFRUN.config.update_namelist(wrf_config["user_wps_namelist"], "wps")
+        WRFRUN_NEW.config.update_namelist(wrf_config["user_wps_namelist"], "wps")
 
 
 def prepare_wrf_namelist():
@@ -193,16 +193,16 @@ def prepare_wrf_namelist():
 
     """
     # wrf config from config
-    wrf_config = WRFRUN.config.get_model_config("wrf")
+    wrf_config = WRFRUN_NEW.config.get_model_config("wrf")
 
     wrf_namelist_template = wrf_config["wrf_namelist_template"] if "wrf_namelist_template" in wrf_config else ""
 
     if wrf_namelist_template == "" or not exists(wrf_namelist_template):
         logger.info(f"Use built-in namelist template because provided template doesn't exist: '{wrf_namelist_template}'")
-        wrf_namelist_template = WRFRUN.config.parse_resource_uri(NAMELIST_WRF)
+        wrf_namelist_template = WRFRUN_NEW.config.parse_resource_uri(NAMELIST_WRF)
 
     # read template namelist
-    WRFRUN.config.read_namelist(wrf_namelist_template, "wrf")
+    WRFRUN_NEW.config.read_namelist(wrf_namelist_template, "wrf")
 
     # get debug level
     debug_level = wrf_config["debug_level"]
@@ -333,20 +333,20 @@ def prepare_wrf_namelist():
     update_values["physics"].update(surface_layer_scheme)
 
     # update namelist
-    WRFRUN.config.update_namelist(update_values, "wrf")
+    WRFRUN_NEW.config.update_namelist(update_values, "wrf")
 
     # read user real namelist and update value
     user_namelist_data = wrf_config["user_wrf_namelist"]
     if user_namelist_data != "" and exists(user_namelist_data):
-        WRFRUN.config.update_namelist(user_namelist_data, "wrf")
+        WRFRUN_NEW.config.update_namelist(user_namelist_data, "wrf")
 
 
 def prepare_dfi_namelist():
     """Generate namelist data for DFI running"""
     # Read template namelist
-    WRFRUN.config.read_namelist(WRFRUN.config.parse_resource_uri(NAMELIST_DFI), "dfi")
+    WRFRUN_NEW.config.read_namelist(WRFRUN_NEW.config.parse_resource_uri(NAMELIST_DFI), "dfi")
 
-    wrf_config = WRFRUN.config.get_model_config("wrf")
+    wrf_config = WRFRUN_NEW.config.get_model_config("wrf")
 
     # Read start date and end date
     start_date = wrf_config["time"]["start_date"]
@@ -423,26 +423,26 @@ def prepare_dfi_namelist():
     }
 
     # update namelist data
-    WRFRUN.config.update_namelist(update_value, "dfi")
+    WRFRUN_NEW.config.update_namelist(update_value, "dfi")
 
     # read user wrf namelist and update value
     user_namelist_data = wrf_config["user_wrf_namelist"]
     if user_namelist_data != "" and exists(user_namelist_data):
-        WRFRUN.config.update_namelist(user_namelist_data, "dfi")
+        WRFRUN_NEW.config.update_namelist(user_namelist_data, "dfi")
 
 
 def prepare_wrfda_namelist():
     """Generate namelist for da_wrfvar.exe"""
-    wrf_config = WRFRUN.config.get_model_config("wrf")
+    wrf_config = WRFRUN_NEW.config.get_model_config("wrf")
 
     wrfda_namelist_template = wrf_config["wrfda_namelist_template"] if "wrfda_namelist_template" in wrf_config else ""
 
     if wrfda_namelist_template == "" or not exists(wrfda_namelist_template):
         logger.info(f"Use built-in namelist template because provided template doesn't exist: '{wrfda_namelist_template}'")
-        wrfda_namelist_template = WRFRUN.config.parse_resource_uri(NAMELIST_WRFDA)
+        wrfda_namelist_template = WRFRUN_NEW.config.parse_resource_uri(NAMELIST_WRFDA)
 
     # read template namelist
-    WRFRUN.config.read_namelist(wrfda_namelist_template, "wrfda")
+    WRFRUN_NEW.config.read_namelist(wrfda_namelist_template, "wrfda")
 
     # get wrf start date
     start_date = wrf_config["time"]["start_date"]
@@ -462,12 +462,12 @@ def prepare_wrfda_namelist():
     }
 
     # update namelist
-    WRFRUN.config.update_namelist(update_value, "wrfda")
+    WRFRUN_NEW.config.update_namelist(update_value, "wrfda")
 
     # read user wrfda namelist and update value
     user_namelist_data = wrf_config["user_wrfda_namelist"]
     if user_namelist_data != "" and exists(user_namelist_data):
-        WRFRUN.config.update_namelist(user_namelist_data, "wrfda")
+        WRFRUN_NEW.config.update_namelist(user_namelist_data, "wrfda")
 
 
 __all__ = [

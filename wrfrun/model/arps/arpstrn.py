@@ -13,15 +13,14 @@ Implementation of ``arpstrn`` submodel.
 
 import logging
 
-from wrfrun.core import WRFRUN, ExecutableBase, ExecutableDB
-from wrfrun.workspace.arps import get_arps_workspace_path
+from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
 
 LOGGER = logging.getLogger("wrfrun")
 
 
 def _check_and_prepare_namelist():
-    WRFRUNConfig = WRFRUN.config
-    global_config = WRFRUNConfig.get_model_config("arps")
+    WRFRUNConfig = WRFRUN_NEW.config
+    global_config = WRFRUN_NEW.config.get_model_config("arps")
     model_config: dict = global_config.get("arpstrn", {})
 
     if len(model_config) == 0:
@@ -32,10 +31,10 @@ def _check_and_prepare_namelist():
     user_namelist = model_config["user_namelist"]
     run_name = "wrfrun"
 
-    if not WRFRUNConfig.check_namelist_id("arpstrn"):
-        WRFRUNConfig.register_namelist_id("arpstrn")
+    if not WRFRUN_NEW.namelist.check_namelist_id("arpstrn"):
+        WRFRUN_NEW.namelist.register_namelist_id("arpstrn")
 
-    WRFRUNConfig.read_namelist(user_namelist, "arpstrn")
+    WRFRUN_NEW.namelist.read_namelist(user_namelist, "arpstrn")
 
     # User's namelist should have the highest priority.
     return
@@ -61,13 +60,13 @@ class ARPSTrn(ExecutableBase):
         mpi_cmd = None
         mpi_core_num = None
 
-        self.work_path = f"{get_arps_workspace_path()}/arpstrn"
-        self.namelist_path = f"{self.work_path}/arpstrn.nml"
+        work_path = ResourceRef("workspace_arps", "arpstrn")
+        self.namelist_path = work_path / "arpstrn.nml"
 
         super().__init__(
             "arpstrn",
             "./arpstrn",
-            f"{get_arps_workspace_path()}/arpstrn",
+            work_path,
             stdin_file=self.namelist_path,
             mpi_use=mpi_use,
             mpi_cmd=mpi_cmd,
@@ -82,7 +81,7 @@ class ARPSTrn(ExecutableBase):
 
         * Namelist settings.
         """
-        self.custom_config.update({"namelist": WRFRUN.config.get_namelist("arpstrn")})
+        self.custom_config.update({"namelist": WRFRUN_NEW.namelist.get_namelist("arpstrn")})
 
     def load_custom_config(self):
         """
@@ -90,20 +89,18 @@ class ARPSTrn(ExecutableBase):
 
         * Namelist settings.
         """
-        WRFRUNConfig = WRFRUN.config
-        if not WRFRUNConfig.check_namelist_id("arpstrn"):
-            WRFRUNConfig.register_namelist_id("arpstrn")
+        if not WRFRUN_NEW.namelist.check_namelist_id("arpstrn"):
+            WRFRUN_NEW.namelist.register_namelist_id("arpstrn")
 
-        WRFRUNConfig.update_namelist(self.custom_config["namelist"], "arpstrn")
+        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arpstrn")
 
     def before_exec(self):
-        WRFRUNConfig = WRFRUN.config
-        WRFRUNConfig.check_wrfrun_context(True)
-        WRFRUNConfig.WRFRUN_WORK_STATUS = "arpstrn"
+        WRFRUN_NEW.states.check_wrfrun_context(True)
+        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "arpstrn"
 
-        WRFRUN.check_path(f"{self.work_path}/outputs")
+        WRFRUN_NEW.resource.mkdir(self.work_path / "outputs")
 
-        WRFRUNConfig.update_namelist(
+        WRFRUN_NEW.namelist.update_namelist(
             {
                 "jobname": {"runname": self.name},
                 "trn_output": {"dirname": "./outputs"},
@@ -111,7 +108,7 @@ class ARPSTrn(ExecutableBase):
             "arpstrn",
         )
 
-        WRFRUNConfig.write_namelist(
+        WRFRUN_NEW.namelist.write_namelist(
             self.namelist_path,
             "arpstrn",
         )
@@ -119,23 +116,21 @@ class ARPSTrn(ExecutableBase):
         super().before_exec()
 
     def after_exec(self):
-        if not WRFRUN.config.IS_IN_REPLAY:
+        if not WRFRUN_NEW.states.IS_IN_REPLAY:
             self.add_output_files(
                 startswith=f"{self.name}.trndata",
-                output_dir=f"{get_arps_workspace_path()}/arpstrn/outputs",
-                save_path=f"{self._output_save_path}",
+                output_dir=self.work_path / "outputs",
+                save_path=self._output_save_path,
             )
 
             # also save namelist files.
             self.add_output_files(
                 filenames="arpstrn.nml",
-                output_dir=f"{get_arps_workspace_path()}/arpstrn",
-                save_path=f"{self._output_save_path}/logs",
+                output_dir=self.work_path,
+                save_path=self._output_save_path / "logs",
             )
 
         super().after_exec()
-
-        LOGGER.info(f"All arpstrn output files have been copied to {WRFRUN.config.parse_resource_uri(self._output_save_path)}")
 
 
 def arpstrn():
@@ -145,24 +140,6 @@ def arpstrn():
     Parameters needed to initialize :class:`ARPSTrn` is read from global variable :doc:`WRFRUN </api/core.core>`.
     """
     ARPSTrn()()
-
-
-def _exec_register_func(exec_db: ExecutableDB):
-    """
-    Function to register ``Executable``.
-
-    :param exec_db: ``ExecutableDB`` instance.
-    :type exec_db: ExecutableDB
-    """
-    class_list = [ARPSTrn]
-    class_id_list = ["arpstrn"]
-
-    for _class, _id in zip(class_list, class_id_list):
-        if not exec_db.is_registered(_id):
-            exec_db.register_exec(_id, _class)
-
-
-WRFRUN.set_exec_db_register_func(_exec_register_func)
 
 
 __all__ = ["ARPSTrn", "arpstrn"]

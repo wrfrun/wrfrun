@@ -13,88 +13,13 @@ Component which provides access to wrfrun and project resources.
 """
 
 import logging
-from dataclasses import dataclass
-from enum import IntEnum
 from importlib import resources
 from pathlib import Path, PurePath
-from typing import Union
 
+from ..type import ResourceRef, ResourceType
 from ..uri import WRFRUNURI
 
 LOGGER = logging.getLogger("wrfrun")
-
-
-class ResourceType(IntEnum):
-    """
-    Resource types.
-    """
-
-    BOTH = 0
-    """
-    ``BOTH`` means the resource type can be either ``PACKAGE`` or ``REAL_FILE``.
-    """
-
-    PACKAGE = 1
-    """
-    ``PACKAGE`` means the resource comes from a Python package.
-
-    It may exist in real filesystem, or exist in wheel or zip file.
-    """
-
-    REAL_FILE = 2
-    """
-    ``REAL_FILE`` means the resource must exist in real filesystem.
-    """
-
-
-@dataclass(frozen=True)
-class ResourceRef:
-    """
-    Data class which stores information of a resource.
-
-    .. py:attribute:: provider
-        :type: str
-
-        To which provider this resource belong.
-
-    .. py:attribute:: resource_path
-        :type: str
-
-        Path of this resource under the provider.
-    """
-
-    provider: str
-    resource_path: str
-
-    def to_string(self) -> str:
-        """
-        Get full resource url.
-
-        :return: Resource url.
-        :rtype: str
-        """
-        return f"resource://{self.provider}/{self.resource_path}"
-
-    def __truediv__(self, other: Union["ResourceRef", str]) -> "ResourceRef":
-        """
-        Support string concat like ``pathlib``.
-
-        :param other: ``ResourceRef`` object or string.
-        :type other: Union[ResourceRef, str]
-        :raises ValueError: Providers of two ref are different.
-        :return: New ref object represents the new file path.
-        :rtype: ResourceRef
-        """
-        if isinstance(other, ResourceRef):
-            if self.provider != other.provider:
-                raise ValueError("Can't concat two ResourceRef with different provider.")
-
-            res = ResourceRef(self.provider, f"{self.resource_path}/{other.resource_path}")
-
-        else:
-            res = ResourceRef(self.provider, f"{self.resource_path}/{other}")
-
-        return res
 
 
 class ResourceCatalog:
@@ -210,7 +135,7 @@ class ResourceCatalog:
             message = ""
             raise FileNotFoundError(str(resource))
 
-        return resource  # type: ignore
+        return resource.expanduser().resolve()  # type: ignore
 
     def get_package_resource(self, ref: ResourceRef, check=True) -> Path:
         """
@@ -229,6 +154,8 @@ class ResourceCatalog:
         """
         Get custom resource.
 
+        Parent directory will be created if you set ``auto_mkdir=True`` in resource ref.
+
         :param ref: :class:`ResourceRef` object.
         :type ref: ResourceRef
         :param check: If ``True``, check if target exists, defaults to False.
@@ -236,7 +163,25 @@ class ResourceCatalog:
         :return: Target file parsed from ``ref``.
         :rtype: Path
         """
-        return self.get_resource(ref, ResourceType.REAL_FILE, check)
+        resource = self.get_resource(ref, ResourceType.REAL_FILE, check)
+
+        if ref.auto_mkdir:
+            resource.parent.mkdir(exist_ok=True, parents=True)
+
+        return resource
+
+    def mkdir(self, ref: ResourceRef):
+        """
+        Create driectory of the resource.
+
+        **NOTE**
+
+        This method treats the entire resource path as a diirectory.
+
+        :param ref: Resource ref object.
+        :type ref: ResourceRef
+        """
+        self.get_custom_resource(ref).mkdir(parents=True, exist_ok=True)
 
     @property
     def CORE_RESOURCE(self):
@@ -293,74 +238,44 @@ class ResourceCatalog:
         return self._old_uri
 
     @property
-    def WRFRUN_WORKSPACE_REPLAY(self) -> str:
+    def WRFRUN_WORKSPACE_REPLAY(self) -> ResourceRef:
         """
         Path (URI) to store related files of ``wrfrun`` replay functionality.
 
         :return: URI.
         :rtype: str
         """
-        return self._old_uri.WRFRUN_WORKSPACE_REPLAY
+        return ResourceRef("workspace", "replay")
 
     @property
-    def WRFRUN_TEMP_PATH(self) -> str:
+    def WRFRUN_TEMP_PATH(self) -> ResourceRef:
         """
         Path to store ``wrfrun`` temporary files.
 
         :return: URI
         :rtype: str
         """
-        return self._old_uri.WRFRUN_TEMP_PATH
+        return ResourceRef("workspace", "temp")
 
     @property
-    def WRFRUN_HOME_PATH(self) -> str:
-        """
-        Root path of all others directories. .
-
-        :return: URI
-        :rtype: str
-        """
-        return self._old_uri.WRFRUN_HOME_PATH
-
-    @property
-    def WRFRUN_WORKSPACE_ROOT(self) -> str:
+    def WRFRUN_WORKSPACE_ROOT(self) -> ResourceRef:
         """
         Path of the root workspace.
 
         :return: URI
         :rtype: str
         """
-        return self._old_uri.WRFRUN_WORKSPACE_ROOT
+        return ResourceRef("workspace", "")
 
     @property
-    def WRFRUN_WORKSPACE_MODEL(self) -> str:
+    def WRFRUN_WORKSPACE_MODEL(self) -> ResourceRef:
         """
         Path of the model workspace, in which ``wrfrun`` runs numerical models.
 
         :return: URI
         :rtype: str
         """
-        return self._old_uri.WRFRUN_WORKSPACE_MODEL
-
-    @property
-    def WRFRUN_OUTPUT_PATH(self) -> str:
-        """
-        The root path to store all outputs of the ``wrfrun`` and NWP model.
-
-        :return: URI
-        :rtype: str
-        """
-        return self._old_uri.WRFRUN_OUTPUT_PATH
-
-    @property
-    def WRFRUN_RESOURCE_PATH(self) -> str:
-        """
-        The root path of all ``wrfrun`` resource files.
-
-        :return: URI
-        :rtype: str
-        """
-        return self._old_uri.WRFRUN_RESOURCE_PATH
+        return ResourceRef("workspace", "model")
 
     def check_resource_uri(self, unique_uri: str) -> bool:
         """

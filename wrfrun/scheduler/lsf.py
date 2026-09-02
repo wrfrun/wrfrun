@@ -10,7 +10,7 @@ Scheduler interface for LSF system.
     lsf_generate_settings
 """
 
-from wrfrun.core import WRFRUN
+from wrfrun.core import WRFRUN_NEW
 from wrfrun.res import SCHEDULER_LSF_TEMPLATE
 
 from .utils import get_core_num
@@ -23,10 +23,8 @@ def lsf_generate_settings(scheduler_config: dict) -> str:
     :return: Generated settings.
     :rtype: str
     """
-    WRFRUNConfig = WRFRUN.config
-
     # get log path and job scheduler config
-    log_path = WRFRUNConfig.get_log_path()
+    log_path = WRFRUN_NEW.config.get_log_path()
 
     # get scheduler configs
     stdout_log_path = f"{log_path}/lsf.log"
@@ -35,7 +33,7 @@ def lsf_generate_settings(scheduler_config: dict) -> str:
     queue_name = scheduler_config["queue_name"]
     core_num = get_core_num()
 
-    template_path = WRFRUNConfig.parse_resource_uri(SCHEDULER_LSF_TEMPLATE)
+    template_path = WRFRUN_NEW.resource.get_package_resource(SCHEDULER_LSF_TEMPLATE)
     with open(template_path, "r") as f:
         template = f.read()
 

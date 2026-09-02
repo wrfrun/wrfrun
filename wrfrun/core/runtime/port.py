@@ -16,6 +16,7 @@ from .io import IOService
 from .record import RecordService
 from .registry import ExecutableRegistry
 from .resource import ResourceCatalog
+from .runner import RunnerService
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,11 @@ class RuntimeService:
     resource: ResourceCatalog
     """
     Resource manager service.
+    """
+
+    runner: RunnerService
+    """
+    External command runner service.
     """
 
 

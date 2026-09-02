@@ -15,14 +15,14 @@ If you prefer function interfaces, please see :doc:`function wrapper </api/model
     EXT2ARPS
 """
 
+import glob
 import logging
 from datetime import datetime, timedelta
 from os import listdir
-from os.path import basename, exists
+from os.path import exists
 from typing import Optional
 
-from wrfrun.core import WRFRUN, ExecutableBase, ExecutableDB
-from wrfrun.workspace.arps import get_arps_workspace_path
+from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
 
 from .namelist import prepare_arps_namelist
 
@@ -30,9 +30,7 @@ LOGGER = logging.getLogger("wrfrun")
 
 
 def _check_and_prepare_namelist():
-    wrfrun_config = WRFRUN.config
-
-    if not wrfrun_config.check_namelist("arps"):
+    if not WRFRUN_NEW.namelist.check_namelist("arps"):
         prepare_arps_namelist()
 
 
@@ -61,13 +59,13 @@ class ARPSSFC(ExecutableBase):
         mpi_cmd = None
         mpi_core_num = None
 
-        self.work_path = f"{get_arps_workspace_path()}/arpssfc"
-        self.namelist_path = f"{self.work_path}/arpssfc.nml"
+        work_path = ResourceRef("workspace_arps", "arpssfc")
+        self.namelist_path = work_path / "arpssfc.nml"
 
         super().__init__(
             name="arpssfc",
             cmd="./arpssfc",
-            work_path=self.work_path,
+            work_path=work_path,
             stdin_file=self.namelist_path,
             mpi_use=mpi_use,
             mpi_cmd=mpi_cmd,
@@ -82,7 +80,7 @@ class ARPSSFC(ExecutableBase):
 
         * Namelist settings.
         """
-        self.custom_config.update({"namelist": WRFRUN.config.get_namelist("arps")})
+        self.custom_config.update({"namelist": WRFRUN_NEW.namelist.get_namelist("arps")})
 
     def load_custom_config(self):
         """
@@ -90,39 +88,34 @@ class ARPSSFC(ExecutableBase):
 
         * Namelist settings.
         """
-        WRFRUN.config.update_namelist(self.custom_config["namelist"], "arps")
+        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arps")
 
     def before_exec(self):
-        wrfrun_config = WRFRUN.config
+        WRFRUN_NEW.states.check_wrfrun_context(True)
+        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "arpssfc"
 
-        wrfrun_config.check_wrfrun_context(True)
-        wrfrun_config.WRFRUN_WORK_STATUS = "arpssfc"
+        WRFRUN_NEW.resource.mkdir(self.work_path / "outputs")
 
-        WRFRUN.check_path(f"{self.work_path}/outputs")
-
-        wrfrun_config.update_namelist({"jobname": {"runname": self.name}}, "arps")
-        wrfrun_config.write_namelist(self.namelist_path, "arps")
+        WRFRUN_NEW.namelist.update_namelist({"jobname": {"runname": self.name}}, "arps")
+        WRFRUN_NEW.namelist.write_namelist(self.namelist_path, "arps")
 
         super().before_exec()
 
     def after_exec(self):
-        wrfrun_config = WRFRUN.config
-        if not wrfrun_config.IS_IN_REPLAY:
+        if not WRFRUN_NEW.states.IS_IN_REPLAY:
             self.add_output_files(
                 filenames=f"{self.name}.sfcdata",
-                output_dir=f"{self.work_path}/outputs",
+                output_dir=self.work_path / "outputs",
                 save_path=self._output_save_path,
             )
 
             self.add_output_files(
                 filenames="arpssfc.nml",
                 output_dir=self.work_path,
-                save_path=f"{self._output_save_path}/logs",
+                save_path=self._output_save_path / "logs",
             )
 
         super().after_exec()
-
-        LOGGER.info(f"All arpssfc output files have been copied to {WRFRUN.uri.parse_resource_uri(self._output_save_path)}")
 
 
 def _check_ext2arps_input_data() -> list[str]:
@@ -163,8 +156,8 @@ def _check_ext2arps_input_data() -> list[str]:
     :return: Expected filename list.
     :rtype: list[str]
     """
-    data_input_dir = WRFRUN.config.get_input_data_path("ext2arps")
-    namelist = WRFRUN.config.get_namelist("arps")
+    data_input_dir = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.INPUT_DIR / "ext2arps")
+    namelist = WRFRUN_NEW.namelist.get_namelist("arps")
     extdname = namelist["extdfile"]["extdname"]
     nextdfil = namelist["extdfile"]["nextdfil"]
     extdtime = namelist["extdfile"]["extdtime"]
@@ -233,26 +226,21 @@ class EXT2ARPS(ExecutableBase):
         Internal URI which represents the absolute path of ext2arps namelist path.
     """
 
-    def __init__(self, arpstrn_data_path: Optional[str] = None):
+    def __init__(self):
         """
         ``Executable`` for "ext2arps".
-
-        :param arpstrn_data_path: Directory path of :class:`ARPSTRN <wrfrun.model.arps.arpstrn.ARPSTRN>` outputs.
-                                  If is ``None``, try to use the output path specified by config file.
-        :type arpstrn_data_path: str
         """
         mpi_use = False
         mpi_cmd = None
         mpi_core_num = None
 
-        self.work_path = f"{get_arps_workspace_path()}/ext2arps"
-        self.namelist_path = f"{self.work_path}/ext2arps.nml"
-        self.arpstrn_data_path = arpstrn_data_path
+        work_path = ResourceRef("workspace_arps", "ext2arps")
+        self.namelist_path = work_path / "ext2arps.nml"
 
         super().__init__(
             name="ext2arps",
             cmd="./ext2arps",
-            work_path=self.work_path,
+            work_path=work_path,
             stdin_file=self.namelist_path,
             mpi_use=mpi_use,
             mpi_cmd=mpi_cmd,
@@ -267,12 +255,7 @@ class EXT2ARPS(ExecutableBase):
 
         * Namelist settings.
         """
-        self.custom_config.update(
-            {
-                "namelist": WRFRUN.config.get_namelist("arps"),
-                "arpstrn_data_path": self.arpstrn_data_path,
-            }
-        )
+        self.custom_config.update({"namelist": WRFRUN_NEW.namelist.get_namelist("arps")})
 
     def load_custom_config(self):
         """
@@ -280,64 +263,45 @@ class EXT2ARPS(ExecutableBase):
 
         * Namelist settings.
         """
-        WRFRUN.config.update_namelist(self.custom_config["namelist"], "arps")
-        self.arpstrn_data_path = self.custom_config["arpstrn_data_path"]
+        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arps")
 
     def before_exec(self):
-        wrfrun_config = WRFRUN.config
+        WRFRUN_NEW.states.check_wrfrun_context(True)
+        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "ext2arps"
 
-        wrfrun_config.check_wrfrun_context(True)
-        wrfrun_config.WRFRUN_WORK_STATUS = "ext2arps"
-
-        WRFRUN.check_path(f"{self.work_path}/outputs")
+        WRFRUN_NEW.resource.mkdir(self.work_path / "outputs")
 
         input_file_list = _check_ext2arps_input_data()
-        self.add_input_files([f"{wrfrun_config.get_input_data_path('ext2arps')}/{file_name}" for file_name in input_file_list])
+        self.add_input_files([WRFRUN_NEW.resource.INPUT_DIR / "ext2arps" / file_name for file_name in input_file_list])
 
-        # check existed arpstrn outputs
-        file_list = listdir(WRFRUN.uri.parse_resource_uri(self.work_path))
+        _arpstrn_data_dir = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.OUTPUT_DIR / "arpstrn")
+        _arpstrn_data = glob.glob("arpstrn.trndata*", root_dir=_arpstrn_data_dir)
+        if len(_arpstrn_data) < 1:
+            message = "Can't find arpstrn outputs in ext2arps outputs directory, which is essential to run ext2arps."
+            LOGGER.error(message)
+            raise FileNotFoundError(message)
 
-        if "arpstrn.trndata" not in file_list:
-            if self.arpstrn_data_path is None:
-                self.arpstrn_data_path = f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/arpstrn/arpstrn.trndata"
-            arpstrn_data_path = WRFRUN.uri.parse_resource_uri(self.arpstrn_data_path)
+        _arpstrn_data_path = WRFRUN_NEW.resource.OUTPUT_DIR / "arpstrn" / _arpstrn_data[0]
 
-            if not exists(arpstrn_data_path):
-                LOGGER.error(
-                    "Can't find arpstrn outputs both in ext2arps work dir and your outputs directory, "
-                    "which is essential to run ext2arps."
-                )
-                raise FileNotFoundError(
-                    "Can't find arpstrn outputs both in ext2arps work dir and your outputs directory, "
-                    "which is essential to run ext2arps."
-                )
+        self.add_input_files(_arpstrn_data_path)
 
-            else:
-                self.add_input_files(arpstrn_data_path)
-
-            arpstrn_data_name = basename(arpstrn_data_path)
-
-        else:
-            arpstrn_data_name = "arpstrn.trndata"
-
-        wrfrun_config.update_namelist(
+        WRFRUN_NEW.namelist.update_namelist(
             {
                 "jobname": {"runname": self.name},
-                "terrain": {"terndta": f"./{arpstrn_data_name}"},
+                "terrain": {"terndta": f"./{_arpstrn_data_path.name}"},
                 "extdfile": {"dir_extd": "./", "grdbasopt": 1},
             },
             "arps",
         )
-        wrfrun_config.write_namelist(self.namelist_path, "arps")
+        WRFRUN_NEW.namelist.write_namelist(self.namelist_path, "arps")
 
         super().before_exec()
 
     def after_exec(self):
-        wrfrun_config = WRFRUN.config
-        if not wrfrun_config.IS_IN_REPLAY:
+        if not WRFRUN_NEW.states.IS_IN_REPLAY:
             self.add_output_files(
                 startswith=f"{self.name}.",
-                output_dir=f"{self.work_path}/outputs",
+                output_dir=self.work_path / "outputs",
                 save_path=self._output_save_path,
             )
 
@@ -348,8 +312,6 @@ class EXT2ARPS(ExecutableBase):
             )
 
         super().after_exec()
-
-        LOGGER.info(f"All ext2arps output files have been copied to {WRFRUN.uri.parse_resource_uri(self._output_save_path)}")
 
 
 class ARPS(ExecutableBase):
@@ -369,25 +331,16 @@ class ARPS(ExecutableBase):
         Internal URI which represents the absolute path of arps namelist path.
     """
 
-    def __init__(
-        self, arpssfc_data_path: Optional[str] = None, ext2arps_data_path: Optional[str] = None, core_num: Optional[int] = None
-    ):
+    def __init__(self, core_num: Optional[int] = None):
         """
         ``Executable`` for "arps".
-
-        :param arpssfc_data_path: Directory path of :class:`ARPSSFC` outputs.
-                                  If is ``None``, try to use the output path specified by config file.
-        :type arpssfc_data_path: str
-        :param ext2arps_data_path: Directory path of :class:`EXT2ARPS` outputs.
-                                  If is ``None``, try to use the output path specified by config file.
-        :type ext2arps_data_path: str
         """
         if core_num is None or core_num == 1:
             mpi_use = False
             mpi_cmd = None
             mpi_core_num = None
             cmd = "./arps"
-            self.work_path = f"{get_arps_workspace_path()}/arps"
+            work_path = ResourceRef("workspace_arps", "arps")
 
             LOGGER.info("Use serial arps.")
 
@@ -396,13 +349,11 @@ class ARPS(ExecutableBase):
             mpi_cmd = "mpirun"
             mpi_core_num = core_num
             cmd = "./arps_mpi"
-            self.work_path = f"{get_arps_workspace_path()}/arps_mpi"
+            work_path = ResourceRef("workspace_arps", "arps_mpi")
 
             LOGGER.info("Use parallel arps.")
 
-        self.namelist_path = f"{self.work_path}/arps.nml"
-        self.arpssfc_data_path = arpssfc_data_path
-        self.ext2arps_data_path = ext2arps_data_path
+        self.namelist_path = work_path / "arps.nml"
 
         super().__init__(
             name="arps",
@@ -422,13 +373,7 @@ class ARPS(ExecutableBase):
 
         * Namelist settings.
         """
-        self.custom_config.update(
-            {
-                "namelist": WRFRUN.config.get_namelist("arps"),
-                "arpssfc_data_path": self.arpssfc_data_path,
-                "ext2arps_data_path": self.ext2arps_data_path,
-            }
-        )
+        self.custom_config.update({"namelist": WRFRUN_NEW.namelist.get_namelist("arps")})
 
     def load_custom_config(self):
         """
@@ -436,56 +381,27 @@ class ARPS(ExecutableBase):
 
         * Namelist settings.
         """
-        WRFRUN.config.update_namelist(self.custom_config["namelist"], "arps")
-        self.arpssfc_data_path = self.custom_config["arpssfc_data_path"]
-        self.ext2arps_data_path = self.custom_config["ext2arps_data_path"]
+        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arps")
 
     def before_exec(self):
-        wrfrun_config = WRFRUN.config
+        WRFRUN_NEW.states.check_wrfrun_context(True)
+        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "arps"
+        WRFRUN_NEW.resource.mkdir(self.work_path / "outputs")
 
-        wrfrun_config.check_wrfrun_context(True)
-        wrfrun_config.WRFRUN_WORK_STATUS = "arps"
+        self.add_input_files(WRFRUN_NEW.resource.OUTPUT_DIR / "arpssfc/arpssfc.sfcdata")
 
-        WRFRUN.check_path(f"{self.work_path}/outputs")
+        # find ext2arps outputs
+        _ext2arps_out_dir_ref = WRFRUN_NEW.resource.OUTPUT_DIR / "ext2arps"
+        _ext2arps_out_files = glob.glob("ext2arps.", root_dir=WRFRUN_NEW.resource.get_custom_resource(_ext2arps_out_dir_ref))
 
-        # check existed arpssfc outputs
-        file_list = listdir(WRFRUN.uri.parse_resource_uri(self.work_path))
+        if len(_ext2arps_out_files) < 2:
+            message = "Can't find all ext2arps outputs in outputs directory, which is essential to run arps."
+            LOGGER.error(message)
+            raise FileNotFoundError(message)
 
-        if "arpssfc.sfcdata" not in file_list:
-            if self.arpssfc_data_path is None:
-                self.arpssfc_data_path = f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/arpssfc/arpssfc.sfcdata"
-            arpssfc_data_path = WRFRUN.uri.parse_resource_uri(self.arpssfc_data_path)
+        self.add_input_files([_ext2arps_out_dir_ref / _file for _file in _ext2arps_out_files])
 
-            if not exists(arpssfc_data_path):
-                LOGGER.error(
-                    "Can't find arpssfc outputs both in arps work dir and your outputs directory, which is essential to run arps."
-                )
-                raise FileNotFoundError(
-                    "Can't find arpssfc outputs both in arps work dir and your outputs directory, which is essential to run arps."
-                )
-
-            else:
-                self.add_input_files(self.arpssfc_data_path)
-
-        # check existed ext2arps outputs
-        if "ext2arps.hdfgrdbas" not in file_list:
-            if self.ext2arps_data_path is None:
-                self.ext2arps_data_path = f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/ext2arps"
-            ext2arps_data_path = WRFRUN.uri.parse_resource_uri(self.ext2arps_data_path)
-
-            if not exists(f"{ext2arps_data_path}/ext2arps.hdfgrdbas"):
-                LOGGER.error(
-                    "Can't find ext2arps outputs both in arps work dir and your outputs directory, which is essential to run arps."
-                )
-                raise FileNotFoundError(
-                    "Can't find ext2arps outputs both in arps work dir and your outputs directory, which is essential to run arps."
-                )
-
-            else:
-                ext2arps_outputs = listdir(ext2arps_data_path)
-                self.add_input_files([f"{self.ext2arps_data_path}/{_file}" for _file in ext2arps_outputs])
-
-        wrfrun_config.update_namelist(
+        WRFRUN_NEW.namelist.update_namelist(
             {
                 "jobname": {"runname": self.name},
                 "initialization": {"inifile": "./ext2arps.hdf000000", "inigbf": "./ext2arps.hdfgrdbas"},
@@ -494,22 +410,20 @@ class ARPS(ExecutableBase):
             },
             "arps",
         )
-        wrfrun_config.write_namelist(self.namelist_path, "arps")
+        WRFRUN_NEW.namelist.write_namelist(self.namelist_path, "arps")
 
         super().before_exec()
 
     def after_exec(self):
-        wrfrun_config = WRFRUN.config
-
-        if not wrfrun_config.IS_IN_REPLAY:
-            arps_namelist = wrfrun_config.get_namelist("arps")
+        if not WRFRUN_NEW.states.IS_IN_REPLAY:
+            arps_namelist = WRFRUN_NEW.namelist.get_namelist("arps")
 
             # try to calculate output file names based on history dump settings
             history_dump_option = arps_namelist["history_dump"]["hdmpopt"]
             if history_dump_option != 1:
                 LOGGER.warning(f"History dump option {history_dump_option} isn't supported yet.")
                 LOGGER.warning(
-                    f"You have to save ARPS results manually in '{WRFRUN.uri.parse_resource_uri(self.work_path)}/outputs'."
+                    f"Save outputs manually in '{WRFRUN_NEW.resource.get_custom_resource(self.work_path / 'outputs')}'."
                 )
 
             else:
@@ -527,13 +441,13 @@ class ARPS(ExecutableBase):
 
                 self.add_output_files(
                     filenames=file_list,
-                    output_dir=f"{self.work_path}/outputs",
+                    output_dir=self.work_path / "outputs",
                     save_path=self._output_save_path,
                 )
 
             self.add_output_files(
                 filenames=f"{self.name}.hdfgrdbas",
-                output_dir=f"{self.work_path}/outputs",
+                output_dir=self.work_path / "outputs",
                 save_path=self._output_save_path,
             )
 
@@ -542,7 +456,7 @@ class ARPS(ExecutableBase):
             # tstart, so preserve this file separately when ARPS produced it.
             self.add_output_files(
                 filenames=f"{self.name}.hdf000000",
-                output_dir=f"{self.work_path}/outputs",
+                output_dir=self.work_path / "outputs",
                 save_path=self._output_save_path,
                 no_file_error=False,
             )
@@ -550,12 +464,10 @@ class ARPS(ExecutableBase):
             self.add_output_files(
                 filenames="arps.nml",
                 output_dir=self.work_path,
-                save_path=f"{self._output_save_path}/logs",
+                save_path=self._output_save_path / "logs",
             )
 
         super().after_exec()
-
-        LOGGER.info(f"All arps output files have been copied to {WRFRUN.uri.parse_resource_uri(self._output_save_path)}")
 
 
 class ARPS3DVar(ExecutableBase):
@@ -573,7 +485,7 @@ class ARPS3DVar(ExecutableBase):
     :type arps_data_path: str | None
     """
 
-    def __init__(self, arps_data_path: Optional[str] = None):
+    def __init__(self):
         """
         ``Executable`` for ``arps3dvar``.
 
@@ -582,54 +494,44 @@ class ARPS3DVar(ExecutableBase):
                                ``None``, try the configured ARPS output path.
         :type arps_data_path: str | None
         """
-        self.work_path = f"{get_arps_workspace_path()}/arps3dvar"
-        self.namelist_path = f"{self.work_path}/arps3dvar.nml"
-        self.arps_data_path = arps_data_path
+        work_path = ResourceRef("workspace_arps", "arps3dvar")
+        self.namelist_path = work_path / "arps3dvar.nml"
 
         super().__init__(
             name="arps3dvar",
             cmd="./arps3dvar",
-            work_path=self.work_path,
+            work_path=work_path,
             stdin_file=self.namelist_path,
         )
 
-        self.class_config["class_kwargs"] = {"arps_data_path": arps_data_path}
         _check_and_prepare_namelist()
 
     def generate_custom_config(self):
         """Store the ARPS namelist and selected background directory."""
-        self.custom_config.update(
-            {
-                "namelist": WRFRUN.config.get_namelist("arps"),
-                "arps_data_path": self.arps_data_path,
-            }
-        )
+        self.custom_config.update({"namelist": WRFRUN_NEW.namelist.get_namelist("arps")})
 
     def load_custom_config(self):
         """Restore the ARPS namelist and selected background directory."""
-        WRFRUN.config.update_namelist(self.custom_config["namelist"], "arps")
-        self.arps_data_path = self.custom_config["arps_data_path"]
+        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arps")
 
     def before_exec(self):
-        wrfrun_config = WRFRUN.config
         background_files = ["arps.hdf000000", "arps.hdfgrdbas"]
 
-        wrfrun_config.check_wrfrun_context(True)
-        wrfrun_config.WRFRUN_WORK_STATUS = "arps3dvar"
-        WRFRUN.check_path(f"{self.work_path}/outputs")
+        WRFRUN_NEW.states.check_wrfrun_context(True)
+        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "arps3dvar"
+        WRFRUN_NEW.resource.mkdir(self.work_path / "outputs")
 
-        work_dir = WRFRUN.uri.parse_resource_uri(self.work_path)
+        work_dir = WRFRUN_NEW.resource.get_custom_resource(self.work_path)
         existing_files = listdir(work_dir)
         missing_background_files = [file_name for file_name in background_files if file_name not in existing_files]
 
         if missing_background_files:
-            if self.arps_data_path is None:
-                self.arps_data_path = f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/arps"
-
-            arps_data_path = WRFRUN.uri.parse_resource_uri(self.arps_data_path)
+            arps_data_path_ref = WRFRUN_NEW.resource.OUTPUT_DIR / "arps"
+            arps_data_path = WRFRUN_NEW.resource.get_custom_resource(arps_data_path_ref)
             missing_source_files = [
                 file_name for file_name in missing_background_files if not exists(f"{arps_data_path}/{file_name}")
             ]
+
             if missing_source_files:
                 message = (
                     "Can't find required ARPS background files in the arps3dvar work directory or "
@@ -638,7 +540,7 @@ class ARPS3DVar(ExecutableBase):
                 LOGGER.error(message)
                 raise FileNotFoundError(message)
 
-            self.add_input_files([f"{self.arps_data_path}/{file_name}" for file_name in missing_background_files])
+            self.add_input_files([arps_data_path_ref / file_name for file_name in missing_background_files])
 
         namelist_updates = {
             "jobname": {"runname": self.name},
@@ -648,19 +550,19 @@ class ARPS3DVar(ExecutableBase):
             },
             "output": {"dirname": "./outputs/"},
         }
-        if wrfrun_config.get_namelist("arps")["incr_out"]["incrdmp"] > 0:
+        if WRFRUN_NEW.namelist.get_namelist("arps")["incr_out"]["incrdmp"] > 0:
             namelist_updates["incr_out"] = {"incdmpf": f"./outputs/{self.name}.incr"}
 
-        wrfrun_config.update_namelist(namelist_updates, "arps")
-        wrfrun_config.write_namelist(self.namelist_path, "arps")
+        WRFRUN_NEW.namelist.update_namelist(namelist_updates, "arps")
+        WRFRUN_NEW.namelist.write_namelist(self.namelist_path, "arps")
 
         super().before_exec()
 
     def after_exec(self):
-        if not WRFRUN.config.IS_IN_REPLAY:
+        if not WRFRUN_NEW.states.IS_IN_REPLAY:
             self.add_output_files(
                 startswith=f"{self.name}.",
-                output_dir=f"{self.work_path}/outputs",
+                output_dir=self.work_path / "outputs",
                 save_path=self._output_save_path,
             )
             self.add_output_files(
@@ -670,26 +572,6 @@ class ARPS3DVar(ExecutableBase):
             )
 
         super().after_exec()
-
-        LOGGER.info(f"All arps3dvar output files have been copied to {WRFRUN.uri.parse_resource_uri(self._output_save_path)}")
-
-
-def _exec_register_func(exec_db: ExecutableDB):
-    """
-    Function to register ``Executable``.
-
-    :param exec_db: ``ExecutableDB`` instance.
-    :type exec_db: ExecutableDB
-    """
-    class_list = [ARPSSFC, ARPS, ARPS3DVar, EXT2ARPS]
-    class_id_list = ["arpssfc", "arps", "arps3dvar", "ext2arps"]
-
-    for _class, _id in zip(class_list, class_id_list):
-        if not exec_db.is_registered(_id):
-            exec_db.register_exec(_id, _class)
-
-
-WRFRUN.set_exec_db_register_func(_exec_register_func)
 
 
 __all__ = ["ARPSSFC", "ARPS", "ARPS3DVar", "EXT2ARPS"]

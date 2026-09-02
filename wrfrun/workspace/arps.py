@@ -11,41 +11,15 @@ Functions to prepare workspace for ARPS model and its submodels.
     prepare_arps_workspace
 """
 
+import logging
 from os import symlink
 from os.path import abspath, exists
 
-from wrfrun.core import WRFRUN, WRFRUNURI
-from wrfrun.log import logger
-from wrfrun.utils import check_path
+from wrfrun.core import WRFRUN_NEW
 
-WORKSPACE_ARPS = ""
+from ..core.type import ResourceRef
 
-
-def get_arps_workspace_path() -> str:
-    """
-    Get ARPS main workspace path.
-
-    :return: ARPS main workspace.
-    :rtype: str
-    """
-    return WORKSPACE_ARPS
-
-
-def _arps_workspace_uri_hook(uri_manager: WRFRUNURI):
-    """
-    This function doesn't register any URI.
-
-    This is a hook to initializes some global strings.
-
-    :param uri_manager: ``WRFRUNURI`` instance.
-    :type uri_manager: WRFRUNURI
-    """
-    global WORKSPACE_ARPS
-
-    WORKSPACE_ARPS = f"{uri_manager.WRFRUN_WORKSPACE_MODEL}/ARPS"
-
-
-WRFRUN.set_uri_register_func(_arps_workspace_uri_hook)
+LOGGER = logging.getLogger("wrfrun")
 
 
 def prepare_arps_workspace(model_config: dict):
@@ -61,42 +35,42 @@ def prepare_arps_workspace(model_config: dict):
     :param model_config: Model config.
     :type model_config: dict
     """
-    logger.info("Initialize workspace for ARPS.")
-
-    WRFRUNConfig = WRFRUN.config
+    LOGGER.info("Initialize workspace for ARPS.")
 
     arps_bin_dir = model_config["global"]["arps_bin_directory"]
-    submodel_name_list = [x for x in model_config if x not in ("use", "global")]
+    submodel_name_list: list[str] = [x for x in model_config if x not in ("use", "global")]
     arps_bin_dir = abspath(arps_bin_dir)
 
     if not exists(arps_bin_dir):
-        logger.error("Your ARPS binary path ([magenta]arps_bin_directory[/magenta]) is wrong, check your TOML config.")
+        LOGGER.error("Your ARPS binary path ([magenta]arps_bin_directory[/magenta]) is wrong, check your TOML config.")
         raise FileNotFoundError("Your ARPS binary path (arps_bin_directory) is wrong, check your TOML config.")
 
-    arps_work_path = WRFRUNConfig.parse_resource_uri(WORKSPACE_ARPS)
+    arps_work_path = WRFRUN_NEW.resource.get_custom_resource(ResourceRef("workspace_arps", ""))
 
     for _submodel in submodel_name_list:
         if not exists(f"{arps_bin_dir}/{_submodel}"):
-            logger.warning(
+            LOGGER.warning(
                 f"[magenta]{_submodel}[/magenta] not found in {arps_bin_dir}, mark it with [magenta]is_valid=False[/magenta]."
             )
             model_config.setdefault(_submodel, {})["is_valid"] = False
 
         else:
-            check_path(f"{arps_work_path}/{_submodel}", force=True)
-            symlink(f"{arps_bin_dir}/{_submodel}", f"{arps_work_path}/{_submodel}/{_submodel}")
+            _submodel_work_dir = arps_work_path / _submodel
+            _submodel_work_dir.mkdir(exist_ok=True, parents=True)
+            symlink(f"{arps_bin_dir}/{_submodel}", _submodel_work_dir / _submodel)
             model_config.setdefault(_submodel, {})["is_valid"] = True
 
     # arps core has two version: arps and arps_mpi, we also need to check arps_mpi
     if not exists(f"{arps_bin_dir}/arps_mpi"):
-        logger.warning(
+        LOGGER.warning(
             f"[magenta]arps_mpi[/magenta] not found in {arps_bin_dir}. "
             "If you want to run arps with MPI, make sure you have compiled MPI version of ARPS core."
         )
         model_config.setdefault("arps_mpi", {})["is_valid"] = False
     else:
-        check_path(f"{arps_work_path}/arps_mpi", force=True)
-        symlink(f"{arps_bin_dir}/arps_mpi", f"{arps_work_path}/arps_mpi/arps_mpi")
+        _arpsmpi_work_dir = arps_work_path / "arps_mpi"
+        _arpsmpi_work_dir.mkdir(exist_ok=True, parents=True)
+        symlink(f"{arps_bin_dir}/arps_mpi", _arpsmpi_work_dir / "arps_mpi")
         model_config.setdefault("arps_mpi", {})["is_valid"] = True
 
 
@@ -109,8 +83,8 @@ def check_arps_workspace(model_config: dict) -> bool:
     :return: ``True`` when every enabled ARPS executable is available.
     :rtype: bool
     """
-    arps_work_path = WRFRUN.uri.parse_resource_uri(WORKSPACE_ARPS)
-    executable_names = [name for name in model_config if name not in ("use", "global")]
+    arps_work_path = WRFRUN_NEW.resource.get_custom_resource(ResourceRef("workspace_arps", ""))
+    executable_names: list[str] = [name for name in model_config if name not in ("use", "global")]
     executable_names.append("arps_mpi")
 
     flag = True
@@ -119,10 +93,10 @@ def check_arps_workspace(model_config: dict) -> bool:
         if executable_config.get("is_valid") is False:
             continue
 
-        executable_path = f"{arps_work_path}/{executable_name}/{executable_name}"
-        flag = flag & exists(executable_path)
+        executable_path = arps_work_path / executable_name / executable_name
+        flag = flag & executable_path.is_file()
 
     return flag
 
 
-__all__ = ["prepare_arps_workspace", "check_arps_workspace", "get_arps_workspace_path"]
+__all__ = ["prepare_arps_workspace", "check_arps_workspace"]

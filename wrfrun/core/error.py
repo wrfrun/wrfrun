@@ -19,6 +19,7 @@ This module defines all exceptions used in ``wrfrun``.
     ExecRegisterError
     GetExecClassError
     ModelNameError
+    CommandExecutionError
 """
 
 
@@ -126,6 +127,14 @@ class RecordError(WRFRunBasicError):
     pass
 
 
+class CommandExecutionError(WRFRunBasicError):
+    """
+    Failed to execute the given command.
+    """
+
+    pass
+
+
 __all__ = [
     "WRFRunBasicError",
     "ConfigError",
@@ -140,4 +149,5 @@ __all__ = [
     "ModelNameError",
     "NamelistIDError",
     "RecordError",
+    "CommandExecutionError",
 ]

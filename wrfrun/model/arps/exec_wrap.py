@@ -15,7 +15,7 @@ Function wrapper of ARPS :doc:`Executables </api/model.arps.core>`.
 
 from typing import Optional
 
-from wrfrun.core import WRFRUN
+from wrfrun.core import WRFRUN_NEW
 
 from .core import ARPS, ARPSSFC, EXT2ARPS, ARPS3DVar
 
@@ -35,7 +35,7 @@ def ext2arps(arpstrn_data_path: Optional[str] = None):
                               If is ``None``, try to use the output path specified by config file.
     :type arpstrn_data_path: str
     """
-    EXT2ARPS(arpstrn_data_path=arpstrn_data_path)()
+    EXT2ARPS()()
 
 
 def arps(arpssfc_data_path: Optional[str] = None, ext2arps_data_path: Optional[str] = None):
@@ -49,11 +49,7 @@ def arps(arpssfc_data_path: Optional[str] = None, ext2arps_data_path: Optional[s
                               If is ``None``, try to use the output path specified by config file.
     :type ext2arps_data_path: str
     """
-    ARPS(
-        arpssfc_data_path=arpssfc_data_path,
-        ext2arps_data_path=ext2arps_data_path,
-        core_num=WRFRUN.config.get_core_num(),
-    )()
+    ARPS(core_num=WRFRUN_NEW.config.get_core_num())()
 
 
 def arps3dvar(arps_data_path: Optional[str] = None):
@@ -65,7 +61,7 @@ def arps3dvar(arps_data_path: Optional[str] = None):
                            archived ARPS output directory.
     :type arps_data_path: str | None
     """
-    ARPS3DVar(arps_data_path=arps_data_path)()
+    ARPS3DVar()()
 
 
 __all__ = ["arpssfc", "arps", "arps3dvar", "ext2arps"]

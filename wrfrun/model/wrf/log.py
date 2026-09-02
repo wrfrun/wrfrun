@@ -18,7 +18,7 @@ from os.path import exists
 from shutil import move
 from typing import Optional
 
-from wrfrun.core import WRFRUN
+from wrfrun.core import WRFRUN_NEW
 from wrfrun.log import logger
 from wrfrun.utils import check_path
 from wrfrun.workspace.wrf import get_wrf_workspace_path
@@ -37,7 +37,7 @@ def get_wrf_simulated_seconds(start_datetime: datetime, log_file_path: Optional[
     """
     # use linux cmd to get the latest line of wrf log files
     if log_file_path is None:
-        log_file_path = WRFRUN.config.parse_resource_uri(f"{get_wrf_workspace_path('wrf')}/rsl.out.0000")
+        log_file_path = WRFRUN_NEW.config.parse_resource_uri(f"{get_wrf_workspace_path('wrf')}/rsl.out.0000")
     res = subprocess.run(["tail", "-n", "1", log_file_path], capture_output=True)
     log_text = res.stdout.decode()
 
@@ -63,8 +63,8 @@ def clear_wrf_logs() -> None:
     Collect unsaved WPS/WRF log files and save them to the corresponding
     output directory of the ``Executable``.
     """
-    WRFRUNConfig = WRFRUN.config
-    uri_manager = WRFRUN.uri
+    WRFRUNConfig = WRFRUN_NEW.config
+    uri_manager = WRFRUN_NEW.uri
 
     # wps
     work_path = WRFRUNConfig.parse_resource_uri(get_wrf_workspace_path("wps"))

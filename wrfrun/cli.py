@@ -24,7 +24,7 @@ from shutil import copyfile
 import tomli
 import tomli_w
 
-from .core import WRFRUNURI, WRFRunConfig
+from .core import WRFRUN_NEW, create_wrfrun_session
 from .log import logger
 from .res import (
     CONFIG_ARPS_TOML_TEMPLATE,
@@ -33,7 +33,6 @@ from .res import (
     CONFIG_ROMS_TOML_TEMPLATE,
     CONFIG_WRF_TOML_TEMPLATE,
     GITIGNORE_RULES,
-    _register_res_uri,
 )
 
 MODEL_MAP = {
@@ -43,10 +42,7 @@ MODEL_MAP = {
     "roms": CONFIG_ROMS_TOML_TEMPLATE,
 }
 
-# need some mannual calls to make cli work without a config file.
-uri_manager = WRFRUNURI("./.wrfrun")
-wrfrun_config = WRFRunConfig(uri_manager)
-_register_res_uri(uri_manager)
+CLI_SESSION = create_wrfrun_session("./wrfrun")
 
 
 def _entry_init(args: argparse.Namespace):
@@ -90,14 +86,14 @@ def _entry_init(args: argparse.Namespace):
     namelist_path = f"{project_name}/namelists"
     makedirs(namelist_path)
 
-    copyfile(wrfrun_config.parse_resource_uri(CONFIG_MAIN_TOML_TEMPLATE), f"{project_name}/config.toml")
-    copyfile(wrfrun_config.parse_resource_uri(GITIGNORE_RULES), f"{project_name}/.gitignore")
+    copyfile(WRFRUN_NEW.resource.get_package_resource(CONFIG_MAIN_TOML_TEMPLATE), f"{project_name}/config.toml")
+    copyfile(WRFRUN_NEW.resource.get_package_resource(GITIGNORE_RULES), f"{project_name}/.gitignore")
 
     model_list = []
     if models is not None:
         for _model in models:
             if _model in MODEL_MAP:
-                src_path = wrfrun_config.parse_resource_uri(MODEL_MAP[_model])
+                src_path = WRFRUN_NEW.resource.get_package_resource(MODEL_MAP[_model])
                 copyfile(src_path, f"{project_name}/configs/{_model}.toml")
                 makedirs(f"{namelist_path}/{_model}")
                 model_list.append(_model)
@@ -167,7 +163,7 @@ def _entry_model(args: argparse.Namespace):
                 }
 
     for _new_model in new_models:
-        copyfile(wrfrun_config.parse_resource_uri(MODEL_MAP[_new_model]), f"{config_dir_path}/{_new_model}.toml")
+        copyfile(WRFRUN_NEW.resource.get_package_resource(MODEL_MAP[_new_model]), f"{config_dir_path}/{_new_model}.toml")
 
     with open(config_path, "wb") as f:
         tomli_w.dump(main_config, f)

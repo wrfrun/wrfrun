@@ -16,7 +16,7 @@ from typing import Union
 
 import f90nml
 
-from wrfrun.core import WRFRUN
+from wrfrun.core import WRFRUN_NEW
 from wrfrun.log import logger
 
 from ..type import DomainSetting
@@ -29,7 +29,7 @@ def domain_settings_from_config_wrf() -> DomainSetting:
     :return: :class:`DomainSetting <wrfrun.model.type.DomainSetting>` object.
     :rtype: DomainSetting
     """
-    user_settings = WRFRUN.config.get_model_config("wrf")["domain"]
+    user_settings = WRFRUN_NEW.config.get_model_config("wrf")["domain"]
     domain_settings: DomainSetting = {
         "resolution_x": user_settings["dx"],
         "resolution_y": user_settings["dy"],

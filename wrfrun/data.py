@@ -20,7 +20,7 @@ from typing import List, Literal, Tuple, Union
 
 from pandas import date_range
 
-from .core import WRFRUN
+from .core import WRFRUN_NEW
 from .log import logger
 
 # from seafog import goos_sst_find_data
@@ -443,7 +443,7 @@ def prepare_wps_input_data(area: Tuple[int, int, int, int]):
     :param area: Range of longitude and latitude, ``[lon1, lon2, lat1, lat2]``.
     :type area: Tuple[int, int, int, int]
     """
-    wrf_config = WRFRUN.config.get_model_config("wrf")
+    wrf_config = WRFRUN_NEW.config.get_model_config("wrf")
     # get start and end date from config
     start_date = wrf_config["time"]["start_date"]
     end_date = wrf_config["time"]["end_date"]
@@ -456,7 +456,7 @@ def prepare_wps_input_data(area: Tuple[int, int, int, int]):
     hour_step = wrf_config["time"]["input_data_interval"] // 3600
 
     # get data save path
-    data_save_path = WRFRUN.config.get_input_data_path()
+    data_save_path = WRFRUN_NEW.config.get_input_data_path()
 
     # download data
     logger.info("Download background data of surface level...")

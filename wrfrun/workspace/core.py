@@ -16,7 +16,7 @@ from os.path import dirname, exists
 from shutil import move, rmtree
 from typing import Callable, Literal
 
-from wrfrun.core import WRFRUN
+from wrfrun.core import WRFRUN_NEW
 from wrfrun.log import check_path, logger
 
 from .arps import check_arps_workspace, prepare_arps_workspace
@@ -85,15 +85,13 @@ def prepare_workspace():
     """
     global PREPARE_FUNC_MAP
 
-    WRFRUNConfig = WRFRUN.config
-    uri_manager = WRFRUN.uri
     workspace_backup_path = None
     initialize_success = False
 
-    wrfrun_temp_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_TEMP_PATH)
-    workspace_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_WORKSPACE_ROOT)
-    replay_work_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_WORKSPACE_REPLAY)
-    output_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_OUTPUT_PATH)
+    wrfrun_temp_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.WRFRUN_TEMP_PATH)
+    workspace_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.WRFRUN_WORKSPACE_ROOT)
+    replay_work_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.WRFRUN_WORKSPACE_REPLAY)
+    output_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.OUTPUT_DIR)
 
     if exists(workspace_path):
         logger.info(f"Reinitialize main workspace at: '{workspace_path}'")
@@ -109,7 +107,7 @@ def prepare_workspace():
     check_path(replay_work_path)
     check_path(output_path)
 
-    model_configs = WRFRUNConfig["model"]
+    model_configs = WRFRUN_NEW.config["model"]
 
     try:
         for model_name in model_configs:
@@ -143,18 +141,15 @@ def check_workspace() -> bool:
     """
     global CHECK_FUNC_MAP
 
-    WRFRUNConfig = WRFRUN.config
-    uri_manager = WRFRUN.uri
-
-    wrfrun_temp_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_TEMP_PATH)
-    workspace_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_WORKSPACE_ROOT)
-    replay_work_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_WORKSPACE_REPLAY)
-    output_path = WRFRUNConfig.parse_resource_uri(uri_manager.WRFRUN_OUTPUT_PATH)
+    wrfrun_temp_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.WRFRUN_TEMP_PATH)
+    workspace_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.WRFRUN_WORKSPACE_ROOT)
+    replay_work_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.WRFRUN_WORKSPACE_REPLAY)
+    output_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.OUTPUT_DIR)
 
     flag = True
     flag = flag & exists(wrfrun_temp_path) & exists(replay_work_path) & exists(output_path) & exists(workspace_path)
 
-    model_configs = WRFRUNConfig["model"]
+    model_configs = WRFRUN_NEW.config["model"]
 
     for model_name in model_configs:
         if model_name == "debug_level":

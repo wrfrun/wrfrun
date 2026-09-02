@@ -42,18 +42,21 @@ If you want to improve wrfrun's function to interact with external resources,
 I strongly recommend you to implement your code by inheriting :class:`ExecutableBase`.
 """
 
+import logging
 import subprocess
 from copy import deepcopy
-from os import chdir, getcwd, listdir, makedirs, remove, symlink
-from os.path import abspath, basename, dirname, exists
+from os import chdir, getcwd, listdir, makedirs
+from os.path import dirname, exists
+from pathlib import Path
 from shlex import join
-from shutil import move
 from typing import Optional, Union
 
-from ..log import logger
-from .core import WRFRUN
+from .core import WRFRUN_NEW
 from .error import CommandError, ConfigError, OutputFileError
-from .type import ExecutableClassConfig, ExecutableConfig, FileConfigDict
+from .runtime.runner import Command, CommandStdStream, StreamMode
+from .type import ExecutableClassConfig, ExecutableConfig, FileConfigDict, ResourceRef
+
+LOGGER = logging.getLogger("wrfrun")
 
 
 def _decode_command_output(output: bytes | None) -> str:
@@ -86,7 +89,7 @@ def _mpi_need_oversubscribe(mpi_cmd: str) -> bool:
             text=True,
         )
     except OSError:
-        logger.debug(f"Failed to probe MPI launcher '{mpi_cmd}', skip '--oversubscribe'.")
+        LOGGER.debug(f"Failed to probe MPI launcher '{mpi_cmd}', skip '--oversubscribe'.")
         return False
 
     version_text = f"{status.stdout}\n{status.stderr}".lower()
@@ -103,11 +106,11 @@ def _save_subprocess_logs(log_save_prefix: str, stdout_text: str, stderr_text: s
 
     if exists(stdout_file):
         old_stdout_file = f"{stdout_file}.bak"
-        logger.warning(f"stdout file exists. Backup it to '{old_stdout_file}'")
+        LOGGER.warning(f"stdout file exists. Backup it to '{old_stdout_file}'")
 
     if exists(stderr_file):
         old_stderr_file = f"{stderr_file}.bak"
-        logger.warning(f"stderr file exists. Backup it to '{old_stderr_file}'")
+        LOGGER.warning(f"stderr file exists. Backup it to '{old_stderr_file}'")
 
     with open(stdout_file, "w") as f:
         f.write(stdout_text)
@@ -115,7 +118,7 @@ def _save_subprocess_logs(log_save_prefix: str, stdout_text: str, stderr_text: s
     with open(stderr_file, "w") as f:
         f.write(stderr_text)
 
-    logger.info(f"Logs saved to '{save_dir}'")
+    LOGGER.info(f"Logs saved to '{save_dir}'")
 
 
 def check_subprocess_status(status: subprocess.CompletedProcess, command_display: str):
@@ -130,15 +133,15 @@ def check_subprocess_status(status: subprocess.CompletedProcess, command_display
     """
     if status.returncode != 0:
         # print command
-        logger.error(f"Failed to exec command: {command_display}")
+        LOGGER.error(f"Failed to exec command: {command_display}")
 
         # print log
-        logger.error("====== stdout ======")
-        logger.error(_decode_command_output(status.stdout))
-        logger.error("====== ====== ======")
-        logger.error("====== stderr ======")
-        logger.error(_decode_command_output(status.stderr))
-        logger.error("====== ====== ======")
+        LOGGER.error("====== stdout ======")
+        LOGGER.error(_decode_command_output(status.stdout))
+        LOGGER.error("====== ====== ======")
+        LOGGER.error("====== stderr ======")
+        LOGGER.error(_decode_command_output(status.stderr))
+        LOGGER.error("====== ====== ======")
 
         # raise error
         raise RuntimeError
@@ -159,7 +162,7 @@ def call_subprocess(
     :param work_path: The work path of the command.
                       If None, works in current directory.
     :type work_path: str | None
-    :param print_output: If print standard output and error in the logger.
+    :param print_output: If print standard output and error in the LOGGER.
     :type print_output: bool
     :param log_save_prefix: Save external command output and error to log files. If None, don't save.
                             Defaults to None.
@@ -178,7 +181,7 @@ def call_subprocess(
         status = subprocess.run(command, shell=False, capture_output=True)
     else:
         if not exists(stdin_path):
-            logger.error(f"File not found: '{stdin_path}'")
+            LOGGER.error(f"File not found: '{stdin_path}'")
             raise FileNotFoundError(stdin_path)
 
         with open(stdin_path, "rb") as stdin_file:
@@ -196,8 +199,8 @@ def call_subprocess(
     check_subprocess_status(status, command_display)
 
     if print_output:
-        logger.info(stdout_text)
-        logger.warning(stderr_text)
+        LOGGER.info(stdout_text)
+        LOGGER.warning(stderr_text)
 
 
 class ExecutableBase:
@@ -236,7 +239,7 @@ class ExecutableBase:
         self,
         name: str,
         cmd: Union[str, list[str]],
-        work_path: str,
+        work_path: str | ResourceRef,
         mpi_use=False,
         mpi_cmd: Optional[str] = None,
         mpi_core_num: Optional[int] = None,
@@ -262,12 +265,17 @@ class ExecutableBase:
         :type stdin_file: str
         """
         if mpi_use and isinstance(cmd, list):
-            logger.error("If you want to use mpi, then `cmd` must be a single string.")
+            LOGGER.error("If you want to use mpi, then `cmd` must be a single string.")
             raise CommandError("If you want to use mpi, then `cmd` must be a single string.")
 
         self.name = name
         self.cmd = cmd
-        self.work_path = work_path
+
+        if isinstance(work_path, str):
+            self.work_path = Path(work_path)
+        else:
+            self.work_path = work_path
+
         self.stdin_file = stdin_file
         self.mpi_use = mpi_use
         self.mpi_cmd = mpi_cmd
@@ -279,8 +287,8 @@ class ExecutableBase:
         self.output_file_config: list[FileConfigDict] = []
 
         # directory to save outputs
-        self._output_save_path = f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/{self.name}"
-        self._log_save_path = f"{self._output_save_path}/logs"
+        self._output_save_path = WRFRUN_NEW.resource.OUTPUT_DIR / self.name
+        self._log_save_path = self._output_save_path / "log"
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -302,7 +310,7 @@ class ExecutableBase:
         If you overwrite this method to generate custom configs,
         you also have to overwrite :meth:`ExecutableBase.load_custom_config` to load your custom configs.
         """
-        logger.debug(f"Method 'generate_custom_config' not implemented in '{self.name}'")
+        LOGGER.debug(f"Method 'generate_custom_config' not implemented in '{self.name}'")
 
     def load_custom_config(self):
         """
@@ -312,7 +320,7 @@ class ExecutableBase:
         process the custom config stored in :attr:`ExecutableBase.custom_config`,
         or it will do nothing except print a debug log.
         """
-        logger.debug(f"Method 'load_custom_config' not implemented in '{self.name}'")
+        LOGGER.debug(f"Method 'load_custom_config' not implemented in '{self.name}'")
 
     def export_config(self) -> ExecutableConfig:
         """
@@ -344,11 +352,11 @@ class ExecutableBase:
         :type config: ExecutableConfig
         """
         if "name" not in config:
-            logger.error("A valid config is required. Please check ``ExecutableConfig``.")
+            LOGGER.error("A valid config is required. Please check ``ExecutableConfig``.")
             raise ValueError("A valid config is required. Please check ``ExecutableConfig``.")
 
         if self.name != config["name"]:
-            logger.error(f"Config belongs to '{config['name']}', not {self.name}")
+            LOGGER.error(f"Config belongs to '{config['name']}', not {self.name}")
             raise ConfigError(f"Config belongs to '{config['name']}', not {self.name}")
 
         self.cmd = config["cmd"]
@@ -369,11 +377,60 @@ class ExecutableBase:
         This method should take care every job that will be done when replaying the simulation.
         By default, this method will call ``__call__`` method of the instance.
         """
-        logger.debug(f"Method 'replay' not implemented in '{self.name}', fall back to default action.")
+        LOGGER.debug(f"Method 'replay' not implemented in '{self.name}', fall back to default action.")
         self()
 
+    def _add_input_files(
+        self,
+        input_files: str | ResourceRef | FileConfigDict,
+        is_data=True,
+        is_output=True,
+    ):
+        if isinstance(input_files, str):
+            _file_path = Path(input_files)
+            _save_path = self.work_path / _file_path.name
+
+            LOGGER.debug(f"Mark '{_file_path}' as input file for [magenta]{self.name}[/magenta]")
+            self.input_file_config.append(
+                {
+                    "file_path": _file_path,
+                    "save_path": _save_path,
+                    "is_data": is_data,
+                    "is_output": is_output,
+                }
+            )
+
+        elif isinstance(input_files, ResourceRef):
+            _save_path = self.work_path / input_files.name
+
+            LOGGER.debug(f"Mark '{input_files}' as input file for [magenta]{self.name}[/magenta]")
+            self.input_file_config.append(
+                {
+                    "file_path": input_files,
+                    "save_path": _save_path,
+                    "is_data": is_data,
+                    "is_output": is_output,
+                }
+            )
+
+        else:
+            LOGGER.debug(f"Mark '{input_files['file_path']}' as input file for [magenta]{self.name}[/magenta]")
+            self.input_file_config.append(input_files)
+
     def add_input_files(
-        self, input_files: Union[str, list[str], FileConfigDict, list[FileConfigDict]], is_data=True, is_output=True
+        self,
+        input_files: Union[
+            str,
+            Path,
+            ResourceRef,
+            list[Path],
+            list[str],
+            list[ResourceRef],
+            FileConfigDict,
+            list[FileConfigDict],
+        ],
+        is_data=True,
+        is_output=True,
     ):
         """
         Add input files the executable will use.
@@ -422,52 +479,17 @@ class ExecutableBase:
                           This parameter will be overwritten by the value in ``input_files``.
         :type is_output: bool
         """
-        if isinstance(input_files, str):
-            logger.debug(f"Mark '{input_files}' as input file for [magenta]{self.name}[/magenta]")
-            self.input_file_config.append(
-                {
-                    "file_path": input_files,
-                    "save_path": self.work_path,
-                    "save_name": basename(input_files),
-                    "is_data": is_data,
-                    "is_output": is_output,
-                }
-            )
-
-        elif isinstance(input_files, list):
-            for _file in input_files:
-                if isinstance(_file, dict):
-                    logger.debug(f"Mark '{_file['file_path']}' as input file for [magenta]{self.name}[/magenta]")  # type: ignore
-                    self.input_file_config.append(_file)  # type: ignore
-
-                elif isinstance(_file, str):
-                    logger.debug(f"Mark '{_file}' as input file for [magenta]{self.name}[/magenta]")
-                    self.input_file_config.append(
-                        {
-                            "file_path": _file,
-                            "save_path": self.work_path,
-                            "save_name": basename(_file),
-                            "is_data": is_data,
-                            "is_output": is_output,
-                        }
-                    )
-
-                else:
-                    logger.error(f"Input file config should be string or `FileConfigDict`, but got '{type(_file)}'")
-                    raise TypeError(f"Input file config should be string or `FileConfigDict`, but got '{type(_file)}'")
-
-        elif isinstance(input_files, dict):
-            logger.debug(f"Mark '{input_files['file_path']}' as input file for [magenta]{self.name}[/magenta]")  # type: ignore
-            self.input_file_config.append(input_files)  # type: ignore
+        if isinstance(input_files, (str, ResourceRef, dict, Path)):
+            self._add_input_files(input_files, is_data=is_data, is_output=is_output)
 
         else:
-            logger.error(f"Input file config should be string or `FileConfigDict`, but got '{type(input_files)}'")
-            raise TypeError(f"Input file config should be string or `FileConfigDict`, but got '{type(input_files)}'")
+            for _files in input_files:
+                self._add_input_files(_files, is_data=is_data, is_output=is_output)
 
     def add_output_files(
         self,
-        output_dir: Optional[str] = None,
-        save_path: Optional[str] = None,
+        output_dir: Union[str, Path, ResourceRef, None] = None,
+        save_path: Union[str, Path, ResourceRef, None] = None,
         startswith: Union[None, str, tuple[str, ...]] = None,
         endswith: Union[None, str, tuple[str, ...]] = None,
         filenames: Union[None, str, list[str]] = None,
@@ -512,16 +534,22 @@ class ExecutableBase:
                               Defaults to True.
         :type no_file_error: bool
         """
-        if WRFRUN.config.FAKE_SIMULATION_MODE:
+        if WRFRUN_NEW.states.FAKE_SIMULATION_MODE:
             return
 
         if output_dir is None:
-            output_dir = self.work_path
+            _output_dir = self.work_path
+        elif isinstance(output_dir, str):
+            _output_dir = Path(output_dir)
+        else:
+            _output_dir = output_dir
 
         if save_path is None:
-            save_path = f"{WRFRUN.uri.WRFRUN_OUTPUT_PATH}/{self.name}"
+            _save_path = WRFRUN_NEW.resource.get_custom_resource(self._output_save_path)
+        else:
+            _save_path = Path(save_path)
 
-        file_list = listdir(WRFRUN.config.parse_resource_uri(output_dir))
+        file_list = listdir(WRFRUN_NEW.resource.get_custom_resource(output_dir))
         save_file_list = []
 
         if startswith is not None:
@@ -531,7 +559,7 @@ class ExecutableBase:
                     _list.append(_file)
             save_file_list += _list
 
-            logger.debug(f"Collect files match `startswith`: {_list}")
+            LOGGER.debug(f"Collect files match `startswith`: {_list}")
 
         if endswith is not None:
             _list = []
@@ -540,7 +568,7 @@ class ExecutableBase:
                     _list.append(_file)
             save_file_list += _list
 
-            logger.debug(f"Collect files match `endswith`: {_list}")
+            LOGGER.debug(f"Collect files match `endswith`: {_list}")
 
         if filenames is not None:
             if isinstance(filenames, str) and filenames in file_list:
@@ -551,7 +579,7 @@ class ExecutableBase:
 
         if len(save_file_list) < 1:
             if no_file_error:
-                logger.error(
+                LOGGER.error(
                     (
                         "Can't find any files match the giving rules: "
                         f"startswith='{startswith}', endswith='{endswith}', outputs='{filenames}'"
@@ -565,7 +593,7 @@ class ExecutableBase:
                 )
 
             else:
-                logger.warning(
+                LOGGER.warning(
                     (
                         "Can't find any files match the giving rules: "
                         f"startswith='{startswith}', endswith='{endswith}', outputs='{filenames}'. Skip it."
@@ -574,14 +602,13 @@ class ExecutableBase:
                 return
 
         save_file_list = list(set(save_file_list))
-        logger.debug(f"Files to be processed: {save_file_list}")
+        LOGGER.debug(f"Files to be processed: {save_file_list}")
 
         for _file in save_file_list:
             self.output_file_config.append(
                 {
-                    "file_path": f"{output_dir}/{_file}",
-                    "save_path": save_path,
-                    "save_name": _file,
+                    "file_path": _output_dir / _file,
+                    "save_path": _save_path / _file,
                     "is_data": True,
                     "is_output": True,
                 }
@@ -591,105 +618,57 @@ class ExecutableBase:
         """
         Prepare input files before executing the external program.
         """
-        if WRFRUN.config.FAKE_SIMULATION_MODE:
-            logger.info(f"We are in fake simulation mode, skip preparing input files for '{self.name}'")
+        if WRFRUN_NEW.states.FAKE_SIMULATION_MODE:
+            LOGGER.info(f"We are in fake simulation mode, skip preparing input files for '{self.name}'")
             return
 
         for input_file in self.input_file_config:
-            file_path = input_file["file_path"]
-            save_path = input_file["save_path"]
-            save_name = input_file["save_name"]
+            WRFRUN_NEW.io.symlink(input_file, overwrite=True)
 
-            file_real_path = WRFRUN.config.parse_resource_uri(file_path)
-            save_path = WRFRUN.config.parse_resource_uri(save_path)
-
-            file_real_path = abspath(file_real_path)
-            save_path = abspath(save_path)
-
-            logger.debug(f"Parse input file '{file_path}' to '{file_real_path}'")
-
-            if not exists(file_real_path):
-                logger.error(f"File not found: '{file_real_path}'")
-                raise FileNotFoundError(f"File not found: '{file_real_path}'")
-
-            if not exists(save_path):
-                makedirs(save_path)
-
-            target_path = f"{save_path}/{save_name}"
-            if exists(target_path):
-                logger.debug(f"Target file {save_name} exists, overwrite it.")
-                remove(target_path)
-
-            symlink(file_real_path, target_path)
-
-        if WRFRUN.config.DEBUG_MODE_EXECUTABLE:
+        if WRFRUN_NEW.states.DEBUG_MODE_EXECUTABLE:
             self.before_exec_debug()
 
     def before_exec_debug(self):
         """
         Debug method that will be called after :py:meth:`before_exec`.
         """
-        logger.debug(f"Method 'before_exec_debug' not implemented in '{self.name}'")
+        LOGGER.debug(f"Method 'before_exec_debug' not implemented in '{self.name}'")
 
     def after_exec(self):
         """
         Save outputs and logs after executing the external program.
         """
-        if WRFRUN.config.FAKE_SIMULATION_MODE:
-            logger.info(f"We are in fake simulation mode, skip saving outputs for '{self.name}'")
+        if WRFRUN_NEW.states.FAKE_SIMULATION_MODE:
+            LOGGER.info(f"We are in fake simulation mode, skip saving outputs for '{self.name}'")
             return
 
         for output_file in self.output_file_config:
-            file_path = output_file["file_path"]
-            save_path = output_file["save_path"]
-            save_name = output_file["save_name"]
+            WRFRUN_NEW.io.copy(output_file, overwrite=True)
 
-            file_path = WRFRUN.config.parse_resource_uri(file_path)
-            save_path = WRFRUN.config.parse_resource_uri(save_path)
+        LOGGER.info(
+            f"All {self.name} output files have been copied to {WRFRUN_NEW.resource.get_custom_resource(self._output_save_path)}"
+        )
 
-            file_path = abspath(file_path)
-            save_path = abspath(save_path)
-
-            if not exists(file_path):
-                logger.error(f"File not found: '{file_path}'")
-                raise FileNotFoundError(f"File not found: '{file_path}'")
-
-            if not exists(save_path):
-                makedirs(save_path)
-
-            target_path = f"{save_path}/{save_name}"
-            if exists(target_path):
-                logger.warning(
-                    (
-                        f"Found existed file, which means you already may have output files in '{save_path}'. "
-                        "If you are saving logs, ignore this warning."
-                    )
-                )
-
-            move(file_path, target_path)
-
-        if WRFRUN.config.DEBUG_MODE_EXECUTABLE:
+        if WRFRUN_NEW.states.DEBUG_MODE_EXECUTABLE:
             self.after_exec_debug()
 
     def after_exec_debug(self):
         """
         Debug method that will be called after :py:meth:`after_exec`.
         """
-        logger.debug(f"Method 'after_exec_debug' not implemented in '{self.name}'")
+        LOGGER.debug(f"Method 'after_exec_debug' not implemented in '{self.name}'")
 
     def exec(self):
         """
         Execute the given command.
         """
-        work_path = WRFRUN.config.parse_resource_uri(self.work_path)
-
         if not self.mpi_use or None in [self.mpi_cmd, self.mpi_core_num]:
             if isinstance(self.cmd, str):
                 self.cmd = [
                     self.cmd,
                 ]
 
-            logger.info(f"Running [magenta]{' '.join(self.cmd)}[/] ...")
+            LOGGER.info(f"Running [magenta]{' '.join(self.cmd)}[/] ...")
             _cmd = self.cmd
 
         else:
@@ -698,28 +677,32 @@ class ExecutableBase:
             else:
                 _cmd = [self.mpi_cmd, "-np", str(self.mpi_core_num), self.cmd]
 
-            logger.info(f"Running [magenta]{' '.join(_cmd)}[/] ...")
+            LOGGER.info(f"Running [magenta]{' '.join(_cmd)}[/] ...")
 
-        if WRFRUN.config.FAKE_SIMULATION_MODE:
-            logger.info(f"We are in fake simulation mode, skip calling numerical model for '{self.name}'")
+        if WRFRUN_NEW.states.FAKE_SIMULATION_MODE:
+            LOGGER.info(f"We are in fake simulation mode, skip calling numerical model for '{self.name}'")
             return
 
-        log_save_path = WRFRUN.config.parse_resource_uri(self._log_save_path)
-        log_save_prefix = f"{log_save_path}/{self.name}"
-        if self.stdin_file is not None:
-            stdin_file = WRFRUN.uri.parse_resource_uri(self.stdin_file)
-        else:
-            stdin_file = self.stdin_file
-        call_subprocess(_cmd, work_path=work_path, log_save_prefix=log_save_prefix, stdin_path=stdin_file)
+        stdout = CommandStdStream(StreamMode.FILE, self._log_save_path / f"{self.name}.stdout")
+        stderr = CommandStdStream(StreamMode.FILE, self._log_save_path / f"{self.name}.stderr")
+        command = Command(
+            _cmd,
+            cwd=self.work_path,
+            stdin_path=self.stdin_file,
+            stdout=stdout,
+            stderr=stderr,
+        )
 
-        if WRFRUN.config.DEBUG_MODE_EXECUTABLE:
+        WRFRUN_NEW.runner.run(command)
+
+        if WRFRUN_NEW.states.DEBUG_MODE_EXECUTABLE:
             self.exec_debug()
 
     def exec_debug(self):
         """
         Debug method that will be called after :py:meth:`exec`.
         """
-        logger.debug(f"Method 'exec_debug' not implemented in '{self.name}'")
+        LOGGER.debug(f"Method 'exec_debug' not implemented in '{self.name}'")
 
     def __call__(self):
         """
@@ -729,8 +712,8 @@ class ExecutableBase:
         self.exec()
         self.after_exec()
 
-        if not WRFRUN.config.IS_IN_REPLAY and WRFRUN.config.IS_RECORDING:
-            WRFRUN.record.record(self.export_config())
+        if not WRFRUN_NEW.states.IS_IN_REPLAY and WRFRUN_NEW.states.IS_RECORDING:
+            WRFRUN_NEW.record.record(self.export_config())
 
 
 __all__ = ["ExecutableBase", "call_subprocess"]

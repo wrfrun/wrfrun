@@ -18,7 +18,7 @@ from typing import Dict
 
 from xarray import open_dataset
 
-from wrfrun.core import WRFRUN
+from wrfrun.core import WRFRUN_NEW
 from wrfrun.log import logger
 
 
@@ -73,7 +73,7 @@ def reconcile_namelist_metgrid(metgrid_path: str):
         "physics": {"num_land_cat": metgrid_levels["num_land_cat"]},
     }
 
-    WRFRUN.config.update_namelist(update_values, "wrf")
+    WRFRUN_NEW.config.update_namelist(update_values, "wrf")
 
 
 def process_after_ndown():
@@ -84,7 +84,7 @@ def process_after_ndown():
     ``wrfrun`` provide this function to help you change these settings which have multiple values for each domain.
     The first value will be removed to ensure the value of higher resolution domain is the first value.
     """
-    WRFRUNConfig = WRFRUN.config
+    WRFRUNConfig = WRFRUN_NEW.config
     namelist_data = WRFRUNConfig.get_namelist("wrf")
 
     for section in namelist_data:

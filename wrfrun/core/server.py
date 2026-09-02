@@ -46,7 +46,7 @@ from time import time
 from typing import Any, Tuple
 
 from ..log import logger
-from .core import WRFRUN
+from .core import WRFRUN_NEW
 
 
 def _defaut_log_parser(date: datetime) -> int:
@@ -251,7 +251,7 @@ class WRFRunServerHandler(socketserver.StreamRequestHandler):
         else:
             progress = -1
 
-        status = WRFRUN.config.WRFRUN_WORK_STATUS
+        status = WRFRUN_NEW.config.WRFRUN_WORK_STATUS
 
         if status == "":
             status = "*"

@@ -16,7 +16,7 @@ from os import listdir
 from os.path import abspath, exists
 from typing import Optional
 
-from wrfrun.core import WRFRUN, ExecutableBase, ExecutableDB
+from wrfrun.core import WRFRUN_NEW, ExecutableBase, ExecutableDB
 from wrfrun.log import logger
 from wrfrun.workspace.palm import get_palm_workspace_path
 
@@ -30,14 +30,14 @@ def _check_and_prepare_namelist():
     Check if namelist of ``PALM`` has been loaded.
     If not, call :func:`prepare_palm_namelist <wrfrun.model.palm.namelist.prepare_palm_namelist>` to load it.
     """
-    if not WRFRUN.config.check_namelist("palm"):
+    if not WRFRUN_NEW.config.check_namelist("palm"):
         prepare_palm_namelist()
         check_palm_namelist_settings()
 
-    if not WRFRUN.config.check_namelist("palm_config"):
+    if not WRFRUN_NEW.config.check_namelist("palm_config"):
         prepare_palm_config()
 
-    if not WRFRUN.config.check_namelist("palm_config"):
+    if not WRFRUN_NEW.config.check_namelist("palm_config"):
         prepare_palm_config()
 
 
@@ -63,7 +63,7 @@ class PALMRun(ExecutableBase):
         mpi_cmd = None
         mpi_core_num = None
 
-        config = WRFRUN.config.get_model_config("palm")
+        config = WRFRUN_NEW.config.get_model_config("palm")
         job_name = config["job_name"]
         simulation_type = config["simulation_type"]
         cmd = ["./palmrun", "-r", job_name, "-c", config_id, "-a", simulation_type, "-X", str(core_num), "-v"]
@@ -85,7 +85,7 @@ class PALMRun(ExecutableBase):
 
         * Namelist settings.
         """
-        self.custom_config.update({"namelist": WRFRUN.config.get_namelist("palm")})
+        self.custom_config.update({"namelist": WRFRUN_NEW.config.get_namelist("palm")})
 
     def load_custom_config(self):
         """
@@ -93,17 +93,17 @@ class PALMRun(ExecutableBase):
 
         * Namelist settings.
         """
-        WRFRUN.config.update_namelist(self.custom_config["namelist"], "palm")
+        WRFRUN_NEW.config.update_namelist(self.custom_config["namelist"], "palm")
 
     def before_exec(self):
-        WRFRUN.config.check_wrfrun_context(True)
-        WRFRUN.config.WRFRUN_WORK_STATUS = "palm"
+        WRFRUN_NEW.config.check_wrfrun_context(True)
+        WRFRUN_NEW.config.WRFRUN_WORK_STATUS = "palm"
 
-        config = WRFRUN.config.get_model_config("palm")
+        config = WRFRUN_NEW.config.get_model_config("palm")
         job_name = config["job_name"]
         config_id = config["config_identifier"]
 
-        if not WRFRUN.config.IS_IN_REPLAY:
+        if not WRFRUN_NEW.config.IS_IN_REPLAY:
             palm_workspace_input_path = get_palm_workspace_path("input")
 
             # check if user provides topography files
@@ -143,7 +143,7 @@ class PALMRun(ExecutableBase):
                         logger.error(f"Your data have unknown postfix string: '{data}'.")
                         raise ValueError(f"Your data have unknown postfix string: '{data}'.")
 
-        WRFRUN.config.write_namelist(
+        WRFRUN_NEW.config.write_namelist(
             f"{get_palm_workspace_path('input')}/{get_namelist_save_name()}",
             "palm",
         )
@@ -153,8 +153,8 @@ class PALMRun(ExecutableBase):
         super().before_exec()
 
     def after_exec(self):
-        if not WRFRUN.config.IS_IN_REPLAY:
-            job_name = WRFRUN.config.get_model_config("palm")["job_name"]
+        if not WRFRUN_NEW.config.IS_IN_REPLAY:
+            job_name = WRFRUN_NEW.config.get_model_config("palm")["job_name"]
 
             self.add_output_files(
                 output_dir=get_palm_workspace_path("output"),
@@ -171,7 +171,7 @@ class PALMRun(ExecutableBase):
 
         super().after_exec()
 
-        logger.info(f"All PALM output files have been copied to {WRFRUN.config.parse_resource_uri(self._output_save_path)}")
+        logger.info(f"All PALM output files have been copied to {WRFRUN_NEW.config.parse_resource_uri(self._output_save_path)}")
 
 
 def palmrun():
@@ -180,8 +180,8 @@ def palmrun():
 
     Parameters needed to initialize :class:`PALMRun` is read from global variable :doc:`WRFRUN </api/core.core>`.
     """
-    config = WRFRUN.config.get_model_config("palm")
-    PALMRun(config["config_identifier"], WRFRUN.config.get_core_num())()
+    config = WRFRUN_NEW.config.get_model_config("palm")
+    PALMRun(config["config_identifier"], WRFRUN_NEW.config.get_core_num())()
 
 
 def _exec_register_func(exec_db: ExecutableDB):
@@ -199,7 +199,7 @@ def _exec_register_func(exec_db: ExecutableDB):
             exec_db.register_exec(_id, _class)
 
 
-WRFRUN.set_exec_db_register_func(_exec_register_func)
+WRFRUN_NEW.set_exec_db_register_func(_exec_register_func)
 
 
 __all__ = ["PALMRun", "palmrun"]

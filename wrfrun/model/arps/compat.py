@@ -8,7 +8,7 @@ import logging
 from pathlib import Path
 from shutil import copyfile
 
-from wrfrun.core import WRFRUN
+from wrfrun.core import WRFRUN_NEW
 
 LOGGER = logging.getLogger("wrfrun")
 LOGGER.warning("You are using 'wrfrun.model.arps.compat' which may be removed at [magenta]ANY[/magenta] time, be careful.")
@@ -18,7 +18,7 @@ def copy_arps_namelist_template():
     """
     Copy namelist needed conveniently.
     """
-    ARPS_MODEL_CONFIG = WRFRUN.config.get_model_config("arps")
+    ARPS_MODEL_CONFIG = WRFRUN_NEW.config.get_model_config("arps")
     ARPS_BIN_DIR = Path(ARPS_MODEL_CONFIG["global"]["arps_bin_directory"]).resolve()
     ARPS_INPUT_DIR = ARPS_BIN_DIR.parent / "input"
     submodel_name_list = [x for x in ARPS_MODEL_CONFIG if x not in ("global", "use")]

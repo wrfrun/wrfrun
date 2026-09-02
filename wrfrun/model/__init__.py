@@ -31,9 +31,6 @@ which are all placed in this module.
 """
 
 # just to register executables
-from . import arps as _
-from . import palm as _
-from . import wrf as _
 from .constants import *
 from .plot import *
 from .utils import *
