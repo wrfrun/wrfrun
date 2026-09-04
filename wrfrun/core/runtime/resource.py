@@ -40,7 +40,7 @@ class ResourceCatalog:
         By doing this, it is possible to represent file with the same url, even its real path can change on different machine.
         """
         self._packages: dict[str, str] = {}
-
+        self._work_path = Path(".wrfrun").resolve()
         self._old_uri = WRFRUNURI(work_dir)
 
         self.register_provider("core", "wrfrun.res")
@@ -224,6 +224,14 @@ class ResourceCatalog:
         :rtype: ResourceRef
         """
         return ResourceRef("replay", "")
+
+    @property
+    def work_path(self, work_path: str):
+        self._work_path = Path(work_path).resolve()
+
+    @work_path.setter
+    def work_path(self) -> str:
+        return self._work_path.as_posix()
 
     # ########################## Compatibility interface ###############################
 
