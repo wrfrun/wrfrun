@@ -14,7 +14,7 @@ This module is used to plot domain area so users can check their domain settings
     generate_domain_area
 """
 
-from os.path import abspath, exists
+from os.path import exists
 from typing import Union
 
 import cartopy.feature as cfeature
@@ -28,7 +28,6 @@ from matplotlib.figure import Figure
 
 from ..core import WRFRUN_NEW
 from ..log import logger
-from ..utils import check_path
 from .type import DomainSetting
 
 
@@ -230,9 +229,7 @@ def generate_domain_area():
     :rtype: bool
     """
     WRFRUNConfig = WRFRUN_NEW.config
-    save_path = WRFRUNConfig.parse_resource_uri(WRFRUN_NEW.uri.WRFRUN_OUTPUT_PATH)
-    check_path(save_path)
-    save_path = abspath(save_path)
+    save_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.OUTPUT_DIR).resolve()
 
     fig = plt.figure(figsize=(10.24, 10.24))
 
@@ -244,7 +241,8 @@ def generate_domain_area():
             namelist = model_configs[model_name]
             plot_domain_area(fig, parse_domain_setting(namelist))
 
-            _save_path = f"{save_path}/{model_name}_domain.png"
+            _save_path = save_path / f"{model_name}_domain.png"
+            _save_path.parent.mkdir(exist_ok=True, parents=True)
             fig.savefig(_save_path)
 
             logger.info(f"Save domain image for '{model_name}' to '{_save_path}'")

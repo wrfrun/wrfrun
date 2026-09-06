@@ -14,31 +14,32 @@ Core implementation of PALM model. All ``Executable`` and function interface of 
 
 from os import listdir
 from os.path import abspath, exists
-from typing import Optional
+from pathlib import Path
+from typing import Literal, Optional
 
-from wrfrun.core import WRFRUN_NEW, ExecutableBase, ExecutableDB
+from wrfrun.core import WRFRUN_NEW, ExecutableBase
 from wrfrun.log import logger
-from wrfrun.workspace.palm import get_palm_workspace_path
 
+from ...core.type import ResourceRef
 from .config import prepare_palm_config, write_palm_config
 from .namelist import check_palm_namelist_settings, get_namelist_save_name, prepare_palm_namelist
 from .utils import get_input_postfix
 
 
-def _check_and_prepare_namelist():
+def _check_and_prepare_namelist(workspace_root: ResourceRef):
     """
     Check if namelist of ``PALM`` has been loaded.
     If not, call :func:`prepare_palm_namelist <wrfrun.model.palm.namelist.prepare_palm_namelist>` to load it.
     """
-    if not WRFRUN_NEW.config.check_namelist("palm"):
+    if not WRFRUN_NEW.namelist.check_namelist("palm"):
         prepare_palm_namelist()
         check_palm_namelist_settings()
 
-    if not WRFRUN_NEW.config.check_namelist("palm_config"):
-        prepare_palm_config()
+    if not WRFRUN_NEW.namelist.check_namelist("palm_config"):
+        prepare_palm_config(workspace_root)
 
-    if not WRFRUN_NEW.config.check_namelist("palm_config"):
-        prepare_palm_config()
+    if not WRFRUN_NEW.namelist.check_namelist("palm_config"):
+        prepare_palm_config(workspace_root)
 
 
 class PALMRun(ExecutableBase):
@@ -71,13 +72,37 @@ class PALMRun(ExecutableBase):
         super().__init__(
             "palmrun",
             cmd,
-            get_palm_workspace_path(),
+            ResourceRef("workspace_palm", ""),
             mpi_use,
             mpi_cmd,
             mpi_core_num,
         )
 
-        _check_and_prepare_namelist()
+        _check_and_prepare_namelist(self._get_workspace_path())
+
+    def _get_workspace_path(self, node: Literal["root", "job", "input", "output"] = "root") -> Path | ResourceRef:
+        """
+        Get workspace of PALM model.
+
+        :param node: Which dir.
+        :type node: str
+        :return: Workspace path.
+        :rtype: str
+        """
+        job_name = WRFRUN_NEW.config.get_model_config("palm")["job_name"]
+
+        match node:
+            case "root":
+                return self.work_path
+
+            case "job":
+                return self.work_path / "job"
+
+            case "input":
+                return self.work_path / f"job/{job_name}/INPUT"
+
+            case "output":
+                return self.work_path / f"job/{job_name}/OUTPUT"
 
     def generate_custom_config(self):
         """
@@ -85,7 +110,7 @@ class PALMRun(ExecutableBase):
 
         * Namelist settings.
         """
-        self.custom_config.update({"namelist": WRFRUN_NEW.config.get_namelist("palm")})
+        self.custom_config.update({"namelist": WRFRUN_NEW.namelist.get_namelist("palm")})
 
     def load_custom_config(self):
         """
@@ -93,18 +118,18 @@ class PALMRun(ExecutableBase):
 
         * Namelist settings.
         """
-        WRFRUN_NEW.config.update_namelist(self.custom_config["namelist"], "palm")
+        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "palm")
 
     def before_exec(self):
-        WRFRUN_NEW.config.check_wrfrun_context(True)
-        WRFRUN_NEW.config.WRFRUN_WORK_STATUS = "palm"
+        WRFRUN_NEW.states.check_wrfrun_context(True)
+        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "palm"
 
         config = WRFRUN_NEW.config.get_model_config("palm")
         job_name = config["job_name"]
         config_id = config["config_identifier"]
 
-        if not WRFRUN_NEW.config.IS_IN_REPLAY:
-            palm_workspace_input_path = get_palm_workspace_path("input")
+        if not WRFRUN_NEW.states.IS_IN_REPLAY:
+            palm_workspace_input_path = self._get_workspace_path("input")
 
             # check if user provides topography files
             topography_file = config["topography_file"]
@@ -143,35 +168,33 @@ class PALMRun(ExecutableBase):
                         logger.error(f"Your data have unknown postfix string: '{data}'.")
                         raise ValueError(f"Your data have unknown postfix string: '{data}'.")
 
-        WRFRUN_NEW.config.write_namelist(
-            f"{get_palm_workspace_path('input')}/{get_namelist_save_name()}",
+        WRFRUN_NEW.namelist.write_namelist(
+            f"{self._get_workspace_path('input')}/{get_namelist_save_name()}",
             "palm",
         )
 
-        write_palm_config(f"{get_palm_workspace_path()}/.palm.config.{config_id}")
+        write_palm_config(f"{self._get_workspace_path()}/.palm.config.{config_id}")
 
         super().before_exec()
 
     def after_exec(self):
-        if not WRFRUN_NEW.config.IS_IN_REPLAY:
+        if not WRFRUN_NEW.states.IS_IN_REPLAY:
             job_name = WRFRUN_NEW.config.get_model_config("palm")["job_name"]
 
             self.add_output_files(
-                output_dir=get_palm_workspace_path("output"),
+                output_dir=self._get_workspace_path("output"),
                 save_path=f"{self._output_save_path}/{job_name}",
                 startswith=job_name,
             )
 
             # also save namelist files.
             self.add_output_files(
-                output_dir=get_palm_workspace_path("input"),
+                output_dir=self._get_workspace_path("input"),
                 save_path=f"{self._output_save_path}/{job_name}/logs",
                 filenames=get_namelist_save_name(),
             )
 
         super().after_exec()
-
-        logger.info(f"All PALM output files have been copied to {WRFRUN_NEW.config.parse_resource_uri(self._output_save_path)}")
 
 
 def palmrun():
@@ -182,24 +205,6 @@ def palmrun():
     """
     config = WRFRUN_NEW.config.get_model_config("palm")
     PALMRun(config["config_identifier"], WRFRUN_NEW.config.get_core_num())()
-
-
-def _exec_register_func(exec_db: ExecutableDB):
-    """
-    Function to register ``Executable``.
-
-    :param exec_db: ``ExecutableDB`` instance.
-    :type exec_db: ExecutableDB
-    """
-    class_list = [PALMRun]
-    class_id_list = ["palmrun"]
-
-    for _class, _id in zip(class_list, class_id_list):
-        if not exec_db.is_registered(_id):
-            exec_db.register_exec(_id, _class)
-
-
-WRFRUN_NEW.set_exec_db_register_func(_exec_register_func)
 
 
 __all__ = ["PALMRun", "palmrun"]

@@ -13,14 +13,14 @@ Process config file of PALM.
     prepare_palm_config
 """
 
-from os import remove
-from os.path import abspath, dirname, exists
+from os.path import abspath, exists
+from pathlib import Path
 from pprint import pformat
-from shutil import move
 
 from wrfrun.core import WRFRUN_NEW, NamelistError, NamelistIDError
 from wrfrun.log import logger
-from wrfrun.workspace.palm import get_palm_workspace_path
+
+from ...core.type import ResourceRef
 
 
 def parse_palm_config(config_file_path: str) -> dict:
@@ -66,50 +66,54 @@ def read_palm_config(file_path: str):
 
     :raises NamelistIDError: Failed to register namelist id "palm_config".
     """
-    WRFRUNConfig = WRFRUN_NEW.config
-
     if not exists(file_path):
         logger.error(f"Can't find config file: '{file_path}'")
         raise FileNotFoundError(f"Can't find config file: '{file_path}'")
 
     palm_config = parse_palm_config(file_path)
 
-    if not WRFRUNConfig.check_namelist_id("palm_config"):
-        if not WRFRUNConfig.register_namelist_id("palm_config"):
+    if not WRFRUN_NEW.namelist.check_namelist_id("palm_config"):
+        if not WRFRUN_NEW.namelist.register_namelist_id("palm_config"):
             logger.error("Failed to register namelist id 'palm_config'.")
             raise NamelistIDError("Failed to register namelist id 'palm_config'.")
 
-    WRFRUNConfig.read_namelist(palm_config, "palm_config")
+    WRFRUN_NEW.namelist.read_namelist(palm_config, "palm_config")
 
 
-def write_palm_config(file_path: str):
+def write_palm_config(file_path: str | Path | ResourceRef):
     """
     Write PALM config to a file.
 
     :param file_path: Target file path.
-    :type file_path: str
+    :type file_path: str | Path | ResourceRef
     :raises NamelistError: PALM config isn't read.
     """
-    WRFRUNConfig = WRFRUN_NEW.config
-
-    if not WRFRUNConfig.check_namelist_id("palm_config"):
+    if not WRFRUN_NEW.namelist.check_namelist_id("palm_config"):
         logger.error("You haven't read PALM config yet.")
         raise NamelistError("You haven't read PALM config yet.")
 
-    palm_config = WRFRUNConfig.get_namelist("palm_config")
-    file_path = WRFRUNConfig.parse_resource_uri(file_path)
+    palm_config = WRFRUN_NEW.namelist.get_namelist("palm_config")
+
+    if isinstance(file_path, ResourceRef):
+        _file_path = WRFRUN_NEW.resource.get_custom_resource(file_path)
+    else:
+        _file_path = Path(file_path)
 
     if exists(file_path):
-        backup_file_path = f"{dirname(file_path)}/backup.palm.config"
+        backup_file_path = _file_path.parent / "backup.palm.config"
 
-        if exists(backup_file_path):
-            remove(backup_file_path)
-            logger.warning("Old backup is deleted.")
+        WRFRUN_NEW.io.move(
+            {
+                "file_path": _file_path,
+                "save_path": backup_file_path,
+                "is_data": False,
+                "is_output": False,
+            }
+        )
 
-        move(file_path, backup_file_path)
         logger.warning(f"Old file is backuped to '{backup_file_path}'")
 
-    with open(file_path, "w") as f:
+    with open(_file_path, "w") as f:
         for key in palm_config:
             if key == "others":
                 # write later
@@ -121,7 +125,7 @@ def write_palm_config(file_path: str):
             f.write(f"{_settings}\n")
 
 
-def prepare_palm_config():
+def prepare_palm_config(workspace_root: ResourceRef):
     """
     Read and process PALM configs.
     """
@@ -144,7 +148,7 @@ def prepare_palm_config():
         read_palm_config(config_file_path)
 
     # change environmental variables
-    root_path = WRFRUNConfig.parse_resource_uri(get_palm_workspace_path())
+    root_path = WRFRUN_NEW.resource.get_custom_resource(workspace_root).as_posix()
     default_values = {
         "base_directory": root_path,
         "base_data": f"{root_path}/job",
@@ -155,13 +159,13 @@ def prepare_palm_config():
         "local_jobcatalog": f"{root_path}/job/$run_identifier/LOG_FILES",
     }
 
-    loaded_config = WRFRUNConfig.get_namelist("palm_config")
+    loaded_config = WRFRUN_NEW.namelist.get_namelist("palm_config")
     update_values = {x: default_values[x] for x in default_values if x in loaded_config}
 
     logger.info(
         f"The following new settings are applied to make PALM works in wrfrun workspace:\n{pformat(update_values, indent=4)}"
     )
-    WRFRUNConfig.update_namelist(update_values, "palm_config")
+    WRFRUN_NEW.namelist.update_namelist(update_values, "palm_config")
 
 
 __all__ = ["parse_palm_config", "read_palm_config", "write_palm_config", "prepare_palm_config"]

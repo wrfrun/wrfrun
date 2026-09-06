@@ -31,6 +31,7 @@ from ._exec_db import ExecutableDB
 from ._record import ExecutableRecorder
 from .error import ConfigError, WRFRunContextError
 from .runtime import ExecutableRegistry, IOService, RecordService, ResourceCatalog, RunnerService, RuntimeService
+from .runtime.workspace import WorkspaceService
 from .states import ConfigService, NamelistService, StatesService, WRFRunStates
 from .uri import WRFRUNURI
 
@@ -375,6 +376,16 @@ class WRFRunVarAPI:
         return self.session.runtime.runner
 
     @property
+    def workspace(self) -> WorkspaceService:
+        """
+        Workspace service.
+
+        :return: Workspace service.
+        :rtype: WorkspaceService
+        """
+        return self.session.runtime.workspace
+
+    @property
     def config(self) -> ConfigService:
         """
         ``wrfrun`` configs.
@@ -442,6 +453,7 @@ def create_wrfrun_session(work_dir: str) -> Token[WRFRunSession | None]:
     record = RecordService(resource, io)
     registry = ExecutableRegistry()
     runner = RunnerService(resource)
+    workspace = WorkspaceService(resource)
 
     config = ConfigService(io, resource)
     namelist = NamelistService(io)
@@ -454,6 +466,7 @@ def create_wrfrun_session(work_dir: str) -> Token[WRFRunSession | None]:
             registry=registry,
             resource=resource,
             runner=runner,
+            workspace=workspace,
         ),
         states=StatesService(
             config=config,

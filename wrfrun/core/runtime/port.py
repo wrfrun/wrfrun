@@ -17,6 +17,7 @@ from .record import RecordService
 from .registry import ExecutableRegistry
 from .resource import ResourceCatalog
 from .runner import RunnerService
+from .workspace import WorkspaceService
 
 
 @dataclass(frozen=True)
@@ -48,6 +49,11 @@ class RuntimeService:
     runner: RunnerService
     """
     External command runner service.
+    """
+
+    workspace: WorkspaceService
+    """
+    Workspace service.
     """
 
 

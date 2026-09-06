@@ -7,23 +7,23 @@ Define plugin class which will be provided to ``wrfrun`` to register ``Executabl
 
 import logging
 
-from wrfrun.core.error import ExecRegisterError
-from wrfrun.core.runtime.registry import ExecutableRegistry
+from wrfrun.core import WRFRUN_NEW, ExecRegisterError
 
 from .core import DFI, WRF, GeoGrid, MetGrid, NDown, Real, UnGrib
+from .workspace import check_wrf_workspace, prepare_wrf_workspace
 
 LOGGER = logging.getLogger("wrfrun")
 
 
-def register_exec(registry: ExecutableRegistry, name: str, cls: type):
+def register_exec(name: str, cls: type):
     """
     Check and register the ``Executable``.
     """
-    if registry.is_registered(name):
+    if WRFRUN_NEW.registry.is_registered(name):
         LOGGER.error(f"'{name}' is already registered. DO NOT register [magenta]Executable[/magenta] repeatedly.")
         raise ExecRegisterError(f"'{name}' is already registered. DO NOT register Executable repeatedly.")
 
-    registry.register_exec(name, cls)
+    WRFRUN_NEW.registry.register_exec(name, cls)
 
 
 class WRFPlugin:
@@ -35,17 +35,22 @@ class WRFPlugin:
 
     name = "wrf"
 
-    def register(self, registry: ExecutableRegistry):
+    def register(self):
         """
         Register WRF ``Executable``.
         """
-        register_exec(registry, "geogrid", GeoGrid)
-        register_exec(registry, "ungrib", UnGrib)
-        register_exec(registry, "metgrid", MetGrid)
-        register_exec(registry, "real", Real)
-        register_exec(registry, "wrf", WRF)
-        register_exec(registry, "dfi", DFI)
-        register_exec(registry, "ndown", NDown)
+        register_exec("geogrid", GeoGrid)
+        register_exec("ungrib", UnGrib)
+        register_exec("metgrid", MetGrid)
+        register_exec("real", Real)
+        register_exec("wrf", WRF)
+        register_exec("dfi", DFI)
+        register_exec("ndown", NDown)
+
+        WRFRUN_NEW.workspace.register_init_func("wrf", prepare_wrf_workspace)
+        WRFRUN_NEW.workspace.register_check_func("wrf", check_wrf_workspace)
+
+        WRFRUN_NEW.resource.register_provider("workspace_wrf", WRFRUN_NEW.resource.WRFRUN_WORKSPACE_ROOT / "wrf")
 
 
 __all__ = ["WRFPlugin"]

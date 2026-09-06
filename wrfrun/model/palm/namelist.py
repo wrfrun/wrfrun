@@ -30,7 +30,7 @@ def prepare_palm_namelist():
         logger.error(f"Can't find PALM namelist: {namelist_file}")
         raise FileNotFoundError(f"Can't find PALM namelist: {namelist_file}")
 
-    WRFRUN_NEW.config.read_namelist(namelist_file, "palm")
+    WRFRUN_NEW.namelist.read_namelist(namelist_file, "palm")
 
 
 def get_namelist_save_name() -> str:
@@ -93,7 +93,7 @@ def check_palm_grid_params():
     :raises NameError: 'nx', 'ny', 'npex' or 'npey' isn't integer.
     :raises ValueError: 'nx' and 'ny' 's value isn't right to work with other settings.
     """
-    namelist_dict = WRFRUN_NEW.config.get_namelist("palm")
+    namelist_dict = WRFRUN_NEW.namelist.get_namelist("palm")
     initialization_parameters: dict = namelist_dict["initialization_parameters"]
     runtime_parameters: dict = namelist_dict["runtime_parameters"]
 

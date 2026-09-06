@@ -55,7 +55,6 @@ from .data import prepare_wps_input_data
 from .log import logger, logger_add_file_handler
 from .model import clear_model_logs, generate_domain_area
 from .scheduler import in_job_scheduler, submit_scheduler_task
-from .workspace import check_workspace, prepare_workspace
 
 
 def confirm_model_area():
@@ -141,7 +140,7 @@ class WRFRunContext:
         WRFRUN_NEW.config.load_wrfrun_config(self.config_file_path)
 
         # check workspace
-        if not check_workspace():
+        if not WRFRUN_NEW.workspace.check_workspace():
             logger.info("Reinitialize workspace because it is broken.")
             self._init_workspace = True
 
@@ -151,7 +150,7 @@ class WRFRunContext:
         # 2. submit_job = False and init_workspace = True, do prepare_workspace.
         if self._submit_job and not in_job_scheduler():
             if self._init_workspace:
-                prepare_workspace()
+                WRFRUN_NEW.workspace.init_workspace()
 
             # ask user before commit the task
             if not self._skip_domain_confirm:
@@ -163,7 +162,7 @@ class WRFRunContext:
 
         elif not self._submit_job:
             if self._init_workspace:
-                prepare_workspace()
+                WRFRUN_NEW.workspace.init_workspace()
 
             if not self._skip_domain_confirm:
                 confirm_model_area()

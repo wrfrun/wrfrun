@@ -13,6 +13,8 @@ from wrfrun.core.plugin import PluginProtocol
 PLUGIN_MAP = {
     "wrf": "wrfrun.model.wrf.plugin:WRFPlugin",
     "arps": "wrfrun.model.arps.plugin:ARPSPlugin",
+    "palm": "wrfrun.model.palm.plugin:PALMPlugin",
+    "roms": "wrfrun.model.roms.plugin:ROMSPlugin",
 }
 
 

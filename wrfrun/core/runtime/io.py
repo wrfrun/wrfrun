@@ -57,8 +57,15 @@ class IOService:
         file_path = file_config["file_path"]
         save_path = file_config["save_path"]
 
-        file_path = self._resource.get_resource(file_path)
-        save_path = self._resource.get_custom_resource(save_path)
+        if isinstance(file_path, ResourceRef):
+            file_path = self._resource.get_resource(file_path)
+        else:
+            file_path = Path(file_path)
+
+        if isinstance(save_path, ResourceRef):
+            save_path = self._resource.get_custom_resource(save_path)
+        else:
+            save_path = Path(save_path)
 
         LOGGER.debug(f"Parse file '{file_path}' to '{file_path}'")
 
@@ -71,7 +78,7 @@ class IOService:
             LOGGER.error(message)
             raise FileNotFoundError(message)
 
-        save_path.parent.mkdir(exist_ok=True)
+        save_path.parent.mkdir(exist_ok=True, parents=True)
 
         if save_path.is_file():
             if overwrite:
@@ -92,38 +99,133 @@ class IOService:
         else:
             symlink(file_path, save_path)
 
-    def copy(self, file_config: FileConfigDict, overwrite=False):
+    def copy(
+        self,
+        file_config: FileConfigDict | None = None,
+        file_path: str | Path | ResourceRef | None = None,
+        save_path: str | Path | ResourceRef | None = None,
+        is_data=False,
+        is_output=False,
+        overwrite=False,
+    ):
         """
         Copy file to the destination.
 
         :param file_config: File config.
-        :type file_config: FileConfigDict
+        :type file_config: FileConfigDict | None = None
+        :param file_path: File source path.
+        :type file_path: str | Path | ResourceRef | None = None
+        :param save_path: File save path.
+        :type save_path: str | Path | ResourceRef | None = None
+        :param is_data: If the file is data.
+        :type is_data: bool
+        :param is_output: If the file is model's output.
+        :type is_output: bool
         :param overwrite: If overwrite exists file.
         :type overwrite: bool
         """
-        self.process(file_config, is_copy=True, overwrite=overwrite)
+        if isinstance(file_config, FileConfigDict):
+            self.process(file_config, is_copy=True, overwrite=overwrite)
+        else:
+            if file_path is None or save_path is None:
+                LOGGER.error("If you don't give 'file_config', 'file_path' and 'save_path' can't be None.")
+                raise ValueError("If you don't give 'file_config', 'file_path' and 'save_path' can't be None.")
 
-    def move(self, file_config: FileConfigDict, overwrite=False):
+            self.process(
+                {
+                    "file_path": file_path,
+                    "save_path": save_path,
+                    "is_data": is_data,
+                    "is_output": is_output,
+                },
+                is_copy=True,
+                overwrite=overwrite,
+            )
+
+    def move(
+        self,
+        file_config: FileConfigDict | None = None,
+        file_path: str | Path | ResourceRef | None = None,
+        save_path: str | Path | ResourceRef | None = None,
+        is_data=False,
+        is_output=False,
+        overwrite=False,
+    ):
         """
         Move file to the destination.
 
         :param file_config: File config.
-        :type file_config: FileConfigDict
+        :type file_config: FileConfigDict | None = None
+        :param file_path: File source path.
+        :type file_path: str | Path | ResourceRef | None = None
+        :param save_path: File save path.
+        :type save_path: str | Path | ResourceRef | None = None
+        :param is_data: If the file is data.
+        :type is_data: bool
+        :param is_output: If the file is model's output.
+        :type is_output: bool
         :param overwrite: If overwrite exists file.
         :type overwrite: bool
         """
-        self.process(file_config, is_move=True, overwrite=overwrite)
+        if isinstance(file_config, FileConfigDict):
+            self.process(file_config, is_move=True, overwrite=overwrite)
+        else:
+            if file_path is None or save_path is None:
+                LOGGER.error("If you don't give 'file_config', 'file_path' and 'save_path' can't be None.")
+                raise ValueError("If you don't give 'file_config', 'file_path' and 'save_path' can't be None.")
 
-    def symlink(self, file_config: FileConfigDict, overwrite=False):
+            self.process(
+                {
+                    "file_path": file_path,
+                    "save_path": save_path,
+                    "is_data": is_data,
+                    "is_output": is_output,
+                },
+                is_move=True,
+                overwrite=overwrite,
+            )
+
+    def symlink(
+        self,
+        file_config: FileConfigDict | None = None,
+        file_path: str | Path | ResourceRef | None = None,
+        save_path: str | Path | ResourceRef | None = None,
+        is_data=False,
+        is_output=False,
+        overwrite=False,
+    ):
         """
         Link file to the destination.
 
         :param file_config: File config.
-        :type file_config: FileConfigDict
+        :type file_config: FileConfigDict | None = None
+        :param file_path: File source path.
+        :type file_path: str | Path | ResourceRef | None = None
+        :param save_path: File save path.
+        :type save_path: str | Path | ResourceRef | None = None
+        :param is_data: If the file is data.
+        :type is_data: bool
+        :param is_output: If the file is model's output.
+        :type is_output: bool
         :param overwrite: If overwrite exists file.
         :type overwrite: bool
         """
-        self.process(file_config, overwrite=overwrite)
+        if isinstance(file_config, FileConfigDict):
+            self.process(file_config, overwrite=overwrite)
+        else:
+            if file_path is None or save_path is None:
+                LOGGER.error("If you don't give 'file_config', 'file_path' and 'save_path' can't be None.")
+                raise ValueError("If you don't give 'file_config', 'file_path' and 'save_path' can't be None.")
+
+            self.process(
+                {
+                    "file_path": file_path,
+                    "save_path": save_path,
+                    "is_data": is_data,
+                    "is_output": is_output,
+                },
+                overwrite=overwrite,
+            )
 
     def write_namelist(self, content: dict, file_path: str | ResourceRef):
         """

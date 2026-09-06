@@ -16,7 +16,8 @@ from typing import Optional
 
 from wrfrun.core import WRFRUN_NEW, ExecutableBase
 from wrfrun.log import logger
-from wrfrun.workspace.roms import get_roms_workspace_path
+
+from ...core.type import ResourceRef
 
 
 class ROMS(ExecutableBase):
@@ -53,7 +54,7 @@ class ROMS(ExecutableBase):
         super().__init__(
             name="roms",
             cmd=[f"./{basename(roms_exe_path)}", f"./{basename(in_file_path)}"],
-            work_path=get_roms_workspace_path(),
+            work_path=ResourceRef("workspace_roms", ""),
             mpi_use=mpi_use,
             mpi_cmd=mpi_cmd,
             mpi_core_num=mpi_core_num,
@@ -87,10 +88,10 @@ class ROMS(ExecutableBase):
         self.varinfo_file_path = self.custom_config["varinfo_file_path"]
 
     def before_exec(self):
-        WRFRUN_NEW.config.check_wrfrun_context(True)
-        WRFRUN_NEW.config.WRFRUN_WORK_STATUS = "roms"
+        WRFRUN_NEW.states.check_wrfrun_context(True)
+        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "roms"
 
-        if not WRFRUN_NEW.config.IS_IN_REPLAY:
+        if not WRFRUN_NEW.states.IS_IN_REPLAY:
             self.add_input_files(self.in_file_path)
             self.add_input_files(self.roms_exe_path)
             self.add_input_files(self.varinfo_file_path)
@@ -98,7 +99,7 @@ class ROMS(ExecutableBase):
         super().before_exec()
 
     def after_exec(self):
-        if not WRFRUN_NEW.config.IS_IN_REPLAY:
+        if not WRFRUN_NEW.states.IS_IN_REPLAY:
             self.add_output_files(save_path=self._output_save_path, endswith=".nc")
 
             logger.warning(
@@ -106,8 +107,6 @@ class ROMS(ExecutableBase):
             )
 
         super().after_exec()
-
-        logger.info(f"All ROMS output files have been copied to {WRFRUN_NEW.config.parse_resource_uri(self._output_save_path)}")
 
 
 def roms():

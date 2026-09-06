@@ -104,6 +104,8 @@ class ConfigService:
 
         config_dir_path = abspath(dirname(config_path))
 
+        from wrfrun.model.plugins import load_model_plugin
+
         # merge model config.
         keys_list = list(self._config["model"].keys())
         for model_key in keys_list:
@@ -125,6 +127,8 @@ class ConfigService:
                     _mode_config = tomli.load(f)
                     _mode_config.update({"use": True})
                     self._config["model"][model_key] = _mode_config
+
+                load_model_plugin(model_key).register()
 
             else:
                 self._config["model"].pop(model_key)

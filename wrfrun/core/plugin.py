@@ -12,8 +12,6 @@ wrfrun.core.plugin
 
 from typing import Protocol
 
-from .runtime.registry import ExecutableRegistry
-
 
 class PluginProtocol(Protocol):
     """
@@ -22,7 +20,7 @@ class PluginProtocol(Protocol):
 
     name: str
 
-    def register(self, registry: ExecutableRegistry):
+    def register(self):
         """
         Method which registers information to the registry.
         """

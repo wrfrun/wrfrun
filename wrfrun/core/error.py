@@ -135,6 +135,14 @@ class CommandExecutionError(WRFRunBasicError):
     pass
 
 
+class WorkspaceResetError(WRFRunBasicError):
+    """
+    Work directory or workspace path is changed after being set.
+    """
+
+    pass
+
+
 __all__ = [
     "WRFRunBasicError",
     "ConfigError",
@@ -150,4 +158,5 @@ __all__ = [
     "NamelistIDError",
     "RecordError",
     "CommandExecutionError",
+    "WorkspaceResetError",
 ]

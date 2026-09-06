@@ -48,7 +48,7 @@ class ResourceCatalog:
         # runtime resource ref obj
         self._output = ResourceRef("project", "outputs")
 
-    def register_provider(self, provider_name: str, provider_path: str) -> None:
+    def register_provider(self, provider_name: str, provider_path: str | Path | ResourceRef) -> None:
         """
         Register a provider.
 
@@ -69,7 +69,7 @@ class ResourceCatalog:
         >>> resource.register_provider("my_res_data", "data/res")
 
         :param provider_name: Provider name.
-        :type provider_name: str
+        :type provider_name: str | ResourceRef
         :param provider_path: Provider path (can be a package path, or real path)
         :type provider_path: str
         :raises ValueError: Provider already is registered.
@@ -77,7 +77,12 @@ class ResourceCatalog:
         if provider_name in self._packages:
             raise ValueError(f"Resource provider already registered: {provider_name}")
 
-        self._packages[provider_name] = provider_path
+        if isinstance(provider_path, ResourceRef):
+            _provider_path = self.get_custom_resource(provider_path)
+        else:
+            _provider_path = Path(provider_path).resolve()
+
+        self._packages[provider_name] = _provider_path.as_posix()
 
     def unregister_provider(self, provider_name: str):
         """
@@ -224,14 +229,6 @@ class ResourceCatalog:
         :rtype: ResourceRef
         """
         return ResourceRef("replay", "")
-
-    @property
-    def work_path(self, work_path: str):
-        self._work_path = Path(work_path).resolve()
-
-    @work_path.setter
-    def work_path(self) -> str:
-        return self._work_path.as_posix()
 
     # ########################## Compatibility interface ###############################
 
