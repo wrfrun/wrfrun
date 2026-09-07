@@ -15,6 +15,10 @@ contract requires.
 - Prefer the smallest complete implementation over speculative branches,
   abstractions, and future-facing options. Add complexity only when a current,
   observable requirement needs it.
+- Do not pursue generality before the simple implementation meets the current
+  requirement. Extend it only after a concrete need is established.
+- Before changing an implementation, discuss the proposed plan with the user
+  and begin editing only after the plan is confirmed.
 - Unless the user explicitly asks to change a target, keep the work read-only:
   inspect, analyze, and report findings without editing code, configuration, or
   documentation.
