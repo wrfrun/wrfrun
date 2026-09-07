@@ -30,7 +30,7 @@ from ._config import WRFRunConfig
 from ._exec_db import ExecutableDB
 from ._record import ExecutableRecorder
 from .error import ConfigError, WRFRunContextError
-from .runtime import ExecutableRegistry, IOService, RecordService, ResourceCatalog, RunnerService, RuntimeService
+from .runtime import ExecutableRegistry, IOService, ReplayService, ResourceCatalog, RunnerService, RuntimeService
 from .runtime.workspace import WorkspaceService
 from .states import ConfigService, NamelistService, StatesService, WRFRunStates
 from .uri import WRFRUNURI
@@ -336,14 +336,14 @@ class WRFRunVarAPI:
         return self.session.runtime.io
 
     @property
-    def record(self) -> RecordService:
+    def replay(self) -> ReplayService:
         """
-        Record service.
+        Record and replay service.
 
         :return: Record service.
         :rtype: RecordService
         """
-        return self.session.runtime.record
+        return self.session.runtime.replay
 
     @property
     def resource(self) -> ResourceCatalog:
@@ -450,8 +450,8 @@ def create_wrfrun_session(work_dir: str) -> Token[WRFRunSession | None]:
     """
     resource = ResourceCatalog(work_dir)
     io = IOService(resource)
-    record = RecordService(resource, io)
     registry = ExecutableRegistry()
+    replay = ReplayService(resource, io, registry)
     runner = RunnerService(resource)
     workspace = WorkspaceService(resource, io)
 
@@ -462,7 +462,7 @@ def create_wrfrun_session(work_dir: str) -> Token[WRFRunSession | None]:
     wrfrun_session = WRFRunSession(
         runtime=RuntimeService(
             io=io,
-            record=record,
+            replay=replay,
             registry=registry,
             resource=resource,
             runner=runner,

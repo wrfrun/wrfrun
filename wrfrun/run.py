@@ -198,7 +198,7 @@ class WRFRunContext:
 
         if WRFRUN_NEW.states.IS_RECORDING:
             if exc_type is None:
-                WRFRUN_NEW.record.export_replay_file()
+                WRFRUN_NEW.replay.export_replay_file()
 
         WRFRUN_NEW.states.IS_RECORDING = False
 
@@ -252,8 +252,8 @@ class WRFRunContext:
         :param include_data: If includes data.
         :type include_data: bool
         """
-        WRFRUN_NEW.record.set_save_path(output_path)
-        WRFRUN_NEW.record.set_include_data(include_data)
+        WRFRUN_NEW.replay.set_save_path(output_path)
+        WRFRUN_NEW.replay.set_include_data(include_data)
         WRFRUN_NEW.states.IS_RECORDING = True
 
     def replay_simulation(self, replay_file: str):

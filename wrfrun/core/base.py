@@ -715,7 +715,7 @@ class ExecutableBase:
         self.after_exec()
 
         if not WRFRUN_NEW.states.IS_IN_REPLAY and WRFRUN_NEW.states.IS_RECORDING:
-            WRFRUN_NEW.record.record(self.export_config())
+            WRFRUN_NEW.replay.record(self.export_config())
 
 
 __all__ = ["ExecutableBase", "call_subprocess"]

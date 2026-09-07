@@ -13,7 +13,7 @@ Runtime service port.
 from dataclasses import dataclass
 
 from .io import IOService
-from .record import RecordService
+from .record import ReplayService
 from .registry import ExecutableRegistry
 from .resource import ResourceCatalog
 from .runner import RunnerService
@@ -31,9 +31,9 @@ class RuntimeService:
     IO service.
     """
 
-    record: RecordService
+    replay: ReplayService
     """
-    Record service.
+    Record and replay service.
     """
 
     registry: ExecutableRegistry

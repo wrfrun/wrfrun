@@ -19,7 +19,7 @@ import logging
 from dataclasses import dataclass
 from enum import Enum, IntEnum
 from pathlib import Path
-from typing import Optional, TypedDict, Union
+from typing import Optional, Protocol, TypedDict, Union
 
 LOGGER = logging.getLogger("wrfrun")
 
@@ -275,4 +275,33 @@ class ExecutableConfig(TypedDict):
     custom_config: dict
 
 
-__all__ = ["InputFileType", "FileConfigDict", "ExecutableClassConfig", "ExecutableConfig", "ResourceType", "ResourceRef"]
+class ExecutableBaseProtocol(Protocol):
+    """
+    Protocol class of Executable base.
+    """
+
+    def load_config(self, config: ExecutableConfig):
+        """
+        Method to load config.
+
+        :param config: Configs.
+        :type config: ExecutableConfig
+        """
+        ...
+
+    def replay(self):
+        """
+        Method to replay simulations.
+        """
+        ...
+
+
+__all__ = [
+    "InputFileType",
+    "FileConfigDict",
+    "ExecutableClassConfig",
+    "ExecutableConfig",
+    "ResourceType",
+    "ResourceRef",
+    "ExecutableBaseProtocol",
+]

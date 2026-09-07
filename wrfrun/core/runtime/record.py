@@ -17,14 +17,16 @@ and users can reproduce the simulation with the ``.replay`` file.
 """
 
 import logging
-from json import dumps
+from json import dumps, loads
 from os import remove
-from shutil import copyfile, make_archive, move, rmtree
+from shutil import make_archive, move, rmtree, unpack_archive
+from typing import Generator
 
 import numpy as np
 
-from ..type import ExecutableConfig
+from ..type import ExecutableBaseProtocol, ExecutableConfig, ResourceRef
 from .io import IOService
+from .registry import ExecutableRegistry
 from .resource import ResourceCatalog
 
 LOGGER = logging.getLogger("wrfrun")
@@ -43,16 +45,25 @@ def _json_default(obj):
         return int(obj)
     elif isinstance(obj, np.floating):
         return float(obj)
+    elif isinstance(obj, ResourceRef):
+        return obj.to_string()
     else:
         raise TypeError(f"Object of type {type(obj)} is not JSON serializable.")
 
 
-class RecordService:
+class ReplayService:
     """
-    This class provides methods to record simulations.
+    This class provides methods to record and replay simulations.
     """
 
-    def __init__(self, resource: ResourceCatalog, io: IOService, save_path="./wrfrun.replay", include_data=False):
+    def __init__(
+        self,
+        resource: ResourceCatalog,
+        io: IOService,
+        registry: ExecutableRegistry,
+        save_path="./wrfrun.replay",
+        include_data=False,
+    ):
         """
         :param wrfrun_config: `WRFRunConfig` instance.
         :type wrfrun_config: WRFRunConfig
@@ -63,6 +74,7 @@ class RecordService:
         """
         self._resource = resource
         self._io = io
+        self._registry = registry
 
         self.save_path = save_path
         self.include_data = include_data
@@ -126,15 +138,7 @@ class RecordService:
 
             file_path = _config["file_path"]
             file_path = self._resource.get_custom_resource(file_path, check=True)
-            self._io.copy(
-                {
-                    "file_path": file_path,
-                    "save_path": data_save_path / file_path.name,
-                    "is_data": False,
-                    "is_output": False,
-                }
-            )
-            copyfile(file_path, data_save_path / file_path.name)
+            self._io.copy(file_path=file_path, save_path=data_save_path / file_path.name)
 
             _config["file_path"] = f"{data_save_uri}/{file_path.name}"
             input_file_config[_config_index] = _config
@@ -174,10 +178,12 @@ class RecordService:
 
         LOGGER.info("Exporting replay config... It may take a few minutes if you include data.")
 
-        with open(f"{self.content_path}/config.json", "w") as f:
-            f.write(dumps(self._recorded_config, indent=4, default=_json_default))
-
+        work_path = self._resource.get_custom_resource(self.work_path)
+        content_path = self._resource.get_custom_resource(self.content_path)
         save_path = self._resource.get_custom_resource(self.save_path)
+
+        with open(content_path / "config.json", "w") as f:
+            f.write(dumps(self._recorded_config, indent=4, default=_json_default))
 
         if save_path.exists():
             LOGGER.warning("Found existed replay file, it will be overwrote.")
@@ -192,11 +198,53 @@ class RecordService:
 
         save_path.parent.mkdir(exist_ok=True, parents=True)
 
-        temp_file = self.work_path / "config_and_data"
+        temp_file = work_path / "config_and_data"
         make_archive(temp_file, "zip", self.content_path)
-        move(f"{temp_file}.zip", save_path)
+        move(f"{temp_file.as_posix()}.zip", save_path)
 
         LOGGER.info(f"Replay config exported to {save_path}")
 
+    def replay_generator(self, replay_file: str) -> Generator[tuple[str, ExecutableBaseProtocol], None, None]:
+        """
+        Load replay file, and return initialized ``Executable`` which can be used to replay the simulation.
 
-__all__ = ["RecordService"]
+        :param replay_file: Replay file.
+        :type replay_file: str
+        :raises FileNotFoundError: Replay config not found in the provided replay file.
+        :yield: Initialized ``Executable``.
+        :rtype: Generator[tuple[str, ExecutableBaseProtocol], None, None]
+        """
+        LOGGER.info(f"Loading replay resources from: {replay_file}")
+        work_path = self._resource.get_custom_resource(self.work_path)
+        work_path.mkdir(exist_ok=True, parents=True)
+        simulation_json = work_path / "config.json"
+
+        unpack_archive(replay_file, work_path, "zip")
+
+        if not simulation_json.exists():
+            LOGGER.error("Can't find replay config in the provided config file.")
+            raise FileNotFoundError("Can't find replay config in the provided config file.")
+
+        with open(simulation_json, "r") as f:
+            replay_config_list: list[ExecutableConfig] = loads(f.read())
+
+        for _config in replay_config_list:
+            args = _config["class_config"]["class_args"]
+            kwargs = _config["class_config"]["class_kwargs"]
+            executable: ExecutableBaseProtocol = self._registry.get_cls(_config["name"])(*args, **kwargs)
+            executable.load_config(_config)
+            yield _config["name"], executable
+
+    def replay_simulation(self, replay_file: str):
+        """
+        A simple wrapper which uses :py:meth:`replay_generator` to replay simulations.
+
+        :param replay_file: Replay file.
+        :type replay_file: str
+        """
+        for name, exec in self.replay_generator(replay_file):
+            LOGGER.info(f"Initialize '{name}' from replay file...")
+            exec.replay()
+
+
+__all__ = ["ReplayService"]
