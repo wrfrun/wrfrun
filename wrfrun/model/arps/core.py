@@ -21,7 +21,6 @@ import logging
 from datetime import datetime, timedelta
 from os import listdir
 from os.path import exists
-from pathlib import Path
 from typing import Optional
 
 from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
@@ -394,7 +393,7 @@ class ARPS(ExecutableBase):
 
         # find ext2arps outputs
         _ext2arps_out_dir_ref = WRFRUN_NEW.resource.OUTPUT_DIR / "ext2arps"
-        _ext2arps_out_files = glob.glob("ext2arps.", root_dir=WRFRUN_NEW.resource.get_custom_resource(_ext2arps_out_dir_ref))
+        _ext2arps_out_files = glob.glob("ext2arps.*", root_dir=WRFRUN_NEW.resource.get_custom_resource(_ext2arps_out_dir_ref))
 
         if len(_ext2arps_out_files) < 2:
             message = "Can't find all ext2arps outputs in outputs directory, which is essential to run arps."
@@ -580,20 +579,13 @@ class ARPSIntrp(ExecutableBase):
     """
     ``Executable`` for ``arpsintrp``.
 
-    Input files are linked into its workspace before execution. By default,
-    they are read from archived ``arps`` outputs; ``input_data_path`` can
-    select another directory containing an ARPS base file and history files.
-
-    :param input_data_path: Directory containing the input ARPS files. If it
-                            is ``None``, use archived ``arps`` outputs.
-    :type input_data_path: str | pathlib.Path | None
+    It uses the grid/base and history files archived from ``ext2arps``.
     """
 
-    def __init__(self, input_data_path: str | Path | None = None):
+    def __init__(self):
         """Create an ``arpsintrp`` executable."""
         work_path = ResourceRef("workspace_arps", "arpsintrp")
         self.namelist_path = work_path / "arpsintrp.nml"
-        self.input_data_path = Path(input_data_path).expanduser() if input_data_path is not None else None
 
         super().__init__(
             name="arpsintrp",
@@ -601,9 +593,6 @@ class ARPSIntrp(ExecutableBase):
             work_path=work_path,
             stdin_file=self.namelist_path,
         )
-
-        if self.input_data_path is not None:
-            self.class_config = {"class_args": (), "class_kwargs": {"input_data_path": self.input_data_path.as_posix()}}
 
         prepare_arpsintrp_namelist()
 
@@ -617,105 +606,25 @@ class ARPSIntrp(ExecutableBase):
             WRFRUN_NEW.namelist.register_namelist_id("arpsintrp")
         WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arpsintrp")
 
-    def _input_directory(self) -> Path | ResourceRef:
-        if self.input_data_path is None:
-            return WRFRUN_NEW.resource.OUTPUT_DIR / "arps"
-
-        input_directory = self.input_data_path.resolve()
-        if not input_directory.is_dir():
-            raise NotADirectoryError(f"arpsintrp input directory doesn't exist: {input_directory}")
-        return input_directory
-
-    @staticmethod
-    def _source_path(input_directory: Path | ResourceRef, filename: str) -> Path | ResourceRef:
-        path = Path(filename).expanduser()
-        if path.is_absolute():
-            return path
-        if isinstance(input_directory, ResourceRef):
-            return input_directory / path.as_posix()
-        return input_directory / path
-
-    @staticmethod
-    def _resource_path(source: Path | ResourceRef, require_file=True) -> Path:
-        if isinstance(source, ResourceRef):
-            path = WRFRUN_NEW.resource.get_custom_resource(source)
-        else:
-            path = source
-
-        if require_file and not path.is_file():
-            raise FileNotFoundError(f"Can't find arpsintrp input file: {path}")
-        return path
-
-    def _stage_input_file(self, source: Path | ResourceRef, staged_names: set[str], is_output: bool) -> str:
-        source_path = self._resource_path(source)
-        staged_name = source_path.name
-        if staged_name in staged_names:
-            raise ValueError(f"arpsintrp input files have the same basename: {staged_name}")
-
-        staged_names.add(staged_name)
-        self.add_input_files(
-            {
-                "file_path": source,
-                "save_path": self.work_path / staged_name,
-                "is_data": True,
-                "is_output": is_output,
-            }
-        )
-        return f"./{staged_name}"
-
     def _stage_history_data(self):
         """Stage history inputs and rewrite their namelist paths."""
-        namelist = WRFRUN_NEW.namelist.get_namelist("arpsintrp")
-        history_data = namelist.get("history_data", {})
-        input_directory = self._input_directory()
-        is_output = isinstance(input_directory, ResourceRef)
-        staged_names: set[str] = set()
+        input_dir_ref = WRFRUN_NEW.resource.OUTPUT_DIR / "ext2arps"
+        input_files = list(WRFRUN_NEW.resource.get_custom_resource(input_dir_ref).iterdir())
+        grid_base_file = next(file for file in input_files if file.suffix.endswith("grdbas"))
+        history_files = sorted(file for file in input_files if file.suffix[-6:].isdigit())
 
-        if history_data.get("hdmpinopt") == 2:
-            try:
-                history_files = history_data["hisfile"]
-                history_count = int(history_data["nhisfile"])
-                grid_base_file = history_data["grdbasfn"]
-            except KeyError as exc:
-                raise KeyError(f"arpsintrp history_data is missing '{exc.args[0]}'.") from exc
-
-            if isinstance(history_files, str):
-                history_files = [history_files]
-            if len(history_files) < history_count:
-                raise ValueError(
-                    f"arpsintrp expects {history_count} history files, but only {len(history_files)} were configured."
-                )
-
-            staged_grid_base = self._stage_input_file(
-                self._source_path(input_directory, grid_base_file), staged_names, is_output
-            )
-            staged_history = [
-                self._stage_input_file(self._source_path(input_directory, filename), staged_names, is_output)
-                for filename in history_files[:history_count]
-            ]
-            WRFRUN_NEW.namelist.update_namelist(
-                {"history_data": {"grdbasfn": staged_grid_base, "hisfile": staged_history, "nhisfile": history_count}},
-                "arpsintrp",
-            )
-            return
-
-        if history_data.get("hdmpinopt") != 1:
-            raise ValueError("arpsintrp only supports history_data.hdmpinopt values 1 and 2.")
-
-        header = Path(history_data.get("hdmpfheader", "")).name
-        if not header:
-            raise ValueError("arpsintrp history_data.hdmpfheader is required when hdmpinopt=1.")
-
-        input_directory_path = self._resource_path(input_directory, require_file=False)
-        if not input_directory_path.is_dir():
-            raise NotADirectoryError(f"arpsintrp input directory doesn't exist: {input_directory_path}")
-        source_files = sorted(input_directory_path.glob(f"{header}.*"))
-        if not source_files:
-            raise FileNotFoundError(f"Can't find arpsintrp input files matching '{header}.*' in '{input_directory_path}'.")
-
-        for source_file in source_files:
-            self._stage_input_file(source_file, staged_names, is_output)
-        WRFRUN_NEW.namelist.update_namelist({"history_data": {"hdmpfheader": f"./{header}"}}, "arpsintrp")
+        self.add_input_files([input_dir_ref / file.name for file in [grid_base_file, *history_files]])
+        WRFRUN_NEW.namelist.update_namelist(
+            {
+                "history_data": {
+                    "hdmpinopt": 2,
+                    "grdbasfn": f"./{grid_base_file.name}",
+                    "nhisfile": len(history_files),
+                    "hisfile": [f"./{file.name}" for file in history_files],
+                }
+            },
+            "arpsintrp",
+        )
 
     def before_exec(self):
         WRFRUN_NEW.states.check_wrfrun_context(True)
