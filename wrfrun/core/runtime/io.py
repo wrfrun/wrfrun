@@ -124,7 +124,7 @@ class IOService:
         :param overwrite: If overwrite exists file.
         :type overwrite: bool
         """
-        if isinstance(file_config, FileConfigDict):
+        if isinstance(file_config, dict):
             self.process(file_config, is_copy=True, overwrite=overwrite)
         else:
             if file_path is None or save_path is None:
@@ -167,7 +167,7 @@ class IOService:
         :param overwrite: If overwrite exists file.
         :type overwrite: bool
         """
-        if isinstance(file_config, FileConfigDict):
+        if isinstance(file_config, dict):
             self.process(file_config, is_move=True, overwrite=overwrite)
         else:
             if file_path is None or save_path is None:
@@ -210,7 +210,7 @@ class IOService:
         :param overwrite: If overwrite exists file.
         :type overwrite: bool
         """
-        if isinstance(file_config, FileConfigDict):
+        if isinstance(file_config, dict):
             self.process(file_config, overwrite=overwrite)
         else:
             if file_path is None or save_path is None:

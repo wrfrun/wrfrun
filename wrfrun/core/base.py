@@ -288,7 +288,7 @@ class ExecutableBase:
 
         # directory to save outputs
         self._output_save_path = WRFRUN_NEW.resource.OUTPUT_DIR / self.name
-        self._log_save_path = self._output_save_path / "log"
+        self._log_save_path = self._output_save_path / "logs"
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -539,13 +539,15 @@ class ExecutableBase:
 
         if output_dir is None:
             _output_dir = self.work_path
-        elif isinstance(output_dir, str):
-            _output_dir = Path(output_dir)
+        elif isinstance(output_dir, ResourceRef):
+            _output_dir = WRFRUN_NEW.resource.get_custom_resource(output_dir)
         else:
-            _output_dir = output_dir
+            _output_dir = Path(output_dir)
 
         if save_path is None:
             _save_path = WRFRUN_NEW.resource.get_custom_resource(self._output_save_path)
+        elif isinstance(save_path, ResourceRef):
+            _save_path = WRFRUN_NEW.resource.get_custom_resource(save_path)
         else:
             _save_path = Path(save_path)
 
@@ -693,7 +695,7 @@ class ExecutableBase:
             stderr=stderr,
         )
 
-        WRFRUN_NEW.runner.run(command)
+        WRFRUN_NEW.runner.run(command).require_success()
 
         if WRFRUN_NEW.states.DEBUG_MODE_EXECUTABLE:
             self.exec_debug()

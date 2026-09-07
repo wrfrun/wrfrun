@@ -29,7 +29,7 @@ class PALMPlugin:
         """
         WRFRUN_NEW.registry.register_exec("palmrun", PALMRun)
 
-        WRFRUN_NEW.resource.register_provider("workspace_palm", WRFRUN_NEW.resource.WRFRUN_WORKSPACE_ROOT / "palm")
+        WRFRUN_NEW.resource.register_provider("workspace_palm", WRFRUN_NEW.resource.WORKSPACE_DIR / "palm")
 
 
 __all__ = ["PALMPlugin"]

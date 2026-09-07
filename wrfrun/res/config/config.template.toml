@@ -7,11 +7,14 @@ work_dir = "./.wrfrun"
 
 
 # Path of the directory which contains input data.
-input_data_path = ""
+input_data_path = "./data"
 
 # Path of the directory to store all outputs.
 output_path = "./outputs"
 log_path = "./logs"
+
+# Path of the directory to place model's config template file.
+template_dir = "./templates"
 
 # wrfrun can launch a socket server during NWP execution to report simulation progress.
 # To enable the server, you need to configure the IP address and port on which it will listen to.

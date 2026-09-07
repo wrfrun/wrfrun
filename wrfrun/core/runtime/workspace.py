@@ -184,9 +184,9 @@ class WorkspaceService:
         workspace_backup_path = None
         initialize_success = False
 
-        wrfrun_temp_path = self._resource.get_custom_resource(self._resource.WRFRUN_TEMP_PATH)
-        workspace_path = self._resource.get_custom_resource(self._resource.WRFRUN_WORKSPACE_ROOT)
-        replay_work_path = self._resource.get_custom_resource(self._resource.WRFRUN_WORKSPACE_REPLAY)
+        wrfrun_temp_path = self._resource.get_custom_resource(self._resource.TEMP_DIR)
+        workspace_path = self._resource.get_custom_resource(self._resource.WORKSPACE_DIR)
+        replay_work_path = self._resource.get_custom_resource(self._resource.REPLAY_DIR)
         output_path = self._resource.get_custom_resource(self._resource.OUTPUT_DIR)
 
         if workspace_path.is_dir():
@@ -230,9 +230,9 @@ class WorkspaceService:
         """
         global CHECK_FUNC_MAP
 
-        wrfrun_temp_path = self._resource.get_custom_resource(self._resource.WRFRUN_TEMP_PATH)
-        workspace_path = self._resource.get_custom_resource(self._resource.WRFRUN_WORKSPACE_ROOT)
-        replay_work_path = self._resource.get_custom_resource(self._resource.WRFRUN_WORKSPACE_REPLAY)
+        wrfrun_temp_path = self._resource.get_custom_resource(self._resource.TEMP_DIR)
+        workspace_path = self._resource.get_custom_resource(self._resource.WORKSPACE_DIR)
+        replay_work_path = self._resource.get_custom_resource(self._resource.REPLAY_DIR)
         output_path = self._resource.get_custom_resource(self._resource.OUTPUT_DIR)
 
         flag = True

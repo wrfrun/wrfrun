@@ -88,8 +88,8 @@ def prepare_workspace():
     workspace_backup_path = None
     initialize_success = False
 
-    wrfrun_temp_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.WRFRUN_TEMP_PATH)
-    workspace_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.WRFRUN_WORKSPACE_ROOT)
+    wrfrun_temp_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.TEMP_DIR)
+    workspace_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.WORKSPACE_DIR)
     replay_work_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.WRFRUN_WORKSPACE_REPLAY)
     output_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.OUTPUT_DIR)
 
@@ -141,8 +141,8 @@ def check_workspace() -> bool:
     """
     global CHECK_FUNC_MAP
 
-    wrfrun_temp_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.WRFRUN_TEMP_PATH)
-    workspace_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.WRFRUN_WORKSPACE_ROOT)
+    wrfrun_temp_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.TEMP_DIR)
+    workspace_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.WORKSPACE_DIR)
     replay_work_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.WRFRUN_WORKSPACE_REPLAY)
     output_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.OUTPUT_DIR)
 

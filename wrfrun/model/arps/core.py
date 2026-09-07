@@ -308,7 +308,7 @@ class EXT2ARPS(ExecutableBase):
             self.add_output_files(
                 filenames="ext2arps.nml",
                 output_dir=self.work_path,
-                save_path=f"{self._output_save_path}/logs",
+                save_path=self._output_save_path / "logs",
             )
 
         super().after_exec()

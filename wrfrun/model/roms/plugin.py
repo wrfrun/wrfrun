@@ -29,7 +29,7 @@ class ROMSPlugin:
         """
         WRFRUN_NEW.registry.register_exec("roms", ROMS)
 
-        WRFRUN_NEW.resource.register_provider("workspace_roms", WRFRUN_NEW.resource.WRFRUN_WORKSPACE_ROOT / "roms")
+        WRFRUN_NEW.resource.register_provider("workspace_roms", WRFRUN_NEW.resource.WORKSPACE_DIR / "roms")
 
 
 __all__ = ["ROMSPlugin"]

@@ -48,7 +48,7 @@ class ARPSPlugin:
         WRFRUN_NEW.workspace.register_init_func("arps", prepare_arps_workspace)
         WRFRUN_NEW.workspace.register_check_func("arps", check_arps_workspace)
 
-        WRFRUN_NEW.resource.register_provider("workspace_arps", WRFRUN_NEW.resource.WRFRUN_WORKSPACE_ROOT / "arps")
+        WRFRUN_NEW.resource.register_provider("workspace_arps", WRFRUN_NEW.resource.WORKSPACE_DIR / "arps")
 
 
 __all__ = ["ARPSPlugin"]

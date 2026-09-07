@@ -78,11 +78,11 @@ class ResourceCatalog:
             raise ValueError(f"Resource provider already registered: {provider_name}")
 
         if isinstance(provider_path, ResourceRef):
-            _provider_path = self.get_custom_resource(provider_path)
+            _provider_path = self.get_custom_resource(provider_path).as_posix()
         else:
-            _provider_path = Path(provider_path).resolve()
+            _provider_path = provider_path
 
-        self._packages[provider_name] = _provider_path.as_posix()
+        self._packages[provider_name] = _provider_path
 
     def unregister_provider(self, provider_name: str):
         """
@@ -118,6 +118,9 @@ class ResourceCatalog:
             LOGGER.error(message)
             raise KeyError(message)
 
+        # Avoid error from importlib
+        provider_path = str(provider_path)
+
         match resource_type:
             case ResourceType.PACKAGE:
                 LOGGER.debug(f"Parse package resource: {ref.to_string()}.")
@@ -139,6 +142,8 @@ class ResourceCatalog:
         if check and not resource.is_file():
             message = ""
             raise FileNotFoundError(str(resource))
+
+        LOGGER.debug(f"'{ref.to_string()}' is parsed to '{resource}'")
 
         return resource.expanduser().resolve()  # type: ignore
 
@@ -243,27 +248,17 @@ class ResourceCatalog:
         return self._old_uri
 
     @property
-    def WRFRUN_WORKSPACE_REPLAY(self) -> ResourceRef:
-        """
-        Path (URI) to store related files of ``wrfrun`` replay functionality.
-
-        :return: URI.
-        :rtype: str
-        """
-        return ResourceRef("workspace", "replay")
-
-    @property
-    def WRFRUN_TEMP_PATH(self) -> ResourceRef:
+    def TEMP_DIR(self) -> ResourceRef:
         """
         Path to store ``wrfrun`` temporary files.
 
         :return: URI
         :rtype: str
         """
-        return ResourceRef("workspace", "temp")
+        return ResourceRef("temp", "")
 
     @property
-    def WRFRUN_WORKSPACE_ROOT(self) -> ResourceRef:
+    def WORKSPACE_DIR(self) -> ResourceRef:
         """
         Path of the root workspace.
 
@@ -271,16 +266,6 @@ class ResourceCatalog:
         :rtype: str
         """
         return ResourceRef("workspace", "")
-
-    @property
-    def WRFRUN_WORKSPACE_MODEL(self) -> ResourceRef:
-        """
-        Path of the model workspace, in which ``wrfrun`` runs numerical models.
-
-        :return: URI
-        :rtype: str
-        """
-        return ResourceRef("workspace", "model")
 
     def check_resource_uri(self, unique_uri: str) -> bool:
         """

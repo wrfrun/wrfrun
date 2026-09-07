@@ -50,7 +50,7 @@ class WRFPlugin:
         WRFRUN_NEW.workspace.register_init_func("wrf", prepare_wrf_workspace)
         WRFRUN_NEW.workspace.register_check_func("wrf", check_wrf_workspace)
 
-        WRFRUN_NEW.resource.register_provider("workspace_wrf", WRFRUN_NEW.resource.WRFRUN_WORKSPACE_ROOT / "wrf")
+        WRFRUN_NEW.resource.register_provider("workspace_wrf", WRFRUN_NEW.resource.WORKSPACE_DIR / "wrf")
 
 
 __all__ = ["WRFPlugin"]

@@ -11,6 +11,7 @@ py3.install_sources(
         'scheme.py',
         'utils.py',
         'vtable.py',
+        'workspace.py',
     ],
     subdir: 'wrfrun/model/wrf'
 )

@@ -453,7 +453,7 @@ def create_wrfrun_session(work_dir: str) -> Token[WRFRunSession | None]:
     record = RecordService(resource, io)
     registry = ExecutableRegistry()
     runner = RunnerService(resource)
-    workspace = WorkspaceService(resource)
+    workspace = WorkspaceService(resource, io)
 
     config = ConfigService(io, resource)
     namelist = NamelistService(io)

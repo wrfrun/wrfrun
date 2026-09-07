@@ -21,9 +21,7 @@ Its URI methods remain compatibility interfaces.
 
 import logging
 from copy import deepcopy
-from os import makedirs
-from os.path import abspath, dirname, exists
-from shutil import copyfile
+from pathlib import Path
 from typing import Optional, Tuple
 
 import tomli
@@ -87,22 +85,40 @@ class ConfigService:
         :param config_path: TOML config file.
         :type config_path: str
         """
-        config_template_path = self._resource.get_package_resource(self._config_template_file_path)
+        config_file = Path(config_path).resolve()
 
-        if not exists(config_path):
-            LOGGER.error(f"Config file doesn't exist, copy template config to {config_path}")
+        if not config_file.is_file():
+            LOGGER.error(f"Config file doesn't exist, copy template config to {config_file}")
             LOGGER.error("Please modify it.")
 
-            if not exists(dirname(config_path)):
-                makedirs(dirname(config_path))
+            config_file.parent.mkdir(exist_ok=True)
 
-            copyfile(config_template_path, config_path)
-            raise FileNotFoundError(config_path)
+            self._io.copy(
+                file_path=self._config_template_file_path,
+                save_path=config_file,
+            )
 
-        with open(config_path, "rb") as f:
+            raise FileNotFoundError(config_file)
+
+        with open(config_file, "rb") as f:
             self._config = tomli.load(f)
 
-        config_dir_path = abspath(dirname(config_path))
+        project_root_path = config_file.parent
+
+        # register provider before load model's plugin
+        input_path = Path(self["input_data_path"]).resolve()
+        output_path = Path(self["output_path"]).resolve()
+        work_dir = Path(self["work_dir"]).resolve()
+        log_dir = Path(self["log_path"]).resolve()
+        template_dir = Path(self["template_dir"]).resolve()
+        self._resource.register_provider("output", output_path)
+        self._resource.register_provider("project", project_root_path)
+        self._resource.register_provider("input", input_path)
+        self._resource.register_provider("workspace", work_dir / "workspace")
+        self._resource.register_provider("temp", work_dir / "temp")
+        self._resource.register_provider("replay", work_dir / "replay")
+        self._resource.register_provider("log", log_dir)
+        self._resource.register_provider("template", template_dir)
 
         from wrfrun.model.plugins import load_model_plugin
 
@@ -120,7 +136,7 @@ class ConfigService:
             if self._config["model"][model_key]["use"]:
                 include_file = self._config["model"][model_key]["include"]
                 if include_file[0] != "/":
-                    include_file = f"{config_dir_path}/{include_file}"
+                    include_file = f"{project_root_path}/{include_file}"
 
                 with open(include_file, "rb") as f:
                     # keep "use" key, as other components may use this key
@@ -132,10 +148,6 @@ class ConfigService:
 
             else:
                 self._config["model"].pop(model_key)
-
-        # register URI for output directory.
-        output_path = abspath(self["output_path"])
-        self._resource.register_provider("output", output_path)
 
         # some additional check
         if self._config["input_data_path"] == "":

@@ -17,9 +17,8 @@ Get more information by running ``wrfrun --help``.
 
 import argparse
 import sys
-from os import listdir, makedirs
-from os.path import abspath, dirname, exists
-from shutil import copyfile
+from os import listdir
+from pathlib import Path
 
 import tomli
 import tomli_w
@@ -54,13 +53,10 @@ def _entry_init(args: argparse.Namespace):
     """
     configs = vars(args)
 
-    project_name = configs["name"]
+    project_path = Path(configs["path"]).resolve()
     models = configs["models"]
 
-    if project_name is None:
-        project_name = "."
-
-    if exists(project_name):
+    if project_path.is_dir():
         # we need to check if this directory isn't empty.
         files = listdir()
         # exclude:
@@ -68,6 +64,7 @@ def _entry_init(args: argparse.Namespace):
             ".venv",
             ".git",
             ".gitattribute",
+            ".python-version",
             "pyproject.toml",
             "uv.lock",
             "configs",
@@ -78,36 +75,42 @@ def _entry_init(args: argparse.Namespace):
         files = [x for x in files if x not in exclude_target]
 
         if len(files) != 0:
-            logger.error(f"[CLI] {project_name} isn't empty, choose an empty directory, or backup and delete your files first.")
+            logger.error(f"[CLI] {project_path} isn't empty, choose an empty directory, or backup and delete your files first.")
             exit(1)
 
-    makedirs(f"{project_name}/configs")
-    makedirs(f"{project_name}/data")
-    namelist_path = f"{project_name}/namelists"
-    makedirs(namelist_path)
+    for _path in [
+        project_path / "configs",
+        project_path / "data",
+        project_path / "outputs",
+        project_path / "namelists",
+        project_path / "templates",
+    ]:
+        _path.mkdir(exist_ok=True, parents=True)
 
-    copyfile(WRFRUN_NEW.resource.get_package_resource(CONFIG_MAIN_TOML_TEMPLATE), f"{project_name}/config.toml")
-    copyfile(WRFRUN_NEW.resource.get_package_resource(GITIGNORE_RULES), f"{project_name}/.gitignore")
+    WRFRUN_NEW.io.copy(file_path=CONFIG_MAIN_TOML_TEMPLATE, save_path=project_path / "config.toml")
+    WRFRUN_NEW.io.copy(file_path=GITIGNORE_RULES, save_path=project_path / ".gitignore")
 
     model_list = []
     if models is not None:
         for _model in models:
             if _model in MODEL_MAP:
-                src_path = WRFRUN_NEW.resource.get_package_resource(MODEL_MAP[_model])
-                copyfile(src_path, f"{project_name}/configs/{_model}.toml")
-                makedirs(f"{namelist_path}/{_model}")
+                WRFRUN_NEW.io.copy(file_path=MODEL_MAP[_model], save_path=project_path / f"configs/{_model}.toml")
+                (project_path / f"namelists/{_model}").mkdir(exist_ok=True)
+                (project_path / f"data/{_model}").mkdir(exist_ok=True)
+                (project_path / f"templates/{_model}").mkdir(exist_ok=True)
                 model_list.append(_model)
 
             else:
                 logger.warning(f"Unknown model: '{_model}'")
 
-    logger.info(f"Created project {project_name}.")
+    logger.info(f"Created project {project_path}.")
     if len(model_list) > 0:
         logger.info(f"Use the following models: {model_list}.")
-    logger.info(f"All your configs should be placed in '{project_name}/configs'.")
-    logger.info(f"All your data should be placed in '{project_name}/data'.")
-    logger.info(f"All your namelist files should be placed in '{namelist_path}'")
-    logger.info(f"Make sure to set `[magenta]use = True[/]` to enable models in '{project_name}/config.toml' .")
+    logger.info(f"All your configs should be placed in '{project_path}/configs'.")
+    logger.info(f"All your data should be placed in '{project_path}/data'.")
+    logger.info(f"All your namelist template files should be placed in '{project_path}/templates'")
+    logger.info(f"All your namelist files should be placed in '{project_path}/namelists'")
+    logger.info(f"Make sure to set `[magenta]use = True[/]` to enable models in '{project_path}/config.toml' .")
     logger.info("It is recommanded to use git to track your wrfrun and model configs.")
     logger.info("Use command `[magenta]wrfrun add MODEL_NAME[/]` to add a new model to project.")
 
@@ -121,9 +124,10 @@ def _entry_model(args: argparse.Namespace):
     """
     configs = vars(args)
     new_models = configs["add"]
-    config_path = configs["config"]
+    config_path = Path(configs["config"]).resolve()
+    project_path = config_path.parent
 
-    if not exists(config_path):
+    if not config_path.is_file():
         logger.error(f"Can't find '{config_path}', initialize this project first.")
         exit(1)
 
@@ -132,10 +136,8 @@ def _entry_model(args: argparse.Namespace):
             logger.error(f"Unknow model type: '{_new_model}'")
             exit(1)
 
-    config_dir_path = f"{abspath(dirname(config_path))}/configs"
-
-    if not exists(config_dir_path):
-        makedirs(config_dir_path)
+    config_dir_path = config_path.parent / "configs"
+    config_dir_path.mkdir(exist_ok=True, parents=True)
 
     with open(config_path, "rb") as f:
         main_config = tomli.load(f)
@@ -163,7 +165,10 @@ def _entry_model(args: argparse.Namespace):
                 }
 
     for _new_model in new_models:
-        copyfile(WRFRUN_NEW.resource.get_package_resource(MODEL_MAP[_new_model]), f"{config_dir_path}/{_new_model}.toml")
+        WRFRUN_NEW.io.copy(file_path=MODEL_MAP[_new_model], save_path=config_dir_path / f"{_new_model}.toml")
+        (project_path / f"namelists/{_new_model}").mkdir(exist_ok=True)
+        (project_path / f"data/{_new_model}").mkdir(exist_ok=True)
+        (project_path / f"templates/{_new_model}").mkdir(exist_ok=True)
 
     with open(config_path, "wb") as f:
         tomli_w.dump(main_config, f)
@@ -179,7 +184,7 @@ def main_entry():
     subparsers = args_parser.add_subparsers(title="Subcommands", description="Valid Subcommands", help="Subcommands")
 
     init_parser = subparsers.add_parser("init", help="Initialize a wrfrun project.", add_help=True)
-    init_parser.add_argument("-n", "--name", type=str, help="Name of the wrfrun project.")
+    init_parser.add_argument("-p", "--path", type=str, default=".", help="Path of the wrfrun project.")
     init_parser.add_argument(
         "--models",
         nargs="*",

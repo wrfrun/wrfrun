@@ -4,6 +4,7 @@ py3.install_sources(
         'config.py',
         'core.py',
         'namelist.py',
+        'plugin.py',
         'utils.py',
     ],
     subdir: 'wrfrun/model/palm'

@@ -106,14 +106,16 @@ class ResourceRef:
         :return: New ref object represents the new file path.
         :rtype: ResourceRef
         """
+        _resource_path = self.resource_path if self.resource_path else "."
+
         if isinstance(other, ResourceRef):
             if self.provider != other.provider:
                 raise ValueError("Can't concat two ResourceRef with different provider.")
 
-            res = ResourceRef(self.provider, f"{self.resource_path}/{other.resource_path}")
+            res = ResourceRef(self.provider, f"{_resource_path}/{other.resource_path}")
 
         else:
-            res = ResourceRef(self.provider, f"{self.resource_path}/{other}")
+            res = ResourceRef(self.provider, f"{_resource_path}/{other}")
 
         return res
 
