@@ -10,7 +10,7 @@ import logging
 from wrfrun.core import WRFRUN_NEW, ExecRegisterError
 
 from .arpstrn import ARPSTrn
-from .core import ARPS, ARPSSFC, EXT2ARPS
+from .core import ARPS, ARPSSFC, ARPSIntrp, EXT2ARPS
 from .workspace import check_arps_workspace, prepare_arps_workspace
 
 LOGGER = logging.getLogger("wrfrun")
@@ -44,6 +44,7 @@ class ARPSPlugin:
         register_exec("arpstrn", ARPSTrn)
         register_exec("ext2arps", EXT2ARPS)
         register_exec("arps", ARPS)
+        register_exec("arpsintrp", ARPSIntrp)
 
         WRFRUN_NEW.workspace.register_init_func("arps", prepare_arps_workspace)
         WRFRUN_NEW.workspace.register_check_func("arps", check_arps_workspace)

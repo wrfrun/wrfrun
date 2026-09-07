@@ -72,6 +72,11 @@ user_namelist = "/path/to/the/namelist/for/arpstrn"
 # Config for arps3dvar
 [arps3dvar]
 
+# Config for arpsintrp
+[arpsintrp]
+# Workspace initialization copies its base namelist to templates/arps/arpsintrp.nml.
+# Place optional updates in namelists/arps/arpsintrp.nml.
+
 # Config for arps
 [arps]
 

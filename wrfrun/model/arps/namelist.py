@@ -8,6 +8,7 @@ Functions to read and change ARPS namelist.
     :toctree: generated/
 
     prepare_arps_namelist
+    prepare_arpsintrp_namelist
 """
 
 import logging
@@ -140,4 +141,27 @@ def prepare_arps_namelist():
     return
 
 
-__all__ = ["prepare_arps_namelist"]
+def prepare_arpsintrp_namelist():
+    """
+    Load the project ``arpsintrp`` template and its optional update file.
+
+    The complete base namelist is read from
+    ``templates/arps/arpsintrp.nml``. Values in
+    ``namelists/arps/arpsintrp.nml`` are then applied when that file exists.
+    """
+    namelist_id = "arpsintrp"
+    template_file = WRFRUN_NEW.resource.get_custom_resource(ResourceRef("project", "templates/arps/arpsintrp.nml"))
+    update_file = WRFRUN_NEW.resource.get_custom_resource(ResourceRef("project", "namelists/arps/arpsintrp.nml"))
+
+    if not template_file.is_file():
+        raise FileNotFoundError(f"Can't find arpsintrp namelist template: {template_file}")
+
+    if not WRFRUN_NEW.namelist.check_namelist_id(namelist_id):
+        WRFRUN_NEW.namelist.register_namelist_id(namelist_id)
+
+    WRFRUN_NEW.namelist.read_namelist(template_file.as_posix(), namelist_id)
+    if update_file.is_file():
+        WRFRUN_NEW.namelist.update_namelist(update_file.as_posix(), namelist_id)
+
+
+__all__ = ["prepare_arps_namelist", "prepare_arpsintrp_namelist"]

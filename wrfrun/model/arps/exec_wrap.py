@@ -10,6 +10,7 @@ Function wrapper of ARPS :doc:`Executables </api/model.arps.core>`.
     arpssfc
     arps
     arps3dvar
+    arpsintrp
     ext2arps
 """
 
@@ -17,7 +18,7 @@ from typing import Optional
 
 from wrfrun.core import WRFRUN_NEW
 
-from .core import ARPS, ARPSSFC, EXT2ARPS, ARPS3DVar
+from .core import ARPS, ARPSSFC, EXT2ARPS, ARPS3DVar, ARPSIntrp
 
 
 def arpssfc():
@@ -64,4 +65,15 @@ def arps3dvar(arps_data_path: Optional[str] = None):
     ARPS3DVar()()
 
 
-__all__ = ["arpssfc", "arps", "arps3dvar", "ext2arps"]
+def arpsintrp(input_data_path: Optional[str] = None):
+    """
+    Function interface for :class:`ARPSIntrp <wrfrun.model.arps.core.ARPSIntrp>`.
+
+    :param input_data_path: Directory containing ARPS history inputs. If it
+                            is ``None``, use archived ARPS outputs.
+    :type input_data_path: str | None
+    """
+    ARPSIntrp(input_data_path=input_data_path)()
+
+
+__all__ = ["arpssfc", "arps", "arps3dvar", "arpsintrp", "ext2arps"]
