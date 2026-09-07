@@ -1,4 +1,4 @@
 [submodule "reference/arps"]
 	path = reference/arps
 	url = gitea@gitea.syize.cn:Syize/ARPS.git
-	branch = work/Syize/selfuse
+	branch = work/Syize/main
