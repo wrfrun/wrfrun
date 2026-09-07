@@ -19,6 +19,7 @@ and users can reproduce the simulation with the ``.replay`` file.
 import logging
 from json import dumps, loads
 from os import remove
+from pathlib import Path
 from shutil import make_archive, move, rmtree, unpack_archive
 from typing import Generator
 
@@ -47,6 +48,8 @@ def _json_default(obj):
         return float(obj)
     elif isinstance(obj, ResourceRef):
         return obj.to_string()
+    elif isinstance(obj, Path):
+        return obj.as_posix()
     else:
         raise TypeError(f"Object of type {type(obj)} is not JSON serializable.")
 
@@ -180,7 +183,12 @@ class ReplayService:
 
         work_path = self._resource.get_custom_resource(self.work_path)
         content_path = self._resource.get_custom_resource(self.content_path)
-        save_path = self._resource.get_custom_resource(self.save_path)
+        content_path.mkdir(exist_ok=True, parents=True)
+
+        if isinstance(self.save_path, ResourceRef):
+            save_path = self._resource.get_custom_resource(self.save_path)
+        else:
+            save_path = Path(self.save_path).resolve()
 
         with open(content_path / "config.json", "w") as f:
             f.write(dumps(self._recorded_config, indent=4, default=_json_default))

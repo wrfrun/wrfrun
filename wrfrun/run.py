@@ -47,10 +47,9 @@ from typing import Optional, Tuple, Union
 
 import tomli
 
-from wrfrun.core.base import ExecutableBase
-
-from .core import WRFRunBasicError, WRFRunServer, WRFRunServerHandler, replay_config_generator, stop_server
+from .core import WRFRunBasicError, WRFRunServer, WRFRunServerHandler, stop_server
 from .core.core import WRFRUN_NEW, create_wrfrun_session
+from .core.type import ExecutableBaseProtocol
 from .data import prepare_wps_input_data
 from .log import logger, logger_add_file_handler
 from .model import clear_model_logs, generate_domain_area
@@ -265,16 +264,10 @@ class WRFRunContext:
         """
         WRFRUN_NEW.states.check_wrfrun_context(True)
 
-        if self._replay_configs is not None:
-            del self._replay_configs
-
-        self._replay_configs = replay_config_generator(replay_file)
-
         WRFRUN_NEW.states.IS_IN_REPLAY = True
 
         try:
-            for _, executable in self._replay_configs:
-                executable.replay()
+            WRFRUN_NEW.replay.replay_simulation(replay_file)
 
         except WRFRunBasicError:
             logger.error("Failed to replay the simulation")
@@ -282,7 +275,7 @@ class WRFRunContext:
         finally:
             WRFRUN_NEW.states.IS_IN_REPLAY = False
 
-    def replay_executables(self, replay_file: str) -> Generator[tuple[str, ExecutableBase], None, None]:
+    def replay_executables(self, replay_file: str) -> Generator[tuple[str, ExecutableBaseProtocol], None, None]:
         """
         Read settings from the ``replay_file``, and yield ``Executable`` name and instance in order.
 
@@ -293,20 +286,14 @@ class WRFRunContext:
         :param replay_file: ``.replay`` file path.
         :type replay_file: str
         :return: Generator that yields ``Executable`` name and instance.
-        :rtype: Generator[tuple[str, ExecutableBase]]
+        :rtype: Generator[tuple[str, ExecutableBaseProtocol]]
         """
         WRFRUN_NEW.states.check_wrfrun_context(True)
-
-        if self._replay_configs is not None:
-            del self._replay_configs
-
-        self._replay_configs = replay_config_generator(replay_file)
 
         WRFRUN_NEW.states.IS_IN_REPLAY = True
 
         try:
-            for name, executable in self._replay_configs:
-                yield name, executable
+            yield from WRFRUN_NEW.replay.replay_generator(replay_file)
 
         finally:
             WRFRUN_NEW.states.IS_IN_REPLAY = False
