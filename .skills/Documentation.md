@@ -8,6 +8,8 @@ make new capabilities discoverable from an appropriate index.
 Treat source code, tests, and generated templates as the source of truth.
 Do not document intended behavior that the current implementation does not
 provide. State validation limits when runtime behavior was not exercised.
+When legacy APIs coexist with the session runtime, document the current
+``WRFRUN_NEW`` path and label compatibility APIs explicitly.
 
 ## Decide whether documentation changes are required
 

@@ -2,6 +2,9 @@
 
 Use this guide when adding or changing an `ExecutableBase` subclass, its replay registration, or its convenience wrapper. Treat `wrfrun/core/base.py` as the source of truth when this guide and the implementation differ.
 
+New code uses the active ``WRFRUN_NEW`` session. Use ``ResourceRef`` for model
+workspace paths and register executable classes through the model plugin.
+
 ## Preserve the execution contract
 
 Model an external program through three explicit parts:
@@ -14,7 +17,8 @@ Inherit from `ExecutableBase` and call `super().__init__` with:
 
 - `name`: a stable identifier for the executable.
 - `cmd`: the command to execute.
-- `work_path`: the directory in which to run it.
+- `work_path`: the directory in which to run it, normally a model-scoped
+  ``ResourceRef``.
 
 Pass `mpi_use`, `mpi_cmd`, `mpi_core_num`, and `stdin_file` only when the executable needs them. Prefer a list of command arguments for non-MPI commands. Do not depend on shell expansion, pipes, or redirection: commands run with `shell=False`. In the current implementation, an MPI command must be provided as a string.
 
@@ -53,15 +57,16 @@ When state outside the base configuration is required to reproduce a run, implem
 
 Save constructor arguments that are required to construct the class during replay in `self.class_config["class_args"]` or `self.class_config["class_kwargs"]`.
 
-Register replayable classes with `ExecutableDB` during module import. Use the same ID as the instance `name`; replay resolves the class by the recorded name.
+Register replayable classes in the model plugin. Use the same ID as the
+instance ``name``; replay resolves it through the session-local
+``WRFRUN_NEW.registry`` after enabled plugins have been loaded.
 
 ```python
-def _exec_register_func(exec_db: ExecutableDB):
-    if not exec_db.is_registered("my_program"):
-        exec_db.register_exec("my_program", MyProgram)
+class MyModelPlugin:
+    name = "my_model"
 
-
-WRFRUN.set_exec_db_register_func(_exec_register_func)
+    def register(self):
+        WRFRUN_NEW.registry.register_exec("my_program", MyProgram)
 ```
 
 Only override `replay` when loading the recorded configuration and invoking the instance is insufficient.
@@ -79,10 +84,11 @@ Use `before_exec_debug`, `exec_debug`, and `after_exec_debug` only for diagnosti
 Do not assume that `wrfrun` automatically finds outputs from a preceding executable. Define each handoff explicitly:
 
 - Identify the required files, their source directory, and their destination in the new executable workspace.
-- Check the active workspace first.
-- If it is empty and a documented fallback is appropriate, check the specific upstream archive directory.
-- Verify at least one required file rather than treating an existing directory as valid input.
-- Raise an actionable error when no valid input is available.
+- When a documented fallback exists, select the source explicitly before
+  registering the files.
+- Let the shared I/O layer report ordinary missing or invalid files. Add a
+  preflight check only when it is needed to select a fallback or improve the
+  actionable error.
 
 Use `MetGrid` as the reference pattern for a WRF `geogrid`/`ungrib` handoff, but do not copy its filenames or fallback rules into unrelated executables.
 
@@ -99,7 +105,7 @@ Keep wrappers thin: lifecycle preparation, file staging, and output collection b
 
 ## Review workspace integration
 
-When adding an executable or changing its static runtime prerequisites, review [Workspace.md](Workspace.md). Update the relevant workspace module if the executable needs a new component directory, executable binary, immutable table, or another installation-derived resource before `before_exec` runs. Keep generated configuration, run-specific input staging, and output collection in the executable lifecycle rather than workspace preparation.
+When adding an executable or changing its static runtime prerequisites, review [Workspace.md](Workspace.md). Register the model workspace hooks and provider from its plugin; keep generated configuration, run-specific input staging, and output collection in the executable lifecycle rather than workspace preparation.
 
 ## Review resource integration
 
@@ -115,7 +121,7 @@ Before handing off an executable change:
 
 1. Check that every required source file is linked to the intended workspace name.
 2. Run the executable or a focused substitute and verify result files, stdout, and stderr reach their expected archive paths.
-3. When recording is supported, record one run and replay it to verify constructor arguments, custom configuration, and `ExecutableDB` registration.
+3. When recording is supported, record one run and replay it to verify constructor arguments, custom configuration, and session registry registration.
 4. Test MPI behavior only with the intended launcher; do not assume Open-MPI-specific flags work with every launcher.
 5. Confirm that the executable's workspace exists and contains every required static runtime resource; update the relevant workspace module when this contract changes.
 6. Confirm that all required packaged templates or scripts exist and remain compatible with the executable; update the relevant resource definitions when this contract changes.

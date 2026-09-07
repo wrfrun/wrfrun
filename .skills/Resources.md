@@ -14,13 +14,18 @@ Store package-distributed, static files under `wrfrun/res/`:
 
 Do not place model installation files, user input data, or per-run generated files in `wrfrun/res/`. Workspace preparation owns installation-derived runtime resources; executable lifecycle code owns generated configuration, run-specific inputs, and outputs.
 
-## Use generated constants and resource URIs
+## Use generated constants and resource references
 
-Import resource constants from `wrfrun.res` instead of hard-coding repository or installation paths. Generated constants contain URIs such as `:WRFRUN_RESOURCE_PATH:/config/config.template.toml`.
+Import resource constants from `wrfrun.res` instead of hard-coding repository or installation paths.
 
-Before passing a resource URI to any filesystem API, resolve it with `WRFRUN.uri.parse_resource_uri(...)`. `WRFRUN.config.parse_resource_uri(...)` remains a compatibility interface, but new code should use `WRFRUN.uri`.
+Generated constants are ``ResourceRef("core", ...)`` values. Resolve a
+package resource with ``WRFRUN_NEW.resource.get_package_resource(ref)`` and a
+filesystem resource with ``WRFRUN_NEW.resource.get_custom_resource(ref)``.
+Use project-scoped ``ResourceRef`` values for project files. Do not introduce
+string URI parsing in new code.
 
-Importing `wrfrun.res` registers `WRFRUN_RESOURCE_PATH`. Do not create an additional URI namespace for an ordinary resource file.
+The session creates the ``core`` provider. Model plugins register additional
+providers only when they define a stable model-owned resource root.
 
 ## Declare resources in `name_map.json`
 
@@ -88,6 +93,6 @@ Before handing off a resource change:
 
 1. Validate each modified `name_map.json` and verify every declared path exists.
 2. Regenerate `wrfrun/res/__init__.py` and confirm the new constant is exported through `__all__`.
-3. Initialize the URI manager and verify `WRFRUN.uri.parse_resource_uri(...)` resolves the new constant to an existing file.
+3. In an active session, verify ``WRFRUN_NEW.resource.get_package_resource(...)`` resolves the new constant to an existing file.
 4. For a TOML template, verify its main-config include, model loading behavior, and downstream consumers use the same keys.
 5. Run the relevant package-install or build validation to confirm every new resource is installed, not merely present in the source tree.
