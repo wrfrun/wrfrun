@@ -11,8 +11,13 @@ which are all placed in this module.
 
 ========================================= ==========================================
 :doc:`arps </api/model.arps>`             Support for ARPS
+:doc:`constants </api/model.constants>`   Definition of contants used by models.
 :doc:`palm </api/model.palm>`             Support for PALM
+:doc:`plot </api/model.plot>`             Plot submodule.
+:doc:`plugins </api/model.plugins>`       Model plugin load functions.
 :doc:`roms </api/model.roms>`             Support for ROMS
+:doc:`type </api/model.type>`             Definition of types used by models.
+:doc:`utils </api/model.utils>`           Utility functions.
 :doc:`wrf </api/model.wrf>`               Support for WRF
 ========================================= ==========================================
 
@@ -20,17 +25,19 @@ which are all placed in this module.
     :maxdepth: 1
     :hidden:
 
-    constants <model.constants>
     arps <model.arps>
+    constants <model.constants>
     palm <model.palm>
     plot <model.plot>
+    plugins <model.plugins>
     roms <model.roms>
     type <model.type>
     utils <model.utils>
     wrf <model.wrf>
 """
 
-# just to register executables
 from .constants import *
 from .plot import *
+from .plugins import *
+from .type import *
 from .utils import *

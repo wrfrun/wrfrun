@@ -113,6 +113,7 @@ class ReplayService:
         :param exported_config: Executable config.
         :type exported_config: ExecutableConfig
         """
+        LOGGER.debug(f"[magenta]include_data[/magenta] is: {self.include_data}")
         if not self.include_data:
             self._recorded_config.append(exported_config)
             return
@@ -138,6 +139,8 @@ class ReplayService:
 
             if _config["is_output"]:
                 continue
+
+            LOGGER.debug(f"Found input data: '{_config['file_path']}'")
 
             file_path = _config["file_path"]
             file_path = self._resource.get_custom_resource(file_path, check=True)

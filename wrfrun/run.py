@@ -45,8 +45,6 @@ from os.path import abspath, dirname
 from pathlib import Path
 from typing import Optional, Tuple, Union
 
-import tomli
-
 from .core import WRFRunBasicError, WRFRunServer, WRFRunServerHandler, stop_server
 from .core.core import WRFRUN_NEW, create_wrfrun_session
 from .core.type import ExecutableBaseProtocol
@@ -133,9 +131,7 @@ class WRFRunContext:
 
     def __enter__(self):
         # Use new wrfrun global api
-        with open(self.config_file_path, "rb") as f:
-            config = tomli.load(f)
-        self._token = create_wrfrun_session(config.get("work_dir", "./.wrfrun"))
+        self._token = create_wrfrun_session()
         WRFRUN_NEW.config.load_wrfrun_config(self.config_file_path)
 
         # check workspace

@@ -251,7 +251,7 @@ class WRFRunServerHandler(socketserver.StreamRequestHandler):
         else:
             progress = -1
 
-        status = WRFRUN_NEW.config.WRFRUN_WORK_STATUS
+        status = WRFRUN_NEW.states.WRFRUN_WORK_STATUS
 
         if status == "":
             status = "*"

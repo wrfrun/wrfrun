@@ -284,7 +284,7 @@ class EXT2ARPS(ExecutableBase):
 
         _arpstrn_data_path = WRFRUN_NEW.resource.OUTPUT_DIR / "arpstrn" / _arpstrn_data[0]
 
-        self.add_input_files(_arpstrn_data_path)
+        self.add_input_files(_arpstrn_data_path, is_output=False)
 
         WRFRUN_NEW.namelist.update_namelist(
             {

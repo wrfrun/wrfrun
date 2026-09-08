@@ -17,7 +17,6 @@ from importlib import resources
 from pathlib import Path, PurePath
 
 from ..type import ResourceRef, ResourceType
-from ..uri import WRFRUNURI
 
 LOGGER = logging.getLogger("wrfrun")
 
@@ -31,7 +30,7 @@ class ResourceCatalog:
     By doing this, it is possible to represent file with the same url, even its real path can change on different machine.
     """
 
-    def __init__(self, work_dir: str) -> None:
+    def __init__(self) -> None:
         """
         This is wrfrun's resource manager.
 
@@ -41,7 +40,6 @@ class ResourceCatalog:
         """
         self._packages: dict[str, str] = {}
         self._work_path = Path(".wrfrun").resolve()
-        self._old_uri = WRFRUNURI(work_dir)
 
         self.register_provider("core", "wrfrun.res")
 
@@ -235,18 +233,6 @@ class ResourceCatalog:
         """
         return ResourceRef("replay", "")
 
-    # ########################## Compatibility interface ###############################
-
-    @property
-    def old_uri(self) -> WRFRUNURI:
-        """
-        Compitability interface.
-
-        :return: Old URI manager.
-        :rtype: WRFRUNURI
-        """
-        return self._old_uri
-
     @property
     def TEMP_DIR(self) -> ResourceRef:
         """
@@ -266,64 +252,6 @@ class ResourceCatalog:
         :rtype: str
         """
         return ResourceRef("workspace", "")
-
-    def check_resource_uri(self, unique_uri: str) -> bool:
-        """
-        Check if the URI has been registered.
-
-        ``wrfrun`` uses unique URIs to represent file / directory path.
-        If you want to register a URI, you need to check if it's available.
-
-        :param unique_uri: Unique URI represents the resource.
-        :type unique_uri: str
-        :return: True or False.
-        :rtype: bool
-        """
-        return self._old_uri.check_resource_uri(unique_uri)
-
-    def register_resource_uri(self, unique_uri: str, res_space_path: str):
-        """
-        Register a path with a URI.
-        The URI should start with ``:WRFRUN_``, end with ``:`` and hasn't been registered yet,
-        otherwise an exception :class:`ResourceURIError <wrfrun.core.error.ResourceURIError>` will be raised.
-
-        :param unique_uri: Unique URI represents the resource.
-                           It must start with ``:WRFRUN_`` and end with ``:``. For example, ``":WRFRUN_WORK_PATH:"``.
-        :type unique_uri: str
-        :param res_space_path: REAL absolute path of your resource path. For example, "$HOME/.config/wrfrun/res".
-        :type res_space_path: str
-        """
-        return self._old_uri.register_resource_uri(unique_uri, res_space_path)
-
-    def unregister_resource_uri(self, unique_uri: str):
-        """
-        Unregister a URI.
-
-        :param unique_uri: Registered URI.
-        :type unique_uri: str
-        """
-        return self._old_uri.unregister_resource_uri(unique_uri)
-
-    def parse_resource_uri(self, resource_path: str) -> str:
-        """
-        Return the converted string by parsing the URI string in it.
-        Normal path will be returned with no change.
-
-        If the URI hasn't been registered, an exception :class:`ResourceURIError` will be raised.
-
-        For example, you can get the real path of ``wrfrun`` workspace with this method:
-
-        >>> from wrfrun.core import WRFRUN
-        >>> workspace_path = f"{WRFRUN.uri.WRFRUN_WORKSPACE_ROOT}/WPS"    # ":WRFRUN_WORKSPACE_ROOT:/WPS"
-        >>> # real_path should be a valid path like: "/home/syize/.config/wrfrun/workspace/WPS"
-        >>> real_path = WRFRUN.uri.parse_resource_uri(workspace_path)
-
-        :param resource_path: Resource path string which may contain URI string.
-        :type resource_path: str
-        :return: Real resource path.
-        :rtype: str
-        """
-        return self._old_uri.parse_resource_uri(resource_path)
 
 
 __all__ = ["ResourceType", "ResourceRef", "ResourceCatalog"]

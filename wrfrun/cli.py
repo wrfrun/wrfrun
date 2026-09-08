@@ -41,7 +41,7 @@ MODEL_MAP = {
     "roms": CONFIG_ROMS_TOML_TEMPLATE,
 }
 
-CLI_SESSION = create_wrfrun_session("./wrfrun")
+CLI_SESSION = create_wrfrun_session()
 
 
 def _entry_init(args: argparse.Namespace):

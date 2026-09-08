@@ -14,6 +14,7 @@ Submodules
 :doc:`registry </api/core.runtime.registry>`   ``wrfrun`` ``Executable`` registry.
 :doc:`resource </api/core.runtime.resource>`   ``wrfrun`` resource service.
 :doc:`runner </api/core.runtime.runner>`       ``wrfrun`` external command runner service.
+:doc:`workspace </api/core.runtime.workspace>` ``wrfrun`` workspace service.
 ============================================== ========================================================
 
 .. toctree::
@@ -26,6 +27,7 @@ Submodules
     registry <core.runtime.registry>
     resource <core.runtime.resource>
     runner <core.runtime.runner>
+    workspace <core.runtime.workspace>
 """
 
 from .io import *
@@ -34,3 +36,4 @@ from .record import *
 from .registry import *
 from .resource import *
 from .runner import *
+from .workspace import *
