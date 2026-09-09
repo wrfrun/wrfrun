@@ -77,6 +77,11 @@ user_namelist = "/path/to/the/namelist/for/arpstrn"
 # Its base namelist is templates/arps/arpsintrp.nml. Place optional updates in
 # namelists/arps/arpsintrp.nml.
 
+# Config for radremap
+[radremap]
+# Its base namelist is templates/arps/radremap.nml. Place optional updates in
+# namelists/arps/radremap.nml. Radar volumes are read from data/radremap.
+
 # Config for arps
 [arps]
 

@@ -12,13 +12,14 @@ Function wrapper of ARPS :doc:`Executables </api/model.arps.core>`.
     arps3dvar
     arpsintrp
     ext2arps
+    radremap
 """
 
 from typing import Optional
 
 from wrfrun.core import WRFRUN_NEW
 
-from .core import ARPS, ARPSSFC, EXT2ARPS, ARPS3DVar, ARPSIntrp
+from .core import ARPS, ARPSSFC, EXT2ARPS, ARPS3DVar, ARPSIntrp, RadRemap
 
 
 def arpssfc():
@@ -79,4 +80,22 @@ def arpsintrp():
     ARPSIntrp()()
 
 
-__all__ = ["arpssfc", "arps", "arps3dvar", "arpsintrp", "ext2arps"]
+def radremap():
+    """
+    Remap the radar volume configured in the project ``radremap`` namelist.
+
+    The ARPS background is selected by ``initialization.inifile`` in
+    ``templates/arps/radremap.nml`` or its optional update file.
+
+    .. code-block:: python
+
+        from wrfrun.model.arps import radremap
+        from wrfrun.run import WRFRun
+
+        with WRFRun("config.toml"):
+            radremap()
+    """
+    RadRemap()()
+
+
+__all__ = ["arpssfc", "arps", "arps3dvar", "arpsintrp", "ext2arps", "radremap"]

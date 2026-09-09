@@ -14,6 +14,7 @@ If you prefer function interfaces, please see :doc:`function wrapper </api/model
     ARPS3DVar
     ARPSIntrp
     EXT2ARPS
+    RadRemap
 """
 
 import glob
@@ -21,11 +22,12 @@ import logging
 from datetime import datetime, timedelta
 from os import listdir
 from os.path import exists
+from pathlib import Path
 from typing import Optional
 
 from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
 
-from .namelist import prepare_arps_namelist, prepare_arpsintrp_namelist
+from .namelist import prepare_arps_namelist, prepare_arpsintrp_namelist, prepare_radremap_namelist
 
 LOGGER = logging.getLogger("wrfrun")
 
@@ -446,55 +448,22 @@ class ARPS(ExecutableBase):
 
     def after_exec(self):
         if not WRFRUN_NEW.states.IS_IN_REPLAY:
-            arps_namelist = WRFRUN_NEW.namelist.get_namelist("arps")
-
-            # try to calculate output file names based on history dump settings
-            history_dump_option = arps_namelist["history_dump"]["hdmpopt"]
-            if history_dump_option != 1:
-                LOGGER.warning(f"History dump option {history_dump_option} isn't supported yet.")
-                LOGGER.warning(
-                    f"Save outputs manually in '{WRFRUN_NEW.resource.get_custom_resource(self.work_path / 'outputs')}'."
-                )
-
-            else:
-                dump_time_step = arps_namelist["history_dump"]["thisdmp"]
-                dump_time_start = arps_namelist["history_dump"]["tstrtdmp"]
-                simulation_start_time = arps_namelist["timestep"]["tstart"]
-                simulate_time = arps_namelist["timestep"]["tstop"]
-
-                files_num = int(simulate_time // dump_time_step)
-                dump_time_point = [int(i * dump_time_step) for i in range(files_num)]
-                real_dump_start_time = dump_time_start if dump_time_start > simulation_start_time else simulation_start_time
-                dump_time_point = [x for x in dump_time_point if x > real_dump_start_time]
-
-                file_list = [f"{self.name}.hdf{str(x).rjust(6, '0')}" for x in dump_time_point]
-
-                self.add_output_files(
-                    filenames=file_list,
-                    output_dir=self.work_path / "outputs",
-                    save_path=self._output_save_path,
-                )
-
             self.add_output_files(
-                filenames=f"{self.name}.hdfgrdbas",
+                startswith=f"{self.name}.hdf",
                 output_dir=self.work_path / "outputs",
                 save_path=self._output_save_path,
-            )
-
-            # ARPS3DVAR uses the initial ARPS history file as its background.
-            # The calculated periodic dump list above intentionally excludes
-            # tstart, so preserve this file separately when ARPS produced it.
-            self.add_output_files(
-                filenames=f"{self.name}.hdf000000",
-                output_dir=self.work_path / "outputs",
-                save_path=self._output_save_path,
-                no_file_error=False,
             )
 
             self.add_output_files(
                 filenames="arps.nml",
                 output_dir=self.work_path,
                 save_path=self._output_save_path / "logs",
+            )
+            self.add_output_files(
+                filenames=f"{self.name}.sound",
+                output_dir=self.work_path / "outputs",
+                save_path=self._output_save_path / "logs",
+                no_file_error=False,
             )
 
         super().after_exec()
@@ -682,4 +651,93 @@ class ARPSIntrp(ExecutableBase):
         super().after_exec()
 
 
-__all__ = ["ARPSSFC", "ARPS", "ARPS3DVar", "ARPSIntrp", "EXT2ARPS"]
+class RadRemap(ExecutableBase):
+    """
+    Run ``radremap`` with radar data and an archived ARPS background.
+
+    The selected history and grid/base files are read from ``outputs/arps``.
+    The radar volume is read from ``data/radremap``. Their filenames are
+    configured in the project ``radremap`` namelist. Remapped products are
+    archived under ``outputs/radremap``.
+    """
+
+    def __init__(self):
+        """Create a serial ``radremap`` executable."""
+        work_path = ResourceRef("workspace_arps", "radremap")
+        self.namelist_path = work_path / "radremap.nml"
+
+        super().__init__(
+            name="radremap",
+            cmd="./radremap",
+            work_path=work_path,
+            stdin_file=self.namelist_path,
+        )
+
+        prepare_radremap_namelist()
+
+    def generate_custom_config(self):
+        """Store the ``radremap`` namelist for replay."""
+        self.custom_config.update({"namelist": WRFRUN_NEW.namelist.get_namelist("radremap")})
+
+    def load_custom_config(self):
+        """Restore the ``radremap`` namelist for replay."""
+        if not WRFRUN_NEW.namelist.check_namelist_id("radremap"):
+            WRFRUN_NEW.namelist.register_namelist_id("radremap")
+        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "radremap")
+
+    def before_exec(self):
+        """Stage inputs and write the runtime ``radremap`` namelist."""
+        WRFRUN_NEW.states.check_wrfrun_context(True)
+        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "radremap"
+        WRFRUN_NEW.resource.mkdir(self.work_path / "outputs")
+
+        namelist = WRFRUN_NEW.namelist.get_namelist("radremap")
+        history_file = Path(namelist["initialization"]["inifile"]).name
+        grid_base_file = Path(namelist["initialization"]["inigbf"]).name
+        radar_file = Path(namelist["radremapopt"]["radfname"]).name
+        outtime = int(history_file[-6:])
+        valid_time = WRFRUN_NEW.config["simulation"]["time"]["start_time"] + timedelta(seconds=outtime)
+
+        arps_output_dir = WRFRUN_NEW.resource.OUTPUT_DIR / "arps"
+        self.add_input_files([arps_output_dir / history_file, arps_output_dir / grid_base_file])
+        self.add_input_files(WRFRUN_NEW.resource.INPUT_DIR / "radremap" / radar_file, is_output=False)
+
+        WRFRUN_NEW.namelist.update_namelist(
+            {
+                "message_passing": {"nproc_x": 1, "nproc_y": 1, "nprocx_in": 1, "nprocy_in": 1},
+                "initialization": {
+                    "modelopt": 1,
+                    "initime": valid_time.strftime("%Y-%m-%d_%H:%M:%S"),
+                    "initopt": 3,
+                    "inifmt": 3,
+                    "inisplited": 0,
+                    "inifile": f"./{history_file}",
+                    "inigbf": f"./{grid_base_file}",
+                },
+                "radremapopt": {"radfname": f"./{radar_file}"},
+                "radremapout": {"dirname": "./outputs/", "outtime": outtime},
+            },
+            "radremap",
+        )
+        WRFRUN_NEW.namelist.write_namelist(self.namelist_path, "radremap")
+
+        super().before_exec()
+
+    def after_exec(self):
+        """Archive remapped radar products and the runtime namelist."""
+        if not WRFRUN_NEW.states.IS_IN_REPLAY:
+            self.add_output_files(
+                startswith="",
+                output_dir=self.work_path / "outputs",
+                save_path=self._output_save_path,
+            )
+            self.add_output_files(
+                filenames="radremap.nml",
+                output_dir=self.work_path,
+                save_path=self._output_save_path / "logs",
+            )
+
+        super().after_exec()
+
+
+__all__ = ["ARPSSFC", "ARPS", "ARPS3DVar", "ARPSIntrp", "EXT2ARPS", "RadRemap"]

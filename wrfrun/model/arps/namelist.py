@@ -9,6 +9,7 @@ Functions to read and change ARPS namelist.
 
     prepare_arps_namelist
     prepare_arpsintrp_namelist
+    prepare_radremap_namelist
 """
 
 import logging
@@ -141,20 +142,17 @@ def prepare_arps_namelist():
     return
 
 
-def prepare_arpsintrp_namelist():
-    """
-    Load the project ``arpsintrp`` template and its optional update file.
-
-    The complete base namelist is read from
-    ``templates/arps/arpsintrp.nml``. Values in
-    ``namelists/arps/arpsintrp.nml`` are then applied when that file exists.
-    """
-    namelist_id = "arpsintrp"
-    template_file = WRFRUN_NEW.resource.get_custom_resource(ResourceRef("project", "templates/arps/arpsintrp.nml"))
-    update_file = WRFRUN_NEW.resource.get_custom_resource(ResourceRef("project", "namelists/arps/arpsintrp.nml"))
+def _prepare_component_namelist(namelist_id: str):
+    """Load an ARPS component namelist template and its optional updates."""
+    template_file = WRFRUN_NEW.resource.get_custom_resource(
+        ResourceRef("project", f"templates/arps/{namelist_id}.nml")
+    )
+    update_file = WRFRUN_NEW.resource.get_custom_resource(
+        ResourceRef("project", f"namelists/arps/{namelist_id}.nml")
+    )
 
     if not template_file.is_file():
-        raise FileNotFoundError(f"Can't find arpsintrp namelist template: {template_file}")
+        raise FileNotFoundError(f"Can't find {namelist_id} namelist template: {template_file}")
 
     if not WRFRUN_NEW.namelist.check_namelist_id(namelist_id):
         WRFRUN_NEW.namelist.register_namelist_id(namelist_id)
@@ -164,4 +162,14 @@ def prepare_arpsintrp_namelist():
         WRFRUN_NEW.namelist.update_namelist(update_file.as_posix(), namelist_id)
 
 
-__all__ = ["prepare_arps_namelist", "prepare_arpsintrp_namelist"]
+def prepare_arpsintrp_namelist():
+    """Load the project ``arpsintrp`` template and optional updates."""
+    _prepare_component_namelist("arpsintrp")
+
+
+def prepare_radremap_namelist():
+    """Load the project ``radremap`` template and optional updates."""
+    _prepare_component_namelist("radremap")
+
+
+__all__ = ["prepare_arps_namelist", "prepare_arpsintrp_namelist", "prepare_radremap_namelist"]
