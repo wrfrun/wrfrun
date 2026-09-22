@@ -73,7 +73,7 @@ class IOService:
             message = f"'{file_path}' doesn't exist."
             LOGGER.error(message)
             raise FileNotFoundError(message)
-        elif not file_path.is_file():
+        elif is_copy and not file_path.is_file():
             message = f"'{file_path}' is not a file."
             LOGGER.error(message)
             raise FileNotFoundError(message)

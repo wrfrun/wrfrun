@@ -99,7 +99,7 @@ def write_palm_config(file_path: str | Path | ResourceRef):
     else:
         _file_path = Path(file_path)
 
-    if exists(file_path):
+    if exists(_file_path):
         backup_file_path = _file_path.parent / "backup.palm.config"
 
         WRFRUN_NEW.io.move(

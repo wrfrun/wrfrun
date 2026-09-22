@@ -10,6 +10,7 @@ import logging
 from wrfrun.core import WRFRUN_NEW
 
 from .core import PALMRun
+from .workspace import check_palm_workspace, prepare_palm_workspace
 
 LOGGER = logging.getLogger("wrfrun")
 
@@ -30,6 +31,9 @@ class PALMPlugin:
         WRFRUN_NEW.registry.register_exec("palmrun", PALMRun)
 
         WRFRUN_NEW.resource.register_provider("workspace_palm", WRFRUN_NEW.resource.WORKSPACE_DIR / "palm")
+
+        WRFRUN_NEW.workspace.register_init_func("palm", prepare_palm_workspace)
+        WRFRUN_NEW.workspace.register_check_func("palm", check_palm_workspace)
 
 
 __all__ = ["PALMPlugin"]

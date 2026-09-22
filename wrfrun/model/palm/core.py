@@ -169,11 +169,11 @@ class PALMRun(ExecutableBase):
                         raise ValueError(f"Your data have unknown postfix string: '{data}'.")
 
         WRFRUN_NEW.namelist.write_namelist(
-            f"{self._get_workspace_path('input')}/{get_namelist_save_name()}",
+            self._get_workspace_path("input") / get_namelist_save_name(),
             "palm",
         )
 
-        write_palm_config(f"{self._get_workspace_path()}/.palm.config.{config_id}")
+        write_palm_config(self._get_workspace_path() / f".palm.config.{config_id}")
 
         super().before_exec()
 
@@ -183,14 +183,14 @@ class PALMRun(ExecutableBase):
 
             self.add_output_files(
                 output_dir=self._get_workspace_path("output"),
-                save_path=f"{self._output_save_path}/{job_name}",
+                save_path=self._output_save_path / job_name,
                 startswith=job_name,
             )
 
             # also save namelist files.
             self.add_output_files(
                 output_dir=self._get_workspace_path("input"),
-                save_path=f"{self._output_save_path}/{job_name}/logs",
+                save_path=self._output_save_path / f"{job_name}/logs",
                 filenames=get_namelist_save_name(),
             )
 
