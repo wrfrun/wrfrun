@@ -182,8 +182,7 @@ class PALMRun(ExecutableBase):
                             self.add_input_files(
                                 {
                                     "file_path": f"{palm_data_dir}/{data}",
-                                    "save_path": palm_workspace_input_path,
-                                    "save_name": save_name,
+                                    "save_path": palm_workspace_input_path / save_name,
                                     "is_data": True,
                                     "is_output": False,
                                 }
