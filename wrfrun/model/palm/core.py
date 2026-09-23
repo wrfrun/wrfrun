@@ -80,7 +80,9 @@ class PALMRun(ExecutableBase):
 
         _check_and_prepare_namelist(self._get_workspace_path())
 
-    def _get_workspace_path(self, node: Literal["root", "job", "input", "output"] = "root") -> Path | ResourceRef:
+    def _get_workspace_path(
+        self, node: Literal["root", "job", "input", "output", "restart", "monitor"] = "root"
+    ) -> Path | ResourceRef:
         """
         Get workspace of PALM model.
 
@@ -103,6 +105,12 @@ class PALMRun(ExecutableBase):
 
             case "output":
                 return self.work_path / f"job/{job_name}/OUTPUT"
+
+            case "restart":
+                return self.work_path / f"job/{job_name}/RESTART"
+
+            case "monitor":
+                return self.work_path / f"job/{job_name}/MONITORING"
 
     def generate_custom_config(self):
         """
@@ -187,11 +195,25 @@ class PALMRun(ExecutableBase):
                 startswith=job_name,
             )
 
+            self.add_output_files(
+                output_dir=self._get_workspace_path("restart"),
+                save_path=self._output_save_path / job_name,
+                endswith="_d3d",
+                no_file_error=False,
+            )
+
             # also save namelist files.
             self.add_output_files(
                 output_dir=self._get_workspace_path("input"),
                 save_path=self._output_save_path / f"{job_name}/logs",
                 filenames=get_namelist_save_name(),
+            )
+
+            self.add_output_files(
+                output_dir=self._get_workspace_path("monitor"),
+                save_path=self._output_save_path / f"{job_name}/logs",
+                startswith=f"{job_name}_parin",
+                no_file_error=False,
             )
 
         super().after_exec()

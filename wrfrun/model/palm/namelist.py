@@ -44,14 +44,23 @@ def get_namelist_save_name() -> str:
     map_dict = {"d3#": "_p3d", "d3r": "_p3dr", "pcr": "_pcr"}
 
     config = WRFRUN_NEW.config.get_model_config("palm")
-    simulation_type = config["simulation_type"]
+    simulation_type: str = config["simulation_type"]
     job_name = config["job_name"]
+
+    # detect the first one
+    simulation_type = simulation_type.split(" ")[0]
 
     if simulation_type in map_dict:
         return f"{job_name}{map_dict[simulation_type]}"
 
-    logger.error(f"Unknown simulation type: Expect {tuple(map_dict.keys())}")
-    raise KeyError(f"Unknown simulation type: Expect {tuple(map_dict.keys())}")
+    message = f"Unknown simulation type: Got '{simulation_type}', expect one of {tuple(map_dict.keys())}."
+
+    logger.error(message)
+    logger.error(
+        f"Your full simulation type is '{config['simulation_type']}'. "
+        "While wrfrun only detects the first one, try rearrange your type."
+    )
+    raise KeyError(message)
 
 
 def check_palm_namelist_settings():
