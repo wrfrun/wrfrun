@@ -153,28 +153,45 @@ class PALMRun(ExecutableBase):
                     }
                 )
 
-            palm_data_dir = config["data_dir_path"]
-            palm_data_dir = abspath(palm_data_dir)
-            if exists(palm_data_dir):
+            # Check if we have restar data
+            restart_data_dir = WRFRUN_NEW.resource.INPUT_DIR / "palm/restart"
+            restart_data_dir_path = WRFRUN_NEW.resource.get_custom_resource(restart_data_dir)
+            if restart_data_dir_path.is_dir():
+                file_list = listdir(restart_data_dir_path)
+                for _file in file_list:
+                    _identifier = _file.split("_d3d")[0]
+                    _new_name = job_name + _file.removeprefix(_identifier)
+                    self.add_input_files(
+                        {
+                            "file_path": restart_data_dir / _file,
+                            "save_path": self._get_workspace_path("restart") / _new_name,
+                            "is_data": True,
+                            "is_output": False,
+                        }
+                    )
+
+            palm_data_dir = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.INPUT_DIR / "palm")
+            if palm_data_dir.is_dir():
                 logger.info(f"Read datas in '{palm_data_dir}'.")
                 for data in listdir(palm_data_dir):
-                    _palm_postfix = get_input_postfix(data)
+                    if not (palm_data_dir / data).is_dir():
+                        _palm_postfix = get_input_postfix(data)
 
-                    if _palm_postfix:
-                        save_name = f"{job_name}{_palm_postfix}"
-                        self.add_input_files(
-                            {
-                                "file_path": f"{palm_data_dir}/{data}",
-                                "save_path": palm_workspace_input_path,
-                                "save_name": save_name,
-                                "is_data": True,
-                                "is_output": False,
-                            }
-                        )
+                        if _palm_postfix:
+                            save_name = f"{job_name}{_palm_postfix}"
+                            self.add_input_files(
+                                {
+                                    "file_path": f"{palm_data_dir}/{data}",
+                                    "save_path": palm_workspace_input_path,
+                                    "save_name": save_name,
+                                    "is_data": True,
+                                    "is_output": False,
+                                }
+                            )
 
-                    else:
-                        logger.error(f"Your data have unknown postfix string: '{data}'.")
-                        raise ValueError(f"Your data have unknown postfix string: '{data}'.")
+                        else:
+                            logger.error(f"Your data have unknown postfix string: '{data}'.")
+                            raise ValueError(f"Your data have unknown postfix string: '{data}'.")
 
         WRFRUN_NEW.namelist.write_namelist(
             self._get_workspace_path("input") / get_namelist_save_name(),
