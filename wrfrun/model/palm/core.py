@@ -198,7 +198,7 @@ class PALMRun(ExecutableBase):
             self.add_output_files(
                 output_dir=self._get_workspace_path("restart"),
                 save_path=self._output_save_path / job_name,
-                endswith="_d3d",
+                startswith=f"{job_name}_d3d",
                 no_file_error=False,
             )
 
