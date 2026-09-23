@@ -239,7 +239,7 @@ class ExecutableBase:
         self,
         name: str,
         cmd: Union[str, list[str]],
-        work_path: str | ResourceRef,
+        work_path: ResourceRef,
         mpi_use=False,
         mpi_cmd: Optional[str] = None,
         mpi_core_num: Optional[int] = None,
@@ -271,10 +271,7 @@ class ExecutableBase:
         self.name = name
         self.cmd = cmd
 
-        if isinstance(work_path, str):
-            self.work_path = Path(work_path)
-        else:
-            self.work_path = work_path
+        self.work_path = work_path
 
         self.stdin_file = stdin_file
         self.mpi_use = mpi_use
@@ -538,7 +535,7 @@ class ExecutableBase:
             return
 
         if output_dir is None:
-            _output_dir = self.work_path
+            _output_dir = WRFRUN_NEW.resource.get_custom_resource(self.work_path)
         elif isinstance(output_dir, ResourceRef):
             _output_dir = WRFRUN_NEW.resource.get_custom_resource(output_dir)
         else:
@@ -551,7 +548,6 @@ class ExecutableBase:
         else:
             _save_path = Path(save_path)
 
-        _output_dir = WRFRUN_NEW.resource.get_custom_resource(_output_dir)
         if not _output_dir.is_dir():
             file_list = []
         else:

@@ -223,7 +223,7 @@ class ExecutableConfig(TypedDict):
         Command of the executable.
 
     .. py:attribute:: work_path
-        :type: str | None
+        :type: ResourceRef
 
         Work path of the executable.
 
@@ -265,7 +265,7 @@ class ExecutableConfig(TypedDict):
 
     name: str
     cmd: Union[str, list[str]]
-    work_path: Union[Path, ResourceRef]
+    work_path: ResourceRef
     mpi_use: bool
     mpi_cmd: Optional[str]
     mpi_core_num: Optional[int]
