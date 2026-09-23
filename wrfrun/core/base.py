@@ -551,7 +551,11 @@ class ExecutableBase:
         else:
             _save_path = Path(save_path)
 
-        file_list = listdir(WRFRUN_NEW.resource.get_custom_resource(output_dir))
+        _output_dir = WRFRUN_NEW.resource.get_custom_resource(_output_dir)
+        if not _output_dir.is_dir():
+            file_list = []
+        else:
+            file_list = listdir(_output_dir)
         save_file_list = []
 
         if startswith is not None:
