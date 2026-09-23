@@ -154,7 +154,7 @@ def prepare_palm_config(workspace_root: ResourceRef):
         "base_data": f"{root_path}/job",
         "user_source_path": f"{root_path}/job/$run_identifier/USER_CODE",
         "fast_io_catalog": f"{root_path}/tmp",
-        "restart_data_path": f"{root_path}/tmp",
+        "restart_data_path": f"{root_path}/job",
         "output_data_path": f"{root_path}/job",
         "local_jobcatalog": f"{root_path}/job/$run_identifier/LOG_FILES",
     }
