@@ -13,6 +13,7 @@ The documentation is organized to take you from basic installation through to ad
 
    installation
    quick_start
+   experiments
    custom_executable
 
 Getting Started

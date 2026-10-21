@@ -21,7 +21,15 @@ from ..type import ResourceRef, ResourceType
 LOGGER = logging.getLogger("wrfrun")
 
 
-PROJECT_TREE = {"data": ["inputs", "outputs"], "configs": {"namelists": ["user", "templates"]}}
+PROJECT_TREE = (
+    "configs/experiments",
+    "configs/namelists/templates",
+    "configs/namelists/user",
+    "data/inputs/common",
+    "data/inputs/experiments",
+    "data/outputs",
+    "logs",
+)
 
 
 class ResourceCatalog:
@@ -207,10 +215,11 @@ class ResourceCatalog:
         _work_dir = Path(work_dir)
         self.register_provider("data", _project_path / "data")
         self.register_provider("project", _project_path)
+        self.register_provider("config", _project_path / "configs")
         self.register_provider("workspace", _work_dir / "workspace")
         self.register_provider("temp", _work_dir / "temp")
         self.register_provider("replay", _work_dir / "replay")
-        self.register_provider("log", _work_dir / "logs")
+        self.register_provider("log", _project_path / "logs")
 
     @property
     def CORE_RESOURCE(self):

@@ -97,6 +97,7 @@ NAMELIST_WRF = ResourceRef("core", "namelist/namelist.input.wrf.template")
 NAMELIST_WPS = ResourceRef("core", "namelist/namelist.wps.template")
 CONFIG_ARPS_TOML_TEMPLATE = ResourceRef("core", "config/arps.template.toml")
 CONFIG_MAIN_TOML_TEMPLATE = ResourceRef("core", "config/config.template.toml")
+CONFIG_EXPERIMENT_TOML_TEMPLATE = ResourceRef("core", "config/experiment.template.toml")
 CONFIG_WRF_TOML_TEMPLATE = ResourceRef("core", "config/wrf.template.toml")
 CONFIG_PALM_TOML_TEMPLATE = ResourceRef("core", "config/palm.template.toml")
 CONFIG_ROMS_TOML_TEMPLATE = ResourceRef("core", "config/roms.template.toml")
@@ -116,6 +117,7 @@ __all__ = [
     "NAMELIST_WPS",
     "CONFIG_ARPS_TOML_TEMPLATE",
     "CONFIG_MAIN_TOML_TEMPLATE",
+    "CONFIG_EXPERIMENT_TOML_TEMPLATE",
     "CONFIG_WRF_TOML_TEMPLATE",
     "CONFIG_PALM_TOML_TEMPLATE",
     "CONFIG_ROMS_TOML_TEMPLATE",

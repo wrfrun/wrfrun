@@ -106,7 +106,9 @@ class ConfigService:
         project_root_path = config_file.parent
 
         # register provider before load model's plugin
-        work_dir = Path(self["work_dir"]).resolve()
+        work_dir = Path(self["work_dir"])
+        if not work_dir.is_absolute():
+            work_dir = project_root_path / work_dir
         self._resource.register_default_providers(project_root_path, work_dir)
 
         from wrfrun.model.plugins import load_model_plugin

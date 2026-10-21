@@ -24,11 +24,15 @@ A typical ``wrfrun`` project has following directories:
 
 * ``data``: Directory which stores input and output data.
   * ``inputs``: Directory which stores input data.
+    * ``common``: Directory which stores shared model inputs.
+    * ``experiments``: Directory which stores experiment-specific inputs.
   * ``outputs``: Directory which stores output data.
 * ``configs``: Directory which stores ``wrfrun`` configs.
+  * ``experiments``: Directory which stores experiment configuration overrides.
   * ``namelists``: Direcctory which stores namelists used by external models.
     * ``templates``: Directory which stores namelists template.
     * ``user``: Directory which stores user's namelists.
+* ``logs``: Directory which stores model logs.
 
 .. toctree::
     :maxdepth: 1

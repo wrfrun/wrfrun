@@ -18,7 +18,6 @@ Get more information by running ``wrfrun --help``.
 import argparse
 import sys
 from os import listdir
-from os.path import abspath, dirname
 from pathlib import Path
 
 import tomli
@@ -28,6 +27,7 @@ from .core import PROJECT_TREE, WRFRUN_NEW, create_wrfrun_session
 from .log import logger
 from .res import (
     CONFIG_ARPS_TOML_TEMPLATE,
+    CONFIG_EXPERIMENT_TOML_TEMPLATE,
     CONFIG_MAIN_TOML_TEMPLATE,
     CONFIG_PALM_TOML_TEMPLATE,
     CONFIG_ROMS_TOML_TEMPLATE,
@@ -45,22 +45,6 @@ MODEL_MAP = {
 CLI_SESSION = create_wrfrun_session()
 
 
-def _parse_childs(values: dict[str, dict | list[str]] | list[str]) -> list[str]:
-    if isinstance(values, list):
-        return values
-
-    elif isinstance(values, dict):
-        _res = []
-
-        for _key in values:
-            _res += _parse_childs(values[_key])
-
-        return _res
-
-    else:
-        raise ValueError(f"Expect dict or list, but got {type(values)}")
-
-
 def _entry_init(args: argparse.Namespace):
     """
     Initialize a wrfrun project.
@@ -75,7 +59,7 @@ def _entry_init(args: argparse.Namespace):
 
     if project_path.is_dir():
         # we need to check if this directory isn't empty.
-        files = listdir()
+        files = listdir(project_path)
         # exclude:
         exclude_target = [
             ".venv",
@@ -86,8 +70,10 @@ def _entry_init(args: argparse.Namespace):
             "uv.lock",
             "configs",
             "data",
-            "namelists",
+            "logs",
+            ".wrfrun",
             "config.toml",
+            ".gitignore",
         ]
         files = [x for x in files if x not in exclude_target]
 
@@ -95,14 +81,10 @@ def _entry_init(args: argparse.Namespace):
             logger.error(f"[CLI] {project_path} isn't empty, choose an empty directory, or backup and delete your files first.")
             exit(1)
 
-    for _key in PROJECT_TREE:
-        _path = Path(_key)
-        _childs = _parse_childs(PROJECT_TREE[_key])
+    for directory in PROJECT_TREE:
+        (project_path / directory).mkdir(exist_ok=True, parents=True)
 
-        for _child in _childs:
-            (_path / _child).mkdir(exist_ok=True, parents=True)
-
-    WRFRUN_NEW.resource.register_default_providers(Path(".").resolve(), Path(".wrfrun").resolve())
+    WRFRUN_NEW.resource.register_default_providers(project_path, project_path / ".wrfrun")
 
     WRFRUN_NEW.io.copy(file_path=CONFIG_MAIN_TOML_TEMPLATE, save_path=project_path / "config.toml")
     WRFRUN_NEW.io.copy(file_path=GITIGNORE_RULES, save_path=project_path / ".gitignore")
@@ -114,7 +96,7 @@ def _entry_init(args: argparse.Namespace):
                 WRFRUN_NEW.io.copy(file_path=MODEL_MAP[_model], save_path=project_path / f"configs/{_model}.toml")
                 WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.NAMELIST_TEMPLATE_DIR / _model)
                 WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.NAMELIST_USER_DIR / _model)
-                WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.INPUT_DIR / _model)
+                WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.INPUT_DIR / "common" / _model)
                 model_list.append(_model)
 
             else:
@@ -125,8 +107,8 @@ def _entry_init(args: argparse.Namespace):
         logger.info(f"Use the following models: {model_list}.")
     logger.info(f"All your configs should be placed in '{project_path}/configs'.")
     logger.info(f"All your data should be placed in '{project_path}/data'.")
-    logger.info(f"All your namelist template files should be placed in '{project_path}/templates'")
-    logger.info(f"All your namelist files should be placed in '{project_path}/namelists'")
+    logger.info(f"All your namelist template files should be placed in '{project_path}/configs/namelists/templates'.")
+    logger.info(f"All your namelist files should be placed in '{project_path}/configs/namelists/user'.")
     logger.info(f"Make sure to set `[magenta]use = True[/]` to enable models in '{project_path}/config.toml' .")
     logger.info("It is recommanded to use git to track your wrfrun and model configs.")
     logger.info("Use command `[magenta]wrfrun add MODEL_NAME[/]` to add a new model to project.")
@@ -181,21 +163,52 @@ def _entry_model(args: argparse.Namespace):
                     "include": f"./configs/{_new_model}.toml",
                 }
 
-    WRFRUN_NEW.resource.register_default_providers(Path(".").resolve(), Path(".wrfrun").resolve())
+    WRFRUN_NEW.resource.register_default_providers(project_path, project_path / ".wrfrun")
 
     for _new_model in new_models:
         WRFRUN_NEW.io.copy(file_path=MODEL_MAP[_new_model], save_path=config_dir_path / f"{_new_model}.toml")
         WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.NAMELIST_TEMPLATE_DIR / _new_model)
         WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.NAMELIST_USER_DIR / _new_model)
-        WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.INPUT_DIR / _new_model)
-        (project_path / f"namelists/{_new_model}").mkdir(exist_ok=True)
-        (project_path / f"data/{_new_model}").mkdir(exist_ok=True)
-        (project_path / f"templates/{_new_model}").mkdir(exist_ok=True)
+        WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.INPUT_DIR / "common" / _new_model)
 
     with open(config_path, "wb") as f:
         tomli_w.dump(main_config, f)
 
     logger.info(f"Added models: {new_models}")
+
+
+def _entry_experiment_create(args: argparse.Namespace):
+    """Create a new experiment skeleton."""
+    config_path = Path(args.config).resolve()
+    project_path = config_path.parent
+    experiment_name = args.name
+
+    if not config_path.is_file():
+        logger.error(f"Can't find '{config_path}', initialize this project first.")
+        exit(1)
+
+    if Path(experiment_name).name != experiment_name or experiment_name in (".", ".."):
+        logger.error("Experiment name must be a single directory name.")
+        exit(1)
+
+    experiment_config_dir = project_path / "configs/experiments" / experiment_name
+    if experiment_config_dir.exists():
+        logger.error(f"Experiment '{experiment_name}' already exists.")
+        exit(1)
+
+    WRFRUN_NEW.resource.register_default_providers(project_path, project_path / ".wrfrun")
+
+    WRFRUN_NEW.io.copy(
+        file_path=CONFIG_EXPERIMENT_TOML_TEMPLATE,
+        save_path=experiment_config_dir / "experiment.toml",
+    )
+    (experiment_config_dir / "namelists").mkdir(parents=True)
+    WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.INPUT_DIR / "experiments" / experiment_name)
+    WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.OUTPUT_DIR / experiment_name)
+    WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.LOG_DIR / experiment_name)
+    (project_path / ".wrfrun/runs" / experiment_name).mkdir(parents=True)
+
+    logger.info(f"Created experiment '{experiment_name}' at '{experiment_config_dir}'.")
 
 
 def main_entry():
@@ -228,6 +241,19 @@ def main_entry():
         choices=["wrf", "palm", "roms", "arps"],
     )
     model_parser.set_defaults(func=_entry_model)
+
+    experiment_parser = subparsers.add_parser("experiment", help="Manage project experiments.", add_help=True)
+    experiment_subparsers = experiment_parser.add_subparsers(title="Experiment commands", required=True)
+    experiment_create_parser = experiment_subparsers.add_parser("create", help="Create an experiment skeleton.", add_help=True)
+    experiment_create_parser.add_argument("name", type=str, help="Name of the new experiment.")
+    experiment_create_parser.add_argument(
+        "-c",
+        "--config",
+        type=str,
+        default="config.toml",
+        help="Path of the main config file.",
+    )
+    experiment_create_parser.set_defaults(func=_entry_experiment_create)
 
     args = args_parser.parse_args(args=None if sys.argv[1:] else ["--help"])
     args.func(args)
