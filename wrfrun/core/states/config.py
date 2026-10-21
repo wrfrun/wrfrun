@@ -106,19 +106,8 @@ class ConfigService:
         project_root_path = config_file.parent
 
         # register provider before load model's plugin
-        input_path = Path(self["input_data_path"]).resolve()
-        output_path = Path(self["output_path"]).resolve()
         work_dir = Path(self["work_dir"]).resolve()
-        log_dir = Path(self["log_path"]).resolve()
-        template_dir = Path(self["template_dir"]).resolve()
-        self._resource.register_provider("output", output_path)
-        self._resource.register_provider("project", project_root_path)
-        self._resource.register_provider("input", input_path)
-        self._resource.register_provider("workspace", work_dir / "workspace")
-        self._resource.register_provider("temp", work_dir / "temp")
-        self._resource.register_provider("replay", work_dir / "replay")
-        self._resource.register_provider("log", log_dir)
-        self._resource.register_provider("template", template_dir)
+        self._resource.register_default_providers(project_root_path, work_dir)
 
         from wrfrun.model.plugins import load_model_plugin
 

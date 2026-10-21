@@ -18,12 +18,13 @@ Get more information by running ``wrfrun --help``.
 import argparse
 import sys
 from os import listdir
+from os.path import abspath, dirname
 from pathlib import Path
 
 import tomli
 import tomli_w
 
-from .core import WRFRUN_NEW, create_wrfrun_session
+from .core import PROJECT_TREE, WRFRUN_NEW, create_wrfrun_session
 from .log import logger
 from .res import (
     CONFIG_ARPS_TOML_TEMPLATE,
@@ -42,6 +43,22 @@ MODEL_MAP = {
 }
 
 CLI_SESSION = create_wrfrun_session()
+
+
+def _parse_childs(values: dict[str, dict | list[str]] | list[str]) -> list[str]:
+    if isinstance(values, list):
+        return values
+
+    elif isinstance(values, dict):
+        _res = []
+
+        for _key in values:
+            _res += _parse_childs(values[_key])
+
+        return _res
+
+    else:
+        raise ValueError(f"Expect dict or list, but got {type(values)}")
 
 
 def _entry_init(args: argparse.Namespace):
@@ -78,14 +95,14 @@ def _entry_init(args: argparse.Namespace):
             logger.error(f"[CLI] {project_path} isn't empty, choose an empty directory, or backup and delete your files first.")
             exit(1)
 
-    for _path in [
-        project_path / "configs",
-        project_path / "data",
-        project_path / "outputs",
-        project_path / "namelists",
-        project_path / "templates",
-    ]:
-        _path.mkdir(exist_ok=True, parents=True)
+    for _key in PROJECT_TREE:
+        _path = Path(_key)
+        _childs = _parse_childs(PROJECT_TREE[_key])
+
+        for _child in _childs:
+            (_path / _child).mkdir(exist_ok=True, parents=True)
+
+    WRFRUN_NEW.resource.register_default_providers(Path(".").resolve(), Path(".wrfrun").resolve())
 
     WRFRUN_NEW.io.copy(file_path=CONFIG_MAIN_TOML_TEMPLATE, save_path=project_path / "config.toml")
     WRFRUN_NEW.io.copy(file_path=GITIGNORE_RULES, save_path=project_path / ".gitignore")
@@ -95,9 +112,9 @@ def _entry_init(args: argparse.Namespace):
         for _model in models:
             if _model in MODEL_MAP:
                 WRFRUN_NEW.io.copy(file_path=MODEL_MAP[_model], save_path=project_path / f"configs/{_model}.toml")
-                (project_path / f"namelists/{_model}").mkdir(exist_ok=True)
-                (project_path / f"data/{_model}").mkdir(exist_ok=True)
-                (project_path / f"templates/{_model}").mkdir(exist_ok=True)
+                WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.NAMELIST_TEMPLATE_DIR / _model)
+                WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.NAMELIST_USER_DIR / _model)
+                WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.INPUT_DIR / _model)
                 model_list.append(_model)
 
             else:
@@ -164,8 +181,13 @@ def _entry_model(args: argparse.Namespace):
                     "include": f"./configs/{_new_model}.toml",
                 }
 
+    WRFRUN_NEW.resource.register_default_providers(Path(".").resolve(), Path(".wrfrun").resolve())
+
     for _new_model in new_models:
         WRFRUN_NEW.io.copy(file_path=MODEL_MAP[_new_model], save_path=config_dir_path / f"{_new_model}.toml")
+        WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.NAMELIST_TEMPLATE_DIR / _new_model)
+        WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.NAMELIST_USER_DIR / _new_model)
+        WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.INPUT_DIR / _new_model)
         (project_path / f"namelists/{_new_model}").mkdir(exist_ok=True)
         (project_path / f"data/{_new_model}").mkdir(exist_ok=True)
         (project_path / f"templates/{_new_model}").mkdir(exist_ok=True)

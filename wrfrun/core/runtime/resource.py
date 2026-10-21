@@ -21,6 +21,9 @@ from ..type import ResourceRef, ResourceType
 LOGGER = logging.getLogger("wrfrun")
 
 
+PROJECT_TREE = {"data": ["inputs", "outputs"], "configs": {"namelists": ["user", "templates"]}}
+
+
 class ResourceCatalog:
     """
     This is wrfrun's resource manager.
@@ -191,6 +194,24 @@ class ResourceCatalog:
         """
         self.get_custom_resource(ref).mkdir(parents=True, exist_ok=True)
 
+    def register_default_providers(self, project_path: str | Path, work_dir: str | Path):
+        """
+        Register default providers.
+
+        :param project_path: Project root path.
+        :type project_path: str
+        :param work_dir: Work directory of ``wrfrun``.
+        :type work_dir: str
+        """
+        _project_path = Path(project_path)
+        _work_dir = Path(work_dir)
+        self.register_provider("data", _project_path / "data")
+        self.register_provider("project", _project_path)
+        self.register_provider("workspace", _work_dir / "workspace")
+        self.register_provider("temp", _work_dir / "temp")
+        self.register_provider("replay", _work_dir / "replay")
+        self.register_provider("log", _work_dir / "logs")
+
     @property
     def CORE_RESOURCE(self):
         """
@@ -202,6 +223,16 @@ class ResourceCatalog:
         return ResourceRef("core", "")
 
     @property
+    def DATA_DIR(self):
+        """
+        ``wrfrun`` data dir.
+
+        :return: ResourceRef obj of ``wrfrun`` data directory.
+        :rtype: ResourceRef
+        """
+        return ResourceRef("data", "")
+
+    @property
     def OUTPUT_DIR(self):
         """
         ``wrfrun`` output root directory.
@@ -209,7 +240,7 @@ class ResourceCatalog:
         :return: ResourceRef obj of ``wrfrun`` output directory.
         :rtype: ResourceRef
         """
-        return ResourceRef("output", "")
+        return self.DATA_DIR / "outputs"
 
     @property
     def INPUT_DIR(self):
@@ -221,7 +252,47 @@ class ResourceCatalog:
         :return: ResourceRef obj of ``wrfrun`` input directory.
         :rtype: ResourceRef
         """
-        return ResourceRef("input", "")
+        return self.DATA_DIR / "inputs"
+
+    @property
+    def CONFIG_DIR(self) -> ResourceRef:
+        """
+        ``wrfrun`` config directory.
+
+        :return: ResourceRef obj of ``wrfrun`` config directory.
+        :rtype: ResourceRef
+        """
+        return ResourceRef("config", "")
+
+    @property
+    def NAMELIST_USER_DIR(self) -> ResourceRef:
+        """
+        ``wrfrun`` user namelist directory.
+
+        :return: ResourceRef obj of ``wrfrun`` user namelist directory.
+        :rtype: ResourceRef
+        """
+        return self.CONFIG_DIR / "namelists/user"
+
+    @property
+    def NAMELIST_TEMPLATE_DIR(self) -> ResourceRef:
+        """
+        ``wrfrun`` template namelist directory.
+
+        :return: ResourceRef obj of ``wrfrun`` template namelist directory.
+        :rtype: ResourceRef
+        """
+        return self.CONFIG_DIR / "namelists/templates"
+
+    @property
+    def WORKSPACE_DIR(self) -> ResourceRef:
+        """
+        Path of the root workspace.
+
+        :return: URI
+        :rtype: str
+        """
+        return ResourceRef("workspace", "")
 
     @property
     def REPLAY_DIR(self):
@@ -244,14 +315,14 @@ class ResourceCatalog:
         return ResourceRef("temp", "")
 
     @property
-    def WORKSPACE_DIR(self) -> ResourceRef:
+    def LOG_DIR(self) -> ResourceRef:
         """
-        Path of the root workspace.
+        Path to store ``wrfrun`` log files.
 
         :return: URI
         :rtype: str
         """
-        return ResourceRef("workspace", "")
+        return ResourceRef("log", "")
 
 
-__all__ = ["ResourceType", "ResourceRef", "ResourceCatalog"]
+__all__ = ["ResourceType", "ResourceRef", "ResourceCatalog", "PROJECT_TREE"]

@@ -17,6 +17,19 @@ Submodules
 :doc:`workspace </api/core.runtime.workspace>` ``wrfrun`` workspace service.
 ============================================== ========================================================
 
+``wrfrun`` Project
+******************
+
+A typical ``wrfrun`` project has following directories:
+
+* ``data``: Directory which stores input and output data.
+  * ``inputs``: Directory which stores input data.
+  * ``outputs``: Directory which stores output data.
+* ``configs``: Directory which stores ``wrfrun`` configs.
+  * ``namelists``: Direcctory which stores namelists used by external models.
+    * ``templates``: Directory which stores namelists template.
+    * ``user``: Directory which stores user's namelists.
+
 .. toctree::
     :maxdepth: 1
     :hidden:
