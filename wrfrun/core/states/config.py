@@ -33,6 +33,18 @@ from ..runtime.resource import ResourceCatalog, ResourceRef
 LOGGER = logging.getLogger("wrfrun")
 
 
+def _merge_config(base: dict, override: dict) -> dict:
+    """Return a configuration with nested overrides applied."""
+    merged = deepcopy(base)
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _merge_config(merged[key], value)
+        else:
+            merged[key] = deepcopy(value)
+
+    return merged
+
+
 class ConfigService:
     """
     Comprehensive class to manage wrfrun config, runtime constants, namelists and resource files.
@@ -100,12 +112,34 @@ class ConfigService:
 
             raise FileNotFoundError(config_file)
 
+        project_root_path = config_file.parent
         with open(config_file, "rb") as f:
             self._config = tomli.load(f)
 
-        project_root_path = config_file.parent
+        # Expand model configuration before applying experiment overrides.
+        keys_list = list(self._config["model"].keys())
+        for model_key in keys_list:
+            if model_key == "debug_level":
+                continue
 
-        # register provider before load model's plugin
+            model_config = self._config["model"][model_key]
+            if model_config["use"] and "include" in model_config:
+                include_file = model_config["include"]
+                if include_file[0] != "/":
+                    include_file = f"{project_root_path}/{include_file}"
+
+                with open(include_file, "rb") as f:
+                    included_model_config = tomli.load(f)
+
+                included_model_config["use"] = model_config["use"]
+                self._config["model"][model_key] = included_model_config
+
+        if experiment != "common":
+            experiment_config_file = project_root_path / "configs/experiments" / experiment / "experiment.toml"
+            with open(experiment_config_file, "rb") as f:
+                self._config = _merge_config(self._config, tomli.load(f))
+
+        # Register providers and enabled plugins from the final configuration.
         work_dir = Path(self["work_dir"])
         if not work_dir.is_absolute():
             work_dir = project_root_path / work_dir
@@ -113,30 +147,12 @@ class ConfigService:
 
         from wrfrun.model.plugins import load_model_plugin
 
-        # merge model config.
-        keys_list = list(self._config["model"].keys())
-        for model_key in keys_list:
-            # skip the key that isn't model.
+        for model_key in list(self._config["model"].keys()):
             if model_key == "debug_level":
                 continue
 
-            if "include" not in self._config["model"][model_key]:
-                continue
-
-            # use = True, and have "include" key
             if self._config["model"][model_key]["use"]:
-                include_file = self._config["model"][model_key]["include"]
-                if include_file[0] != "/":
-                    include_file = f"{project_root_path}/{include_file}"
-
-                with open(include_file, "rb") as f:
-                    # keep "use" key, as other components may use this key
-                    _mode_config = tomli.load(f)
-                    _mode_config.update({"use": True})
-                    self._config["model"][model_key] = _mode_config
-
                 load_model_plugin(model_key).register()
-
             else:
                 self._config["model"].pop(model_key)
 

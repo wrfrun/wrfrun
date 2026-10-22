@@ -1,4 +1,13 @@
 # Configuration overrides for one experiment.
 #
-# Values in this file will later override the project and model configuration.
-# Keep only settings that differ from the project-wide configuration here.
+# Values in this file override matching values in ``config.toml`` and its model
+# configuration files. Nested TOML tables are merged, so keep only settings
+# that differ from the project-wide configuration here.
+#
+# Example:
+#
+# [simulation.time]
+# end_time = 2025-12-02T00:00:00+00:00
+#
+# [model.arps.global]
+# grid_dx = 500.0

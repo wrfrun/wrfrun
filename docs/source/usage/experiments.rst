@@ -17,6 +17,18 @@ experiment input directory. Use ``--copy`` to create independent input files.
 The experiment directory has its own input tree, so a file can later be
 replaced or added without changing the common inputs or another experiment.
 
+``experiment.toml`` overrides the matching values in ``config.toml`` and in
+the enabled model configuration. TOML tables are merged recursively, so it
+only needs to contain the values that differ. For example:
+
+.. code-block:: toml
+
+   [simulation.time]
+   end_time = 2025-12-02T00:00:00+00:00
+
+   [model.arps.global]
+   grid_dx = 500.0
+
 Run an experiment from Python with:
 
 .. code-block:: python
