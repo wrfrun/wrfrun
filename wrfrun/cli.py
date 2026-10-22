@@ -18,7 +18,9 @@ Get more information by running ``wrfrun --help``.
 import argparse
 import sys
 from os import listdir
+from os.path import relpath
 from pathlib import Path
+from shutil import copy2
 
 import tomli
 import tomli_w
@@ -43,6 +45,21 @@ MODEL_MAP = {
 }
 
 CLI_SESSION = create_wrfrun_session()
+
+
+def _stage_experiment_inputs(source_dir: Path, target_dir: Path, copy: bool):
+    """Create an experiment input tree from common inputs."""
+    for source_path in source_dir.rglob("*"):
+        target_path = target_dir / source_path.relative_to(source_dir)
+
+        if source_path.is_dir():
+            target_path.mkdir(exist_ok=True)
+        else:
+            target_path.parent.mkdir(exist_ok=True, parents=True)
+            if copy:
+                copy2(source_path, target_path)
+            else:
+                target_path.symlink_to(relpath(source_path, target_path.parent))
 
 
 def _entry_init(args: argparse.Namespace):
@@ -203,12 +220,19 @@ def _entry_experiment_create(args: argparse.Namespace):
         save_path=experiment_config_dir / "experiment.toml",
     )
     (experiment_config_dir / "namelists").mkdir(parents=True)
-    WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.INPUT_DIR / "experiments" / experiment_name)
+    common_input_dir = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.INPUT_DIR / "common")
+    experiment_input_dir = WRFRUN_NEW.resource.get_custom_resource(
+        WRFRUN_NEW.resource.INPUT_DIR / "experiments" / experiment_name
+    )
+    common_input_dir.mkdir(exist_ok=True, parents=True)
+    experiment_input_dir.mkdir(parents=True)
+    _stage_experiment_inputs(common_input_dir, experiment_input_dir, args.copy)
     WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.OUTPUT_DIR / experiment_name)
     WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.LOG_DIR / experiment_name)
     (project_path / ".wrfrun/runs" / experiment_name).mkdir(parents=True)
 
-    logger.info(f"Created experiment '{experiment_name}' at '{experiment_config_dir}'.")
+    input_mode = "copied" if args.copy else "symlinked"
+    logger.info(f"Created experiment '{experiment_name}' with {input_mode} inputs.")
 
 
 def main_entry():
@@ -246,6 +270,18 @@ def main_entry():
     experiment_subparsers = experiment_parser.add_subparsers(title="Experiment commands", required=True)
     experiment_create_parser = experiment_subparsers.add_parser("create", help="Create an experiment skeleton.", add_help=True)
     experiment_create_parser.add_argument("name", type=str, help="Name of the new experiment.")
+    input_mode_group = experiment_create_parser.add_mutually_exclusive_group()
+    input_mode_group.add_argument(
+        "--symlink",
+        action="store_false",
+        dest="copy",
+        help="Create relative symbolic links to common inputs (default).",
+    )
+    input_mode_group.add_argument(
+        "--copy",
+        action="store_true",
+        help="Copy common input files into the experiment.",
+    )
     experiment_create_parser.add_argument(
         "-c",
         "--config",
