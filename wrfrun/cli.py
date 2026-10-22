@@ -101,8 +101,6 @@ def _entry_init(args: argparse.Namespace):
     for directory in PROJECT_TREE:
         (project_path / directory).mkdir(exist_ok=True, parents=True)
 
-    WRFRUN_NEW.resource.register_default_providers(project_path, project_path / ".wrfrun")
-
     WRFRUN_NEW.io.copy(file_path=CONFIG_MAIN_TOML_TEMPLATE, save_path=project_path / "config.toml")
     WRFRUN_NEW.io.copy(file_path=GITIGNORE_RULES, save_path=project_path / ".gitignore")
 
@@ -111,9 +109,9 @@ def _entry_init(args: argparse.Namespace):
         for _model in models:
             if _model in MODEL_MAP:
                 WRFRUN_NEW.io.copy(file_path=MODEL_MAP[_model], save_path=project_path / f"configs/{_model}.toml")
-                WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.NAMELIST_TEMPLATE_DIR / _model)
-                WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.NAMELIST_USER_DIR / _model)
-                WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.INPUT_DIR / "common" / _model)
+                (project_path / "configs/namelists/templates" / _model).mkdir(exist_ok=True)
+                (project_path / "configs/namelists/user" / _model).mkdir(exist_ok=True)
+                (project_path / "data/inputs/common" / _model).mkdir(exist_ok=True)
                 model_list.append(_model)
 
             else:
@@ -180,13 +178,11 @@ def _entry_model(args: argparse.Namespace):
                     "include": f"./configs/{_new_model}.toml",
                 }
 
-    WRFRUN_NEW.resource.register_default_providers(project_path, project_path / ".wrfrun")
-
     for _new_model in new_models:
         WRFRUN_NEW.io.copy(file_path=MODEL_MAP[_new_model], save_path=config_dir_path / f"{_new_model}.toml")
-        WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.NAMELIST_TEMPLATE_DIR / _new_model)
-        WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.NAMELIST_USER_DIR / _new_model)
-        WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.INPUT_DIR / "common" / _new_model)
+        (project_path / "configs/namelists/templates" / _new_model).mkdir(exist_ok=True)
+        (project_path / "configs/namelists/user" / _new_model).mkdir(exist_ok=True)
+        (project_path / "data/inputs/common" / _new_model).mkdir(exist_ok=True)
 
     with open(config_path, "wb") as f:
         tomli_w.dump(main_config, f)
@@ -213,22 +209,18 @@ def _entry_experiment_create(args: argparse.Namespace):
         logger.error(f"Experiment '{experiment_name}' already exists.")
         exit(1)
 
-    WRFRUN_NEW.resource.register_default_providers(project_path, project_path / ".wrfrun")
-
     WRFRUN_NEW.io.copy(
         file_path=CONFIG_EXPERIMENT_TOML_TEMPLATE,
         save_path=experiment_config_dir / "experiment.toml",
     )
     (experiment_config_dir / "namelists").mkdir(parents=True)
-    common_input_dir = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.INPUT_DIR / "common")
-    experiment_input_dir = WRFRUN_NEW.resource.get_custom_resource(
-        WRFRUN_NEW.resource.INPUT_DIR / "experiments" / experiment_name
-    )
+    common_input_dir = project_path / "data/inputs/common"
+    experiment_input_dir = project_path / "data/inputs/experiments" / experiment_name
     common_input_dir.mkdir(exist_ok=True, parents=True)
     experiment_input_dir.mkdir(parents=True)
     _stage_experiment_inputs(common_input_dir, experiment_input_dir, args.copy)
-    WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.OUTPUT_DIR / experiment_name)
-    WRFRUN_NEW.resource.mkdir(WRFRUN_NEW.resource.LOG_DIR / experiment_name)
+    (project_path / "data/outputs" / experiment_name).mkdir(parents=True)
+    (project_path / "logs" / experiment_name).mkdir(parents=True)
     (project_path / ".wrfrun/runs" / experiment_name).mkdir(parents=True)
 
     input_mode = "copied" if args.copy else "symlinked"

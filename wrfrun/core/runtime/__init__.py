@@ -33,6 +33,8 @@ A typical ``wrfrun`` project has following directories:
     * ``templates``: Directory which stores namelists template.
     * ``user``: Directory which stores user's namelists.
 * ``logs``: Directory which stores model logs.
+* ``.wrfrun/runs``: Directory which stores isolated workspaces, replay files,
+  and temporary files for each experiment run.
 
 .. toctree::
     :maxdepth: 1

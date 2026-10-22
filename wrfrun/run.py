@@ -41,6 +41,7 @@ import sys
 import threading
 from collections.abc import Generator
 from contextvars import Token
+from os import environ
 from os.path import abspath, dirname
 from pathlib import Path
 from typing import Optional, Tuple, Union
@@ -87,6 +88,8 @@ class WRFRunContext:
         prepare_wps_data=False,
         wps_data_area: Optional[Tuple[int, int, int, int]] = None,
         skip_domain_confirm=False,
+        experiment: Optional[str] = None,
+        run_id: Optional[str] = None,
     ):
         """
         Context class to achieve some goals before and after running WRF,
@@ -107,6 +110,10 @@ class WRFRunContext:
         :type wps_data_area: tuple
         :param skip_domain_confirm: If ``True``, skip domain confirm.
         :type skip_domain_confirm: bool
+        :param experiment: Experiment name. Defaults to ``"common"``.
+        :type experiment: str | None
+        :param run_id: Existing run ID to reuse. A new ID is generated when omitted.
+        :type run_id: str | None
         :return:
         """
         # variables for running WRFRunServer
@@ -121,6 +128,8 @@ class WRFRunContext:
         self._prepare_wps_data = prepare_wps_data
         self._wps_data_area = wps_data_area
         self._skip_domain_confirm = skip_domain_confirm
+        self.experiment = experiment or environ.get("WRFRUN_EXPERIMENT", "common")
+        self.run_id = run_id or environ.get("WRFRUN_RUN_ID")
 
         self.config_file_path = Path(config_file).resolve()
         self._token: Token | None = None
@@ -130,9 +139,11 @@ class WRFRunContext:
         self._replay_configs = None
 
     def __enter__(self):
+        """Enter the experiment run context."""
         # Use new wrfrun global api
         self._token = create_wrfrun_session()
-        WRFRUN_NEW.config.load_wrfrun_config(self.config_file_path)
+        WRFRUN_NEW.config.load_wrfrun_config(self.config_file_path, self.experiment, self.run_id)
+        self.run_id = WRFRUN_NEW.layout.run_id
 
         # check workspace
         if not WRFRUN_NEW.workspace.check_workspace():
@@ -187,6 +198,7 @@ class WRFRunContext:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Close the experiment run context."""
         # stop thread if needed
         if self._start_server:
             stop_server(self._ip, self._port)  # type: ignore

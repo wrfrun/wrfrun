@@ -75,7 +75,7 @@ class ConfigService:
 
         return instance
 
-    def load_wrfrun_config(self, config_path: str):
+    def load_wrfrun_config(self, config_path: str, experiment: str = "common", run_id: str | None = None):
         """
         Load configs from a config file.
 
@@ -109,7 +109,7 @@ class ConfigService:
         work_dir = Path(self["work_dir"])
         if not work_dir.is_absolute():
             work_dir = project_root_path / work_dir
-        self._resource.register_default_providers(project_root_path, work_dir)
+        self._resource.register_default_providers(project_root_path, work_dir, experiment, run_id)
 
         from wrfrun.model.plugins import load_model_plugin
 
@@ -139,16 +139,6 @@ class ConfigService:
 
             else:
                 self._config["model"].pop(model_key)
-
-        # some additional check
-        if self._config["input_data_path"] == "":
-            LOGGER.error(
-                "It is not recommanded to place your data in project root dir. "
-                "Change [magenta]input_data_path[/magenta] to another location."
-            )
-            raise ValueError(
-                "It is not recommanded to place your data in project root dir. Change input_data_path to another location."
-            )
 
     def save_wrfrun_config(self, save_path: str | ResourceRef):
         """
@@ -212,7 +202,7 @@ class ConfigService:
         :return: Directory path.
         :rtype: str
         """
-        root_path = deepcopy(self["input_data_path"])
+        root_path = self._resource.get_custom_resource(self._resource.INPUT_DIR).as_posix()
 
         if model_name is None:
             return root_path
@@ -262,7 +252,7 @@ class ConfigService:
         :return: A directory path.
         :rtype: str
         """
-        return self["log_path"]
+        return self._resource.get_custom_resource(self._resource.LOG_DIR).as_posix()
 
     def get_socket_server_config(self) -> Tuple[str, int]:
         """

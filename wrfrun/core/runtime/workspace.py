@@ -188,6 +188,7 @@ class WorkspaceService:
         workspace_path = self._resource.get_custom_resource(self._resource.WORKSPACE_DIR)
         replay_work_path = self._resource.get_custom_resource(self._resource.REPLAY_DIR)
         output_path = self._resource.get_custom_resource(self._resource.OUTPUT_DIR)
+        log_path = self._resource.get_custom_resource(self._resource.LOG_DIR)
 
         if workspace_path.is_dir():
             LOGGER.info(f"Reinitialize main workspace at: '{workspace_path}'")
@@ -199,9 +200,11 @@ class WorkspaceService:
             LOGGER.info(f"Initialize main workspace at: '{workspace_path}'")
 
         # check folder
+        workspace_path.mkdir(exist_ok=True, parents=True)
         wrfrun_temp_path.mkdir(exist_ok=True, parents=True)
         replay_work_path.mkdir(exist_ok=True, parents=True)
         output_path.mkdir(exist_ok=True, parents=True)
+        log_path.mkdir(exist_ok=True, parents=True)
 
         try:
             for model_name in self._workspace_init_func_map:
@@ -210,9 +213,9 @@ class WorkspaceService:
             initialize_success = True
 
         finally:
-            if initialize_success and workspace_backup_path:
-                rmtree(workspace_backup_path)
-
+            if initialize_success:
+                if workspace_backup_path:
+                    rmtree(workspace_backup_path)
             else:
                 LOGGER.warning("Failed to initialize workspace.")
 
@@ -234,9 +237,17 @@ class WorkspaceService:
         workspace_path = self._resource.get_custom_resource(self._resource.WORKSPACE_DIR)
         replay_work_path = self._resource.get_custom_resource(self._resource.REPLAY_DIR)
         output_path = self._resource.get_custom_resource(self._resource.OUTPUT_DIR)
+        log_path = self._resource.get_custom_resource(self._resource.LOG_DIR)
 
         flag = True
-        flag = flag & wrfrun_temp_path.is_dir() & replay_work_path.is_dir() & output_path.is_dir() & workspace_path.is_dir()
+        flag = (
+            flag
+            & wrfrun_temp_path.is_dir()
+            & replay_work_path.is_dir()
+            & output_path.is_dir()
+            & log_path.is_dir()
+            & workspace_path.is_dir()
+        )
 
         for model_name in self._workspace_check_func_map:
             flag = flag & self._workspace_check_func_map[model_name]()

@@ -22,7 +22,7 @@ from contextvars import ContextVar, Token
 from dataclasses import dataclass
 
 from .error import WRFRunContextError
-from .runtime import ExecutableRegistry, IOService, ReplayService, ResourceCatalog, RunnerService, RuntimeService
+from .runtime import ExecutableRegistry, IOService, ReplayService, ResourceCatalog, RunLayout, RunnerService, RuntimeService
 from .runtime.workspace import WorkspaceService
 from .states import ConfigService, NamelistService, StatesService, WRFRunStates
 
@@ -89,6 +89,11 @@ class WRFRunVarAPI:
         :rtype: ResourceCatalog
         """
         return self.session.runtime.resource
+
+    @property
+    def layout(self) -> RunLayout:
+        """Active experiment run layout."""
+        return self.resource.layout
 
     @property
     def registry(self) -> ExecutableRegistry:

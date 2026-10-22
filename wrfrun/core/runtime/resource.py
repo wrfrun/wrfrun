@@ -9,12 +9,16 @@ Component which provides access to wrfrun and project resources.
 
     ResourceType
     ResourceRef
+    RunLayout
     ResourceCatalog
 """
 
 import logging
+from dataclasses import dataclass
+from datetime import datetime
 from importlib import resources
 from pathlib import Path, PurePath
+from uuid import uuid4
 
 from ..type import ResourceRef, ResourceType
 
@@ -30,6 +34,54 @@ PROJECT_TREE = (
     "data/outputs",
     "logs",
 )
+
+
+@dataclass(frozen=True)
+class RunLayout:
+    """Paths belonging to one experiment run."""
+
+    experiment: str
+    run_id: str
+    input_dir: Path
+    output_dir: Path
+    log_dir: Path
+    workspace_dir: Path
+    replay_dir: Path
+    temp_dir: Path
+
+    @classmethod
+    def create(
+        cls,
+        project_path: str | Path,
+        work_dir: str | Path,
+        experiment: str = "common",
+        run_id: str | None = None,
+    ) -> "RunLayout":
+        """
+        Create paths for one run.
+
+        >>> layout = RunLayout.create("project", "project/.wrfrun", "v01", "run-1")
+        >>> layout.workspace_dir
+        PosixPath('project/.wrfrun/runs/v01/run-1/workspace')
+        """
+        project_root = Path(project_path)
+        runtime_root = Path(work_dir) / "runs" / experiment
+        run_id = run_id or f"{datetime.now().strftime('%Y%m%dT%H%M%S')}-{uuid4().hex[:8]}"
+        input_dir = project_root / "data/inputs/common"
+        if experiment != "common":
+            input_dir = project_root / "data/inputs/experiments" / experiment
+
+        run_root = runtime_root / run_id
+        return cls(
+            experiment=experiment,
+            run_id=run_id,
+            input_dir=input_dir,
+            output_dir=project_root / "data/outputs" / experiment / run_id,
+            log_dir=project_root / "logs" / experiment / run_id,
+            workspace_dir=run_root / "workspace",
+            replay_dir=run_root / "replay",
+            temp_dir=run_root / "temp",
+        )
 
 
 class ResourceCatalog:
@@ -50,12 +102,9 @@ class ResourceCatalog:
         By doing this, it is possible to represent file with the same url, even its real path can change on different machine.
         """
         self._packages: dict[str, str] = {}
-        self._work_path = Path(".wrfrun").resolve()
+        self._layout: RunLayout | None = None
 
         self.register_provider("core", "wrfrun.res")
-
-        # runtime resource ref obj
-        self._output = ResourceRef("project", "outputs")
 
     def register_provider(self, provider_name: str, provider_path: str | Path | ResourceRef) -> None:
         """
@@ -202,7 +251,13 @@ class ResourceCatalog:
         """
         self.get_custom_resource(ref).mkdir(parents=True, exist_ok=True)
 
-    def register_default_providers(self, project_path: str | Path, work_dir: str | Path):
+    def register_default_providers(
+        self,
+        project_path: str | Path,
+        work_dir: str | Path,
+        experiment: str = "common",
+        run_id: str | None = None,
+    ):
         """
         Register default providers.
 
@@ -213,13 +268,24 @@ class ResourceCatalog:
         """
         _project_path = Path(project_path)
         _work_dir = Path(work_dir)
+        self._layout = RunLayout.create(_project_path, _work_dir, experiment, run_id)
         self.register_provider("data", _project_path / "data")
         self.register_provider("project", _project_path)
         self.register_provider("config", _project_path / "configs")
-        self.register_provider("workspace", _work_dir / "workspace")
-        self.register_provider("temp", _work_dir / "temp")
-        self.register_provider("replay", _work_dir / "replay")
-        self.register_provider("log", _project_path / "logs")
+        self.register_provider("input", self._layout.input_dir)
+        self.register_provider("output", self._layout.output_dir)
+        self.register_provider("workspace", self._layout.workspace_dir)
+        self.register_provider("temp", self._layout.temp_dir)
+        self.register_provider("replay", self._layout.replay_dir)
+        self.register_provider("log", self._layout.log_dir)
+
+    @property
+    def layout(self) -> RunLayout:
+        """Return the active experiment run layout."""
+        if self._layout is None:
+            raise RuntimeError("Run layout is not initialized.")
+
+        return self._layout
 
     @property
     def CORE_RESOURCE(self):
@@ -249,7 +315,7 @@ class ResourceCatalog:
         :return: ResourceRef obj of ``wrfrun`` output directory.
         :rtype: ResourceRef
         """
-        return self.DATA_DIR / "outputs"
+        return ResourceRef("output", "")
 
     @property
     def INPUT_DIR(self):
@@ -261,7 +327,7 @@ class ResourceCatalog:
         :return: ResourceRef obj of ``wrfrun`` input directory.
         :rtype: ResourceRef
         """
-        return self.DATA_DIR / "inputs"
+        return ResourceRef("input", "")
 
     @property
     def CONFIG_DIR(self) -> ResourceRef:
@@ -334,4 +400,4 @@ class ResourceCatalog:
         return ResourceRef("log", "")
 
 
-__all__ = ["ResourceType", "ResourceRef", "ResourceCatalog", "PROJECT_TREE"]
+__all__ = ["ResourceType", "ResourceRef", "ResourceCatalog", "RunLayout", "PROJECT_TREE"]

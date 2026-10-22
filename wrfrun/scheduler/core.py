@@ -95,6 +95,8 @@ def prepare_scheduler_script(main_file_path: str) -> str:
 
     # generate environment settings
     env_settings = "export WRFRUN_ENV_JOB_SCHEDULER=1\n"
+    env_settings += f"export WRFRUN_EXPERIMENT={quote(WRFRUN_NEW.layout.experiment)}\n"
+    env_settings += f"export WRFRUN_RUN_ID={quote(WRFRUN_NEW.layout.run_id)}\n"
     if len(scheduler_configs["env_settings"]) > 0:
         for key in scheduler_configs["env_settings"]:
             if not ENV_KEY_PATTERN.fullmatch(key):

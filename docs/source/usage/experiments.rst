@@ -16,3 +16,15 @@ experiment input directory. Use ``--copy`` to create independent input files.
 
 The experiment directory has its own input tree, so a file can later be
 replaced or added without changing the common inputs or another experiment.
+
+Run an experiment from Python with:
+
+.. code-block:: python
+
+   from wrfrun.run import WRFRunContext
+
+   with WRFRunContext("config.toml", experiment="v01"):
+       ...
+
+Every context creates a unique run ID. Its workspace, replay files, temporary
+files, outputs, and logs are isolated from other runs of the same experiment.
