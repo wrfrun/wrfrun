@@ -11,6 +11,7 @@ Save and load reusable experiment configuration profiles.
     save_profile
     load_profile
     list_profiles
+    remove_global_profile
 """
 
 from dataclasses import dataclass
@@ -129,6 +130,11 @@ def get_global_profile_path(name: str) -> Path:
     return _global_profile_path(name)
 
 
+def remove_global_profile(name: str):
+    """Remove one profile from the local configuration library."""
+    get_global_profile_path(name).unlink()
+
+
 def list_profiles() -> list[ProfileInfo]:
     """List profiles stored in the local configuration library."""
     profile_dir = Path(user_config_dir("wrfrun")) / "profiles"
@@ -150,4 +156,11 @@ def list_profiles() -> list[ProfileInfo]:
     return profiles
 
 
-__all__ = ["ProfileInfo", "get_global_profile_path", "list_profiles", "load_profile", "save_profile"]
+__all__ = [
+    "ProfileInfo",
+    "get_global_profile_path",
+    "list_profiles",
+    "load_profile",
+    "remove_global_profile",
+    "save_profile",
+]

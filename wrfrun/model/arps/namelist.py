@@ -78,13 +78,11 @@ def prepare_arps_namelist():
         "jobname": {"runname": run_name},
         "initialization": {
             "initime": start_date.strftime("%Y-%m-%d.%H:%M:%S"),
-            "initopt": 2 if model_config["global"]["is_restart"] else 3,
         },
         "grid": {
             "dx": grid_dx,
             "dy": grid_dy,
             "dz": grid_dz,
-            "strhopt": 2,
             "dzmin": grid_min_dz,
             "zrefsfc": grid_z_bottom_height,
             "dlayer1": grid_z_stretch_start_height,

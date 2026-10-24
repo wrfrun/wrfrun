@@ -396,49 +396,75 @@ class ARPS(ExecutableBase):
         WRFRUN_NEW.states.check_wrfrun_context(True)
         WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "arps"
         WRFRUN_NEW.resource.mkdir(self.work_path / "outputs")
+        model_config = WRFRUN_NEW.namelist.get_namelist("arps")
 
-        self.add_input_files(WRFRUN_NEW.resource.OUTPUT_DIR / "arpssfc/arpssfc.sfcdata")
-
-        # find ext2arps outputs
-        _ext2arps_out_dir_ref = WRFRUN_NEW.resource.OUTPUT_DIR / "ext2arps"
-        _ext2arps_out_files = glob.glob("ext2arps.*", root_dir=WRFRUN_NEW.resource.get_custom_resource(_ext2arps_out_dir_ref))
-
-        if len(_ext2arps_out_files) < 2:
-            message = "Can't find all ext2arps outputs in outputs directory, which is essential to run arps."
-            LOGGER.error(message)
-            raise FileNotFoundError(message)
-
-        self.add_input_files([_ext2arps_out_dir_ref / _file for _file in _ext2arps_out_files])
-
-        exbc_config = {"exbcname": "./ext2arps"}
-        boundary_config = {"lbcopt": 1}
-        if self.use_arpsintrp_exbc:
-            _arpsintrp_out_dir_ref = WRFRUN_NEW.resource.OUTPUT_DIR / "arpsintrp"
-            _arpsintrp_out_files = sorted(
-                glob.glob("arpsintrp.[0-9]*", root_dir=WRFRUN_NEW.resource.get_custom_resource(_arpsintrp_out_dir_ref))
+        # use outputs from arpssfc
+        if model_config["soil_ebm"]["sfcdat"] == 2:
+            self.add_input_files(WRFRUN_NEW.resource.OUTPUT_DIR / "arpssfc/arpssfc.sfcdata")
+            WRFRUN_NEW.namelist.update_namelist(
+                {
+                    "soil_ebm": {"sfcdtfl": "./arpssfc.sfcdata"},
+                },
+                "arps",
             )
-            if len(_arpsintrp_out_files) < 2:
-                raise FileNotFoundError("Can't find enough arpsintrp EXBC outputs to run ARPS.")
 
-            _arpsintrp_exbc_times = [
-                datetime.strptime(_file.removeprefix("arpsintrp."), "%Y%m%d.%H%M%S") for _file in _arpsintrp_out_files
-            ]
-            self.add_input_files([_arpsintrp_out_dir_ref / _file for _file in _arpsintrp_out_files])
-            boundary_config["lbcopt"] = 2
-            exbc_config = {
-                "exbcname": "./arpsintrp",
-                "tinitebd": _arpsintrp_exbc_times[0].strftime("%Y-%m-%d.%H:%M:%S"),
-                "tintvebd": int((_arpsintrp_exbc_times[1] - _arpsintrp_exbc_times[0]).total_seconds()),
-                "exbcfmt": 3,
-            }
+        # use outputs from ext2arps
+        if model_config["initialization"]["initopt"] == 3:
+            # find ext2arps outputs
+            _ext2arps_out_dir_ref = WRFRUN_NEW.resource.OUTPUT_DIR / "ext2arps"
+            _ext2arps_out_files = glob.glob("ext2arps.*", root_dir=WRFRUN_NEW.resource.get_custom_resource(_ext2arps_out_dir_ref))
+
+            if len(_ext2arps_out_files) < 2:
+                message = "Can't find all ext2arps outputs in outputs directory, which is essential to run arps."
+                LOGGER.error(message)
+                raise FileNotFoundError(message)
+
+            self.add_input_files([_ext2arps_out_dir_ref / _file for _file in _ext2arps_out_files])
+            WRFRUN_NEW.namelist.update_namelist(
+                {
+                    "initialization": {"inifile": "./ext2arps.hdf000000", "inigbf": "./ext2arps.hdfgrdbas"},
+                },
+                "arps",
+            )
+
+        elif model_config["initialization"]["initopt"] == 1:
+            # need to check sndfile
+            if model_config["initialization"]["inibasopt"] == 1:
+                sounding_file = Path(model_config["initialization"]["sndfile"]).name
+                self.add_input_files(WRFRUN_NEW.resource.INPUT_DIR / sounding_file)
+
+        # additional settings
+        if model_config["boundary_condition_options"]["lbcopt"] == 2:
+            exbc_config = {"exbcname": "./ext2arps"}
+            if self.use_arpsintrp_exbc:
+                _arpsintrp_out_dir_ref = WRFRUN_NEW.resource.OUTPUT_DIR / "arpsintrp"
+                _arpsintrp_out_files = sorted(
+                    glob.glob("arpsintrp.[0-9]*", root_dir=WRFRUN_NEW.resource.get_custom_resource(_arpsintrp_out_dir_ref))
+                )
+                if len(_arpsintrp_out_files) < 2:
+                    raise FileNotFoundError("Can't find enough arpsintrp EXBC outputs to run ARPS.")
+
+                _arpsintrp_exbc_times = [
+                    datetime.strptime(_file.removeprefix("arpsintrp."), "%Y%m%d.%H%M%S") for _file in _arpsintrp_out_files
+                ]
+                self.add_input_files([_arpsintrp_out_dir_ref / _file for _file in _arpsintrp_out_files])
+                exbc_config = {
+                    "exbcname": "./arpsintrp",
+                    "tinitebd": _arpsintrp_exbc_times[0].strftime("%Y-%m-%d.%H:%M:%S"),
+                    "tintvebd": int((_arpsintrp_exbc_times[1] - _arpsintrp_exbc_times[0]).total_seconds()),
+                    "exbcfmt": 3,
+                }
+
+                WRFRUN_NEW.namelist.update_namelist(
+                    {
+                        "exbcpara": exbc_config,
+                    },
+                    "arps",
+                )
 
         WRFRUN_NEW.namelist.update_namelist(
             {
                 "jobname": {"runname": self.name},
-                "initialization": {"inifile": "./ext2arps.hdf000000", "inigbf": "./ext2arps.hdfgrdbas"},
-                "soil_ebm": {"sfcdtfl": "./arpssfc.sfcdata"},
-                "boundary_condition_options": boundary_config,
-                "exbcpara": exbc_config,
             },
             "arps",
         )
@@ -452,6 +478,13 @@ class ARPS(ExecutableBase):
                 startswith=f"{self.name}.hdf",
                 output_dir=self.work_path / "outputs",
                 save_path=self._output_save_path,
+                no_file_error=False,
+            )
+            self.add_output_files(
+                startswith=f"{self.name}.h5f",
+                output_dir=self.work_path / "outputs",
+                save_path=self._output_save_path,
+                no_file_error=False,
             )
 
             self.add_output_files(

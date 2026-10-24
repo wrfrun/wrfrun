@@ -29,7 +29,7 @@ from rich.table import Table
 from .core import PROJECT_TREE, WRFRUN_NEW, create_wrfrun_session
 from .log import get_wrfrun_rich_console, logger
 from .model.plugins import load_model_plugin
-from .profile import get_global_profile_path, list_profiles, load_profile, save_profile
+from .profile import get_global_profile_path, list_profiles, load_profile, remove_global_profile, save_profile
 from .res import (
     CONFIG_ARPS_TOML_TEMPLATE,
     CONFIG_EXPERIMENT_TOML_TEMPLATE,
@@ -239,6 +239,15 @@ def _entry_experiment_create(args: argparse.Namespace):
 
 def _entry_save(args: argparse.Namespace):
     """Save an experiment configuration as a reusable profile."""
+    if args.remove is not None:
+        if args.destination is not None or args.list:
+            logger.error("--remove cannot be combined with a destination or --list.")
+            exit(1)
+
+        remove_global_profile(args.remove)
+        logger.info(f"Removed global profile '{args.remove}'.")
+        return
+
     if args.list:
         if args.destination is not None:
             logger.error("A profile destination cannot be used with --list.")
@@ -332,6 +341,7 @@ def main_entry():
     save_parser.add_argument("-e", "--experiment", default="common", help="Experiment to save.")
     save_parser.add_argument("--global", dest="global_profile", action="store_true", help="Use the local profile library.")
     save_parser.add_argument("-l", "--list", action="store_true", help="List profiles in the local profile library.")
+    save_parser.add_argument("-r", "--remove", metavar="NAME", help="Remove a profile from the local profile library.")
     save_parser.set_defaults(func=_entry_save)
 
     load_parser = subparsers.add_parser("load", help="Create a project from a saved profile.", add_help=True)

@@ -10,6 +10,7 @@ External command runner.
 
 """
 
+import logging
 import os
 import signal
 import subprocess
@@ -25,6 +26,8 @@ from typing import Mapping, Sequence
 from ..error import CommandExecutionError
 from ..type import ResourceRef
 from .resource import ResourceCatalog
+
+LOGGER = logging.getLogger("wrfrun")
 
 
 class StreamMode(str, Enum):
@@ -198,6 +201,12 @@ class RunnerService:
             stderr_target = self._open_stream(stack, command.stderr)
 
             try:
+                LOGGER.debug("Here is the params of external command call:")
+                LOGGER.debug(f"args: {command.argv}")
+                LOGGER.debug(f"cwd: {cwd}")
+                LOGGER.debug(f"stdin: {stdin_file}")
+                LOGGER.debug(f"env: {environment}")
+
                 process = subprocess.Popen(
                     command.argv,
                     cwd=cwd,
@@ -208,6 +217,9 @@ class RunnerService:
                     shell=False,
                     start_new_session=(os.name == "posix"),
                 )
+
+                LOGGER.debug("External command ends normally.")
+
             except OSError as exc:
                 raise CommandExecutionError(f"Failed to start command: {join(command.argv)}") from exc
 
@@ -294,6 +306,7 @@ class RunnerService:
 
         path = path.expanduser().resolve()
         path.parent.mkdir(parents=True, exist_ok=True)
+        LOGGER.debug(f"Creat directory: {path.parent}")
         return stack.enter_context(path.open("wb"))
 
     def _terminate(self, process: subprocess.Popen[bytes]) -> None:

@@ -22,6 +22,12 @@ location. List its saved profiles with:
 
    $ wrfrun save --list
 
+Remove a profile from the same library with:
+
+.. code-block:: console
+
+   $ wrfrun save --remove ideal-building
+
 To transfer a profile to another machine, save it to a ZIP file instead:
 
 .. code-block:: console
