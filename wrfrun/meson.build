@@ -4,6 +4,7 @@ py3.install_sources(
         'cli.py',
         'data.py',
         'log.py',
+        'profile.py',
         'run.py',
         'utils.py',
     ],

@@ -24,10 +24,12 @@ from shutil import copy2
 
 import tomli
 import tomli_w
+from rich.table import Table
 
 from .core import PROJECT_TREE, WRFRUN_NEW, create_wrfrun_session
-from .log import logger
+from .log import get_wrfrun_rich_console, logger
 from .model.plugins import load_model_plugin
+from .profile import get_global_profile_path, list_profiles, load_profile, save_profile
 from .res import (
     CONFIG_ARPS_TOML_TEMPLATE,
     CONFIG_EXPERIMENT_TOML_TEMPLATE,
@@ -235,6 +237,39 @@ def _entry_experiment_create(args: argparse.Namespace):
     logger.info(f"Created experiment '{experiment_name}' with {input_mode} inputs.")
 
 
+def _entry_save(args: argparse.Namespace):
+    """Save an experiment configuration as a reusable profile."""
+    if args.list:
+        if args.destination is not None:
+            logger.error("A profile destination cannot be used with --list.")
+            exit(1)
+
+        table = Table(title="Saved wrfrun profiles")
+        table.add_column("Name", style="cyan")
+        table.add_column("Experiment")
+        table.add_column("Models")
+        table.add_column("Created at")
+        for profile in list_profiles():
+            table.add_row(profile.name, profile.experiment, ", ".join(profile.models), profile.created_at)
+        get_wrfrun_rich_console().print(table)
+        return
+
+    if args.destination is None:
+        logger.error("A profile destination is required unless --list is used.")
+        exit(1)
+
+    archive_path = get_global_profile_path(args.destination) if args.global_profile else Path(args.destination)
+    save_profile(args.config, args.experiment, archive_path)
+    logger.info(f"Saved profile to '{archive_path.resolve()}'.")
+
+
+def _entry_load(args: argparse.Namespace):
+    """Create a new project from a saved profile."""
+    archive_path = get_global_profile_path(args.source) if args.global_profile else Path(args.source)
+    load_profile(archive_path, args.path)
+    logger.info(f"Created project '{Path(args.path).resolve()}' from '{archive_path.resolve()}'.")
+
+
 def main_entry():
     """
     CLI entry point.
@@ -290,6 +325,20 @@ def main_entry():
         help="Path of the main config file.",
     )
     experiment_create_parser.set_defaults(func=_entry_experiment_create)
+
+    save_parser = subparsers.add_parser("save", help="Save a reusable configuration profile.", add_help=True)
+    save_parser.add_argument("destination", nargs="?", help="Global profile name or ZIP file path.")
+    save_parser.add_argument("-c", "--config", default="config.toml", help="Path of the main config file.")
+    save_parser.add_argument("-e", "--experiment", default="common", help="Experiment to save.")
+    save_parser.add_argument("--global", dest="global_profile", action="store_true", help="Use the local profile library.")
+    save_parser.add_argument("-l", "--list", action="store_true", help="List profiles in the local profile library.")
+    save_parser.set_defaults(func=_entry_save)
+
+    load_parser = subparsers.add_parser("load", help="Create a project from a saved profile.", add_help=True)
+    load_parser.add_argument("source", help="Global profile name or ZIP file path.")
+    load_parser.add_argument("-p", "--path", required=True, help="Path of the new project.")
+    load_parser.add_argument("--global", dest="global_profile", action="store_true", help="Use the local profile library.")
+    load_parser.set_defaults(func=_entry_load)
 
     args = args_parser.parse_args(args=None if sys.argv[1:] else ["--help"])
     args.func(args)
