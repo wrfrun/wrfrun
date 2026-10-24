@@ -31,5 +31,9 @@ class PluginProtocol(Protocol):
         """Create model-owned project files and directories."""
         ...
 
+    def initialize_experiment_files(self, experiment_path: Path):
+        """Create model-owned experiment directories."""
+        ...
+
 
 __all__ = ["PluginProtocol"]

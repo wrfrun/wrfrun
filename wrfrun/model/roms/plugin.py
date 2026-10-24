@@ -27,6 +27,9 @@ class ROMSPlugin:
     def initialize_project_files(self, project_path: Path):
         """ROMS does not use project namelist directories."""
 
+    def initialize_experiment_files(self, experiment_path: Path):
+        """ROMS does not use experiment namelist directories."""
+
     def register(self):
         """
         Register ROMS ``Executable``.

@@ -30,6 +30,10 @@ class PALMPlugin:
         (project_path / "configs/namelists/templates/palm/palm").mkdir(parents=True, exist_ok=True)
         (project_path / "configs/namelists/user/palm/palm").mkdir(parents=True, exist_ok=True)
 
+    def initialize_experiment_files(self, experiment_path: Path):
+        """Create PALM namelist directories for one experiment."""
+        (experiment_path / "namelists/palm/palm").mkdir(parents=True, exist_ok=True)
+
     def register(self):
         """
         Register PALM ``Executable``.

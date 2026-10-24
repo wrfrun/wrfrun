@@ -42,6 +42,11 @@ class WRFPlugin:
             (project_path / "configs/namelists/templates/wrf" / component).mkdir(parents=True, exist_ok=True)
             (project_path / "configs/namelists/user/wrf" / component).mkdir(parents=True, exist_ok=True)
 
+    def initialize_experiment_files(self, experiment_path: Path):
+        """Create WRF namelist directories for one experiment."""
+        for component in ("wps", "wrf", "wrfda", "dfi"):
+            (experiment_path / "namelists/wrf" / component).mkdir(parents=True, exist_ok=True)
+
     def register(self):
         """
         Register WRF ``Executable``.

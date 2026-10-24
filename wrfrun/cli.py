@@ -212,7 +212,16 @@ def _entry_experiment_create(args: argparse.Namespace):
         file_path=CONFIG_EXPERIMENT_TOML_TEMPLATE,
         save_path=experiment_config_dir / "experiment.toml",
     )
+
     (experiment_config_dir / "namelists").mkdir(parents=True)
+
+    with open(config_path, "rb") as f:
+        main_config = tomli.load(f)
+
+    for model_name, model_config in main_config["model"].items():
+        if model_name in MODEL_MAP and model_config["use"]:
+            load_model_plugin(model_name).initialize_experiment_files(experiment_config_dir)
+
     common_input_dir = project_path / "data/inputs/common"
     experiment_input_dir = project_path / "data/inputs/experiments" / experiment_name
     common_input_dir.mkdir(exist_ok=True, parents=True)
