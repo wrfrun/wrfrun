@@ -90,11 +90,6 @@ EXT_NCL_PLOT_SCRIPT = ResourceRef("core", "extension/plotgrids.ncl")
 SCHEDULER_LSF_TEMPLATE = ResourceRef("core", "scheduler/lsf.template")
 SCHEDULER_PBS_TEMPLATE = ResourceRef("core", "scheduler/pbs.template")
 SCHEDULER_SLURM_TEMPLATE = ResourceRef("core", "scheduler/slurm.template")
-NAMELIST_WRFDA = ResourceRef("core", "namelist/namelist.input.da_wrfvar.template")
-NAMELIST_DFI = ResourceRef("core", "namelist/namelist.input.dfi.template")
-NAMELIST_REAL = ResourceRef("core", "namelist/namelist.input.real.template")
-NAMELIST_WRF = ResourceRef("core", "namelist/namelist.input.wrf.template")
-NAMELIST_WPS = ResourceRef("core", "namelist/namelist.wps.template")
 CONFIG_ARPS_TOML_TEMPLATE = ResourceRef("core", "config/arps.template.toml")
 CONFIG_MAIN_TOML_TEMPLATE = ResourceRef("core", "config/config.template.toml")
 CONFIG_EXPERIMENT_TOML_TEMPLATE = ResourceRef("core", "config/experiment.template.toml")
@@ -110,11 +105,6 @@ __all__ = [
     "SCHEDULER_LSF_TEMPLATE",
     "SCHEDULER_PBS_TEMPLATE",
     "SCHEDULER_SLURM_TEMPLATE",
-    "NAMELIST_WRFDA",
-    "NAMELIST_DFI",
-    "NAMELIST_REAL",
-    "NAMELIST_WRF",
-    "NAMELIST_WPS",
     "CONFIG_ARPS_TOML_TEMPLATE",
     "CONFIG_MAIN_TOML_TEMPLATE",
     "CONFIG_EXPERIMENT_TOML_TEMPLATE",

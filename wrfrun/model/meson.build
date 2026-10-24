@@ -2,6 +2,7 @@ py3.install_sources(
     [
         '__init__.py',
         'constants.py',
+        'namelist.py',
         'plot.py',
         'plugins.py',
         'type.py',

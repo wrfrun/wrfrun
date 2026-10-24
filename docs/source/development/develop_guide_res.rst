@@ -2,7 +2,7 @@ Resource Module Development Guide
 #################################
 
 The :doc:`wrfrun.res </api/res>` module contains all static resources used by the ``wrfrun`` framework, 
-including configuration templates, job scheduler templates, namelist templates, scripts, and other shared files. 
+including configuration templates, job scheduler templates, scripts, and other shared files.
 This guide explains how the resource system works and how to add or modify resources.
 
 Module Overview
@@ -33,8 +33,6 @@ The ``wrfrun/res/`` directory is organized by resource type:
       - TOML configuration templates for all supported models and the main configuration
     * - ``extension/``
       - Resources for framework extensions (e.g., NCL scripts, data files)
-    * - ``namelist/``
-      - Fortran namelist templates for numerical models
     * - ``scheduler/``
       - Job submission script templates for PBS, Slurm, and LSF schedulers
     * - Root files

@@ -4,9 +4,6 @@
 [global]
 # For example, /home/syize/Apps/ARPS/bin
 arps_bin_directory = "/path/to/your/ARPS/binary/folder"
-# Namelist for arps core and some arps' submodule.
-user_namelist = "/path/to/the/namelist"
-
 # Grid settings
 grid_nx = 42
 grid_dx = 30000.0
@@ -64,7 +61,6 @@ is_restart = false
 [arpstrn]
 # For example, /share/ARPS/terrain/arpstopo30.data
 dir_terrain_data = "/path/to/your/terrain/base/data/folder"
-user_namelist = "/path/to/the/namelist/for/arpstrn"
 
 # Config for ext2arps
 [ext2arps]
@@ -74,13 +70,11 @@ user_namelist = "/path/to/the/namelist/for/arpstrn"
 
 # Config for arpsintrp
 [arpsintrp]
-# Its base namelist is templates/arps/arpsintrp.nml. Place optional updates in
-# namelists/arps/arpsintrp.nml.
+# Read ``configs/namelists/templates/arps/arpsintrp/arpsintrp.nml``.
 
 # Config for radremap
 [radremap]
-# Its base namelist is templates/arps/radremap.nml. Place optional updates in
-# namelists/arps/radremap.nml. Radar volumes are read from data/radremap.
+# Read ``configs/namelists/templates/arps/radremap/radremap.nml``.
 
 # Config for arps
 [arps]

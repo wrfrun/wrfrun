@@ -124,13 +124,6 @@ You can check full config here.
         # static geographic data path
         geog_data_path = '/home/syize/Apps/geog_data'
 
-        # Your can give your custom namelist files here.
-        # The value in it will overwrite the default value in the namelist template file.
-        user_wps_namelist = ''
-        user_real_namelist = ''
-        user_wrf_namelist = ''
-        user_wrfda_namelist = ''
-
         # If you make a restart run?
         restart_mode = false
 

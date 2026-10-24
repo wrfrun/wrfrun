@@ -15,11 +15,12 @@ import logging
 
 from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
 
+from ..namelist import get_project_namelist_files
+
 LOGGER = logging.getLogger("wrfrun")
 
 
 def _check_and_prepare_namelist():
-    WRFRUNConfig = WRFRUN_NEW.config
     global_config = WRFRUN_NEW.config.get_model_config("arps")
     model_config: dict = global_config.get("arpstrn", {})
 
@@ -28,23 +29,22 @@ def _check_and_prepare_namelist():
         raise KeyError("Config for arpstrn not found in your TOML, check it.")
 
     dir_terrain_data = model_config["dir_terrain_data"]
-    user_namelist = model_config["user_namelist"]
-    run_name = "wrfrun"
-
     if not WRFRUN_NEW.namelist.check_namelist_id("arpstrn"):
         WRFRUN_NEW.namelist.register_namelist_id("arpstrn")
 
-    WRFRUN_NEW.namelist.read_namelist(user_namelist, "arpstrn")
+    template_file, update_files = get_project_namelist_files("arps", "arpstrn", "arpstrn.nml")
+    WRFRUN_NEW.namelist.read_namelist(template_file.as_posix(), "arpstrn")
 
-    # User's namelist should have the highest priority.
-    return
     update_value = {
-        "jobname": {"runname": run_name},
+        "jobname": {"runname": "wrfrun"},
         "dem_trn": {"dir_trndata": dir_terrain_data},
         "trn_output": {"dirname": "./outputs"},
     }
+    WRFRUN_NEW.namelist.update_namelist(update_value, "arpstrn")
 
-    WRFRUNConfig.update_namelist(update_value, "arpstrn")
+    for update_file in update_files:
+        if update_file.is_file():
+            WRFRUN_NEW.namelist.update_namelist(update_file.as_posix(), "arpstrn")
 
 
 class ARPSTrn(ExecutableBase):
@@ -95,6 +95,7 @@ class ARPSTrn(ExecutableBase):
         WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arpstrn")
 
     def before_exec(self):
+        """Write the prepared namelist before running ``arpstrn``."""
         WRFRUN_NEW.states.check_wrfrun_context(True)
         WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "arpstrn"
 
@@ -116,6 +117,7 @@ class ARPSTrn(ExecutableBase):
         super().before_exec()
 
     def after_exec(self):
+        """Archive ``arpstrn`` outputs and its runtime namelist."""
         if not WRFRUN_NEW.states.IS_IN_REPLAY:
             self.add_output_files(
                 startswith=f"{self.name}.trndata",

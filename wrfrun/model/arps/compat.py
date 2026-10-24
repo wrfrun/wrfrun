@@ -25,23 +25,28 @@ def copy_arps_namelist_template():
 
     for _submodel in submodel_name_list:
         match _submodel:
-            case "arps":
+            case "arps" | "arpssfc" | "ext2arps" | "arps3dvar":
                 namelist_name = "arps.input"
-
-            case "arpssfc":
-                namelist_name = "arps.input"
+                component = "arps"
 
             case "arpstrn":
                 namelist_name = "arpstrn.input"
+                component = "arpstrn"
 
-            case "ext2arps":
-                namelist_name = "arps.input"
+            case "arpsintrp":
+                namelist_name = "arpsintrp.input"
+                component = "arpsintrp"
+
+            case "radremap":
+                namelist_name = "radremap.input"
+                component = "radremap"
 
             case _:
-                namelist_name = "arps.input"
+                continue
 
-        target = Path("templates/arps") / namelist_name
-        target = target.with_suffix(".nml")
+        target = WRFRUN_NEW.resource.get_custom_resource(
+            WRFRUN_NEW.resource.NAMELIST_TEMPLATE_DIR / "arps" / component / Path(namelist_name).with_suffix(".nml").name
+        )
         target.parent.mkdir(parents=True, exist_ok=True)
         LOGGER.info(f"Copy '{ARPS_INPUT_DIR / namelist_name}' to '{target}'")
         copyfile(ARPS_INPUT_DIR / namelist_name, target)

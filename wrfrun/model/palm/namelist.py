@@ -11,26 +11,22 @@ Functions to process namelist for ``PALM``.
 """
 
 import math
-from os.path import exists
 
 from wrfrun.core import WRFRUN_NEW
 from wrfrun.log import logger
 
+from ..namelist import get_project_namelist_files
 from .utils import find_optimal_grid_number, is_valid_palm_dimension
 
 
 def prepare_palm_namelist():
-    """
-    This function loads user PALM namelist file and save it in :doc:`WRFRUN </api/core.core>`.
-    """
-    palm_config = WRFRUN_NEW.config.get_model_config("palm")
-    namelist_file = palm_config["user_namelist"]
+    """Load the PALM template and optional project updates."""
+    template_file, update_files = get_project_namelist_files("palm", "palm", "palm.nml")
+    WRFRUN_NEW.namelist.read_namelist(template_file.as_posix(), "palm")
 
-    if not exists(namelist_file):
-        logger.error(f"Can't find PALM namelist: {namelist_file}")
-        raise FileNotFoundError(f"Can't find PALM namelist: {namelist_file}")
-
-    WRFRUN_NEW.namelist.read_namelist(namelist_file, "palm")
+    for update_file in update_files:
+        if update_file.is_file():
+            WRFRUN_NEW.namelist.update_namelist(update_file.as_posix(), "palm")
 
 
 def get_namelist_save_name() -> str:

@@ -14,9 +14,10 @@ Functions to read and change ARPS namelist.
 
 import logging
 from datetime import datetime
-from pathlib import Path
 
-from wrfrun.core import WRFRUN_NEW, ResourceRef
+from wrfrun.core import WRFRUN_NEW
+
+from ..namelist import get_project_namelist_files
 
 PROJECTION_MAP = {
     "polar_north": 1,
@@ -36,25 +37,8 @@ def prepare_arps_namelist():
     global PROJECTION_MAP
     model_config = WRFRUN_NEW.config.get_model_config("arps")
 
-    template_dir = ResourceRef("project", "templates/arps")
-    submodule_list = [x for x in model_config.keys() if x not in ("global", "use")]
-
-    for _model in submodule_list:
-        match _model:
-            case "arpstrn":
-                template_name = template_dir / "arpstrn.nml"
-                namelist_id = "arpstrn"
-
-            case _:
-                template_name = template_dir / "arps.nml"
-                namelist_id = "arps"
-
-        if not WRFRUN_NEW.namelist.check_namelist_id(namelist_id):
-            WRFRUN_NEW.namelist.register_namelist_id(namelist_id)
-
-        template_file = WRFRUN_NEW.resource.get_custom_resource(template_name)
-        if template_file.is_file():
-            WRFRUN_NEW.namelist.read_namelist(template_file.as_posix(), namelist_id)
+    template_file, update_files = get_project_namelist_files("arps", "arps", "arps.nml")
+    WRFRUN_NEW.namelist.read_namelist(template_file.as_posix(), "arps")
 
     run_name = "wrfrun"
 
@@ -124,42 +108,34 @@ def prepare_arps_namelist():
     }
     WRFRUN_NEW.namelist.update_namelist(update_value, "arps")
 
-    user_namelist = model_config["global"]["user_namelist"]
+    for update_file in update_files:
+        if update_file.is_file():
+            WRFRUN_NEW.namelist.update_namelist(update_file.as_posix(), "arps")
 
-    if Path(user_namelist).is_file():
-        WRFRUN_NEW.namelist.update_namelist(user_namelist, "arps")
-
-        if WRFRUN_NEW.namelist.get_namelist("arps")["initialization"].get("inisplited", -1) != 0:
-            LOGGER.error(
-                "It is recommended to let arps core read input data and split it on-the-fly. "
-                "Set [magenta]inisplited=0[/magenta] in 'initialization' block to fix this error."
-            )
-            raise ValueError(
-                "It is recommended to let arps core read input data and split it on-the-fly. "
-                "Set inisplited=0 in 'initialization' block to fix this error."
-            )
+    if WRFRUN_NEW.namelist.get_namelist("arps")["initialization"].get("inisplited", -1) != 0:
+        LOGGER.error(
+            "It is recommended to let arps core read input data and split it on-the-fly. "
+            "Set [magenta]inisplited=0[/magenta] in 'initialization' block to fix this error."
+        )
+        raise ValueError(
+            "It is recommended to let arps core read input data and split it on-the-fly. "
+            "Set inisplited=0 in 'initialization' block to fix this error."
+        )
 
     return
 
 
 def _prepare_component_namelist(namelist_id: str):
     """Load an ARPS component namelist template and its optional updates."""
-    template_file = WRFRUN_NEW.resource.get_custom_resource(
-        ResourceRef("project", f"templates/arps/{namelist_id}.nml")
-    )
-    update_file = WRFRUN_NEW.resource.get_custom_resource(
-        ResourceRef("project", f"namelists/arps/{namelist_id}.nml")
-    )
-
-    if not template_file.is_file():
-        raise FileNotFoundError(f"Can't find {namelist_id} namelist template: {template_file}")
+    template_file, update_files = get_project_namelist_files("arps", namelist_id, f"{namelist_id}.nml")
 
     if not WRFRUN_NEW.namelist.check_namelist_id(namelist_id):
         WRFRUN_NEW.namelist.register_namelist_id(namelist_id)
 
     WRFRUN_NEW.namelist.read_namelist(template_file.as_posix(), namelist_id)
-    if update_file.is_file():
-        WRFRUN_NEW.namelist.update_namelist(update_file.as_posix(), namelist_id)
+    for update_file in update_files:
+        if update_file.is_file():
+            WRFRUN_NEW.namelist.update_namelist(update_file.as_posix(), namelist_id)
 
 
 def prepare_arpsintrp_namelist():

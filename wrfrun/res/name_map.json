@@ -7,10 +7,6 @@
         "name": "SCHEDULER",
         "type": "dir"
     },
-    "namelist": {
-        "name": "NAMELIST",
-        "type": "dir"
-    },
     "config": {
         "name": "CONFIG",
         "type": "dir"

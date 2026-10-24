@@ -85,7 +85,8 @@ def radremap():
     Remap the radar volume configured in the project ``radremap`` namelist.
 
     The ARPS background is selected by ``initialization.inifile`` in
-    ``templates/arps/radremap.nml`` or its optional update file.
+    ``configs/namelists/templates/arps/radremap/radremap.nml`` and optional
+    project updates.
 
     .. code-block:: python
 

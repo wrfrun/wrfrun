@@ -93,19 +93,6 @@ Configuration file templates are located in the ``wrfrun/res/config/`` directory
         # static geographic data path
         geog_data_path = '/path/to/your/geog/data'
 
-        # Namelist template.
-        # If None, will use built-in namelist template.
-        wps_namelist_template = ''
-        wrf_namelist_template = ''
-        wrfda_namelist_template = ''
-
-        # Your can give your custom namelist files here.
-        # The value in it will overwrite the default value in the namelist template file.
-        user_wps_namelist = ''
-        user_real_namelist = ''
-        user_wrf_namelist = ''
-        user_wrfda_namelist = ''
-
         # If you make a restart run?
         restart_mode = false
 
@@ -225,9 +212,6 @@ Configuration file templates are located in the ``wrfrun/res/config/`` directory
         # You can provide topography file here.
         topography_file = '/path/to/your/topography/file'
 
-        # You need to give your namelist file,
-        # cause wrfrun hasn't supported more options in toml config file yet.
-        user_namelist = '/path/to/your/namelist/file'
 
 Configuration Structure
 ***********************
@@ -322,17 +306,6 @@ Basic Configuration
 
     # Geographic data path
     geog_data_path = '/path/to/your/geog/data'
-
-    # Custom namelist template paths
-    wps_namelist_template = ''
-    wrf_namelist_template = ''
-    wrfda_namelist_template = ''
-
-    # User custom namelist files, will override default values in templates
-    user_wps_namelist = ''
-    user_real_namelist = ''
-    user_wrf_namelist = ''
-    user_wrfda_namelist = ''
 
     # Whether this is a restart run
     restart_mode = false

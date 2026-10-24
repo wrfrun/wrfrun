@@ -10,6 +10,7 @@ wrfrun.core.plugin
     PluginProtocol
 """
 
+from pathlib import Path
 from typing import Protocol
 
 
@@ -24,6 +25,10 @@ class PluginProtocol(Protocol):
         """
         Method which registers information to the registry.
         """
+        ...
+
+    def initialize_project_files(self, project_path: Path):
+        """Create model-owned project files and directories."""
         ...
 
 

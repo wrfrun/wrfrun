@@ -9,5 +9,4 @@ py3.install_sources(
 
 subdir('config')
 subdir('extension')
-subdir('namelist')
 subdir('scheduler')

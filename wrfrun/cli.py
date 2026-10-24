@@ -27,6 +27,7 @@ import tomli_w
 
 from .core import PROJECT_TREE, WRFRUN_NEW, create_wrfrun_session
 from .log import logger
+from .model.plugins import load_model_plugin
 from .res import (
     CONFIG_ARPS_TOML_TEMPLATE,
     CONFIG_EXPERIMENT_TOML_TEMPLATE,
@@ -109,8 +110,7 @@ def _entry_init(args: argparse.Namespace):
         for _model in models:
             if _model in MODEL_MAP:
                 WRFRUN_NEW.io.copy(file_path=MODEL_MAP[_model], save_path=project_path / f"configs/{_model}.toml")
-                (project_path / "configs/namelists/templates" / _model).mkdir(exist_ok=True)
-                (project_path / "configs/namelists/user" / _model).mkdir(exist_ok=True)
+                load_model_plugin(_model).initialize_project_files(project_path)
                 (project_path / "data/inputs/common" / _model).mkdir(exist_ok=True)
                 model_list.append(_model)
 
@@ -180,8 +180,7 @@ def _entry_model(args: argparse.Namespace):
 
     for _new_model in new_models:
         WRFRUN_NEW.io.copy(file_path=MODEL_MAP[_new_model], save_path=config_dir_path / f"{_new_model}.toml")
-        (project_path / "configs/namelists/templates" / _new_model).mkdir(exist_ok=True)
-        (project_path / "configs/namelists/user" / _new_model).mkdir(exist_ok=True)
+        load_model_plugin(_new_model).initialize_project_files(project_path)
         (project_path / "data/inputs/common" / _new_model).mkdir(exist_ok=True)
 
     with open(config_path, "wb") as f:

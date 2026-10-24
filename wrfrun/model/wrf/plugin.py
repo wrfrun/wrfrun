@@ -6,6 +6,7 @@ Define plugin class which will be provided to ``wrfrun`` to register ``Executabl
 """
 
 import logging
+from pathlib import Path
 
 from wrfrun.core import WRFRUN_NEW, ExecRegisterError
 
@@ -34,6 +35,12 @@ class WRFPlugin:
     """
 
     name = "wrf"
+
+    def initialize_project_files(self, project_path: Path):
+        """Create WRF namelist directories in a project."""
+        for component in ("wps", "wrf", "wrfda", "dfi"):
+            (project_path / "configs/namelists/templates/wrf" / component).mkdir(parents=True, exist_ok=True)
+            (project_path / "configs/namelists/user/wrf" / component).mkdir(parents=True, exist_ok=True)
 
     def register(self):
         """

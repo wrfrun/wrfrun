@@ -1,6 +1,6 @@
 # Manage `wrfrun` Resources
 
-Use this guide when adding, removing, or changing static files distributed with `wrfrun`, including configuration templates, namelist templates, scheduler templates, extension scripts, and CLI project templates. Treat `wrfrun/res/`, its `name_map.json` files, and the matching `meson.build` files as the source of truth.
+Use this guide when adding, removing, or changing static files distributed with `wrfrun`, including configuration templates, scheduler templates, extension scripts, and CLI project templates. Treat `wrfrun/res/`, its `name_map.json` files, and the matching `meson.build` files as the source of truth.
 
 ## Keep resource ownership clear
 
@@ -8,11 +8,12 @@ Store package-distributed, static files under `wrfrun/res/`:
 
 - `config/`: main and model TOML templates.
 - `extension/`: non-Python extension scripts.
-- `namelist/`: built-in namelist and parameter-table templates.
 - `scheduler/`: job-scheduler templates.
 - The resource root: shared templates such as the run-script template and Git ignore rules.
 
 Do not place model installation files, user input data, or per-run generated files in `wrfrun/res/`. Workspace preparation owns installation-derived runtime resources; executable lifecycle code owns generated configuration, run-specific inputs, and outputs.
+
+Project namelist templates belong in `configs/namelists/templates/`; model plugins create their own project namelist directories.
 
 ## Use generated constants and resource references
 

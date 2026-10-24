@@ -27,7 +27,3 @@ config_file_path = ""
 
 # You can provide topography file here.
 topography_file = '/path/to/your/topography/file'
-
-# You need to give your namelist file,
-# cause wrfrun hasn't supported more options in toml config file yet.
-user_namelist = '/path/to/your/namelist/file'

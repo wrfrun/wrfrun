@@ -6,6 +6,7 @@ Define plugin class which will be provided to ``wrfrun`` to register ``Executabl
 """
 
 import logging
+from pathlib import Path
 
 from wrfrun.core import WRFRUN_NEW, ExecRegisterError
 
@@ -35,6 +36,12 @@ class ARPSPlugin:
     """
 
     name = "arps"
+
+    def initialize_project_files(self, project_path: Path):
+        """Create ARPS namelist directories in a project."""
+        for component in ("arps", "arpstrn", "arpsintrp", "radremap", "arpssfc", "ext2arps"):
+            (project_path / "configs/namelists/templates/arps" / component).mkdir(parents=True, exist_ok=True)
+            (project_path / "configs/namelists/user/arps" / component).mkdir(parents=True, exist_ok=True)
 
     def register(self):
         """

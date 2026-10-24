@@ -6,6 +6,7 @@ Define plugin class which will be provided to ``wrfrun`` to register ``Executabl
 """
 
 import logging
+from pathlib import Path
 
 from wrfrun.core import WRFRUN_NEW
 
@@ -22,6 +23,9 @@ class ROMSPlugin:
     """
 
     name = "roms"
+
+    def initialize_project_files(self, project_path: Path):
+        """ROMS does not use project namelist directories."""
 
     def register(self):
         """
