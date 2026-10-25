@@ -3,8 +3,9 @@ Profiles
 
 Profiles save a project's model configuration and namelist settings so that a
 new project can start from the same experiment on this or another machine.
-They do not include model installations, input data, outputs, logs, or run
-workspaces.
+They also include custom scheduler scripts under ``configs/scheduler/`` and
+the selected experiment directory. They do not include model installations,
+input data, outputs, logs, or run workspaces.
 
 Save and list profiles
 ----------------------

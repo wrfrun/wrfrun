@@ -79,7 +79,7 @@ def save_profile(config_path: str | Path, experiment: str, archive_path: str | P
 
     files = [config_file]
     files.extend((project_path / "configs").glob("*.toml"))
-    for directory in ("configs/namelists/templates", "configs/namelists/user"):
+    for directory in ("configs/namelists/templates", "configs/namelists/user", "configs/scheduler"):
         source_dir = project_path / directory
         if source_dir.is_dir():
             files.extend(path for path in source_dir.rglob("*") if path.is_file())
@@ -123,6 +123,9 @@ def load_profile(archive_path: str | Path, project_path: str | Path):
 
     for directory in PROJECT_TREE:
         (target_path / directory).mkdir(parents=True, exist_ok=True)
+
+    if manifest["experiment"] != "common":
+        (target_path / "configs/experiments" / manifest["experiment"] / "scheduler").mkdir(parents=True, exist_ok=True)
 
 
 def get_global_profile_path(name: str) -> Path:

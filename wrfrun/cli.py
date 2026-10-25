@@ -126,6 +126,7 @@ def _entry_init(args: argparse.Namespace):
     logger.info(f"All your data should be placed in '{project_path}/data'.")
     logger.info(f"All your namelist template files should be placed in '{project_path}/configs/namelists/templates'.")
     logger.info(f"All your namelist files should be placed in '{project_path}/configs/namelists/user'.")
+    logger.info(f"Custom scheduler scripts should be placed in '{project_path}/configs/scheduler'.")
     logger.info(f"Make sure to set `[magenta]use = True[/]` to enable models in '{project_path}/config.toml' .")
     logger.info("It is recommanded to use git to track your wrfrun and model configs.")
     logger.info("Use command `[magenta]wrfrun add MODEL_NAME[/]` to add a new model to project.")
@@ -216,6 +217,7 @@ def _entry_experiment_create(args: argparse.Namespace):
     )
 
     (experiment_config_dir / "namelists").mkdir(parents=True)
+    (experiment_config_dir / "scheduler").mkdir(parents=True)
 
     with open(config_path, "rb") as f:
         main_config = tomli.load(f)

@@ -29,6 +29,7 @@ PROJECT_TREE = (
     "configs/experiments",
     "configs/namelists/templates",
     "configs/namelists/user",
+    "configs/scheduler",
     "data/inputs/common",
     "data/inputs/experiments",
     "data/outputs",
