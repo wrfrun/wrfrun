@@ -51,9 +51,10 @@ from pathlib import Path
 from shlex import join
 from typing import Optional, Union
 
+from ..log import get_wrfrun_rich_console
 from .core import WRFRUN_NEW
 from .error import CommandError, ConfigError, OutputFileError
-from .runtime.runner import Command, CommandStdStream, StreamMode
+from .runtime.runner import Command, CommandResult, CommandStdStream, StreamMode
 from .type import ExecutableClassConfig, ExecutableConfig, FileConfigDict, ResourceRef
 
 LOGGER = logging.getLogger("wrfrun")
@@ -660,6 +661,35 @@ class ExecutableBase:
         """
         LOGGER.debug(f"Method 'after_exec_debug' not implemented in '{self.name}'")
 
+    def save_failure_artifacts(self, command: Command):
+        """Save final namelists and command details after a failed run."""
+        log_path = WRFRUN_NEW.resource.get_custom_resource(self._log_save_path)
+        namelist_path = log_path / "namelists"
+        namelist_path.mkdir(parents=True, exist_ok=True)
+
+        for namelist_id in WRFRUN_NEW.namelist.get_loaded_namelist_ids():
+            WRFRUN_NEW.namelist.write_namelist(namelist_path / f"{namelist_id}.nml", namelist_id)
+
+        command_path = log_path / "command.txt"
+        command_path.write_text(
+            f"Command: {join(command.argv)}\n"
+            f"Working directory: {command.cwd or ''}\n"
+            f"Standard input: {command.stdin_path or ''}\n"
+        )
+
+        LOGGER.error(f"Command failed. Failure artifacts saved to {log_path}")
+
+    def print_failure_logs(self, result: CommandResult):
+        """Print archived command logs after a failed run."""
+        console = get_wrfrun_rich_console()
+        status = "timed out" if result.timed_out else f"exit code {result.returncode}"
+        console.print(f"[bold red]Command failed for {self.name}: {status}.[/]")
+
+        for stream_name in ("stdout", "stderr"):
+            stream_path = WRFRUN_NEW.resource.get_custom_resource(self._log_save_path / f"{self.name}.{stream_name}")
+            console.print(f"[bold]--- {stream_name}: {stream_path} ---[/]")
+            console.print(stream_path.read_text(errors="replace"), markup=False)
+
     def exec(self):
         """
         Execute the given command.
@@ -695,7 +725,11 @@ class ExecutableBase:
             stderr=stderr,
         )
 
-        WRFRUN_NEW.runner.run(command).require_success()
+        result = WRFRUN_NEW.runner.run(command)
+        if not result.succeeded:
+            self.save_failure_artifacts(command)
+            self.print_failure_logs(result)
+            raise SystemExit(1)
 
         if WRFRUN_NEW.states.DEBUG_MODE_EXECUTABLE:
             self.exec_debug()

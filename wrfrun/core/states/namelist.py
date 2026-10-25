@@ -335,5 +335,9 @@ class NamelistService:
         else:
             return False
 
+    def get_loaded_namelist_ids(self) -> tuple[str, ...]:
+        """Return IDs of namelists with values loaded in this session."""
+        return tuple(self._namelist_dict)
+
 
 __all__ = ["NamelistService"]

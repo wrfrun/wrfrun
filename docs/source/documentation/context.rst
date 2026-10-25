@@ -90,6 +90,22 @@ When ``init_workspace=True``, :class:`WRFRun <wrfrun.run.WRFRun>` automatically:
 - Cleans up any leftover files from previous runs
 - Validates that all required paths and resources are available
 
+Failed Executables
+==================
+
+When an external executable fails, ``wrfrun`` stops without a Python
+traceback and prints its archived standard output and standard error. The
+executable log directory also contains ``command.txt`` and a ``namelists/``
+directory with the final loaded namelist values. For example:
+
+.. code-block:: text
+
+   data/outputs/<experiment>/<run-id>/<executable>/logs/
+   ├── <executable>.stdout
+   ├── <executable>.stderr
+   ├── command.txt
+   └── namelists/
+
 Job Scheduling
 ==============
 
