@@ -24,6 +24,8 @@ from .pbs import pbs_generate_settings
 from .slurm import slurm_generate_settings
 
 ENV_KEY_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+ENVIRONMENT_MARKER = "# wrfrun:environment"
+COMMAND_MARKER = "# wrfrun:command"
 
 
 def submit_scheduler_task(main_file_path: str):
@@ -78,21 +80,6 @@ def prepare_scheduler_script(main_file_path: str) -> str:
 
     scheduler_configs = WRFRUN_NEW.config.get_job_scheduler_config()
 
-    # generate scheduler settings
-    match scheduler_configs["job_scheduler"]:
-        case "lsf":
-            scheduler_settings = lsf_generate_settings(scheduler_configs)
-
-        case "pbs":
-            scheduler_settings = pbs_generate_settings(scheduler_configs)
-
-        case "slurm":
-            scheduler_settings = slurm_generate_settings(scheduler_configs)
-
-        case _:
-            logger.error(f"Unknown scheduler name: {scheduler_configs['job_scheduler']}")
-            raise ValueError(f"Unknown scheduler name: {scheduler_configs['job_scheduler']}")
-
     # generate environment settings
     env_settings = "export WRFRUN_ENV_JOB_SCHEDULER=1\n"
     env_settings += f"export WRFRUN_EXPERIMENT={quote(WRFRUN_NEW.layout.experiment)}\n"
@@ -109,26 +96,50 @@ def prepare_scheduler_script(main_file_path: str) -> str:
     # generate command
     exec_cmd = join([scheduler_configs["python_interpreter"], main_file_path])
 
-    # generate shell script
-    shell_template_path = WRFRUN_NEW.resource.get_package_resource(RUN_SH_TEMPLATE)
-    script_path = f"{dir_path}/run.sh"
+    experiment_template_path = WRFRUN_NEW.resource.get_custom_resource(
+        WRFRUN_NEW.resource.CONFIG_DIR / f"experiments/{WRFRUN_NEW.layout.experiment}/scheduler/submit.sh"
+    )
+    template_path = experiment_template_path
+    if not template_path.is_file():
+        template_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.CONFIG_DIR / "scheduler/submit.sh")
 
-    with open(script_path, "w") as f:
-        with open(shell_template_path, "r") as f_template:
-            template = f_template.read()
+    if template_path.is_file():
+        template = template_path.read_text()
+        if template.count(ENVIRONMENT_MARKER) != 1 or template.count(COMMAND_MARKER) != 1:
+            raise ValueError(f"Custom scheduler template must contain {ENVIRONMENT_MARKER} and {COMMAND_MARKER} once each.")
 
-        template = template.format(
+        template = template.replace(ENVIRONMENT_MARKER, env_settings.rstrip())
+        template = template.replace(COMMAND_MARKER, f"cd {quote(dir_path)}\nexec {exec_cmd}")
+    else:
+        match scheduler_configs["job_scheduler"]:
+            case "lsf":
+                scheduler_settings = lsf_generate_settings(scheduler_configs)
+
+            case "pbs":
+                scheduler_settings = pbs_generate_settings(scheduler_configs)
+
+            case "slurm":
+                scheduler_settings = slurm_generate_settings(scheduler_configs)
+
+            case _:
+                logger.error(f"Unknown scheduler name: {scheduler_configs['job_scheduler']}")
+                raise ValueError(f"Unknown scheduler name: {scheduler_configs['job_scheduler']}")
+
+        shell_template_path = WRFRUN_NEW.resource.get_package_resource(RUN_SH_TEMPLATE)
+        template = shell_template_path.read_text().format(
             SCHEDULER_SETTINGS=scheduler_settings,
             ENV_SETTINGS=env_settings,
             WORK_COMMAND=exec_cmd,
             WORK_PATH=quote(dir_path),
         )
 
-        f.write(template)
+    script_path = WRFRUN_NEW.layout.workspace_dir.parent / "submit.sh"
+    script_path.parent.mkdir(parents=True, exist_ok=True)
+    script_path.write_text(template)
 
     logger.info(f"Job scheduler script written to {script_path}")
 
-    return script_path
+    return str(script_path)
 
 
 __all__ = ["prepare_scheduler_script", "submit_scheduler_task"]

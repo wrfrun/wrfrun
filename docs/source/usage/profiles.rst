@@ -7,6 +7,23 @@ They also include custom scheduler scripts under ``configs/scheduler/`` and
 the selected experiment directory. They do not include model installations,
 input data, outputs, logs, or run workspaces.
 
+Custom scheduler scripts
+------------------------
+
+Place a default job script at ``configs/scheduler/submit.sh``. An experiment
+can override it with ``configs/experiments/<name>/scheduler/submit.sh``. Each
+script must contain these markers exactly once:
+
+.. code-block:: bash
+
+   # wrfrun:environment
+   # wrfrun:command
+
+``wrfrun`` replaces them with the experiment/run identity and the command that
+starts the Python entry script. Keep scheduler directives and cluster-specific
+environment setup in the template itself. Without a custom script, ``wrfrun``
+continues to generate its built-in PBS, Slurm, or LSF script.
+
 Save and list profiles
 ----------------------
 
