@@ -71,7 +71,7 @@ def prepare_arps_namelist():
     integrate_large_time_step = model_config["global"]["integrate_large_time_step"]
     start_date: datetime = WRFRUN_NEW.config["simulation"]["time"]["start_time"]
     end_date: datetime = WRFRUN_NEW.config["simulation"]["time"]["end_time"]
-    simulation_time = (end_date - start_date).seconds
+    simulation_time = int((end_date - start_date).total_seconds())
 
     update_value = {
         "grid_dims": {"nx": grid_nx, "ny": grid_ny, "nz": grid_nz},
