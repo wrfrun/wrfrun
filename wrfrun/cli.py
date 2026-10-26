@@ -27,6 +27,7 @@ import tomli_w
 from rich.table import Table
 
 from .core import PROJECT_TREE, WRFRUN_NEW, create_wrfrun_session
+from .jobs import follow_job_log, get_job, list_jobs
 from .log import get_wrfrun_rich_console, logger
 from .model.plugins import load_model_plugin
 from .profile import get_global_profile_path, list_profiles, load_profile, remove_global_profile, save_profile
@@ -281,6 +282,33 @@ def _entry_load(args: argparse.Namespace):
     logger.info(f"Created project '{Path(args.path).resolve()}' from '{archive_path.resolve()}'.")
 
 
+def _entry_jobs(args: argparse.Namespace):
+    """List active runs or follow one external command's output."""
+    if args.follow is not None:
+        job = get_job(args.config, args.follow)
+        for output in follow_job_log(job, args.stream):
+            get_wrfrun_rich_console().print(output, end="", markup=False)
+        return
+
+    table = Table(title="Active wrfrun jobs")
+    table.add_column("Experiment")
+    table.add_column("Run ID", style="cyan")
+    table.add_column("State")
+    table.add_column("Executable")
+    table.add_column("Started")
+    table.add_column("Updated")
+    for job in list_jobs(args.config):
+        table.add_row(
+            job.status["experiment"],
+            job.run_id,
+            job.status["state"],
+            job.status["current_executable"] or "-",
+            job.status["started_at"],
+            job.status["updated_at"],
+        )
+    get_wrfrun_rich_console().print(table)
+
+
 def main_entry():
     """
     CLI entry point.
@@ -351,6 +379,12 @@ def main_entry():
     load_parser.add_argument("-p", "--path", required=True, help="Path of the new project.")
     load_parser.add_argument("--global", dest="global_profile", action="store_true", help="Use the local profile library.")
     load_parser.set_defaults(func=_entry_load)
+
+    jobs_parser = subparsers.add_parser("jobs", help="List active simulation runs or follow command output.", add_help=True)
+    jobs_parser.add_argument("-c", "--config", default="config.toml", help="Path of the main config file.")
+    jobs_parser.add_argument("-f", "--follow", metavar="RUN_ID", help="Follow stdout from one run's current command.")
+    jobs_parser.add_argument("--stream", choices=["stdout", "stderr"], default="stdout", help="Log stream to follow.")
+    jobs_parser.set_defaults(func=_entry_jobs)
 
     args = args_parser.parse_args(args=None if sys.argv[1:] else ["--help"])
     args.func(args)
