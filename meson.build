@@ -1,6 +1,6 @@
 project(
     'wrfrun',
-    version: '0.5.0',
+    version: '0.5.1',
     license: 'GPL-3',
     meson_version: '>=0.64.0',
     default_options: ['warning_level=2'],
