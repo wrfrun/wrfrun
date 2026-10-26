@@ -22,7 +22,16 @@ from contextvars import ContextVar, Token
 from dataclasses import dataclass
 
 from .error import WRFRunContextError
-from .runtime import ExecutableRegistry, IOService, ReplayService, ResourceCatalog, RunLayout, RunnerService, RuntimeService
+from .runtime import (
+    ExecutableRegistry,
+    IOService,
+    ReplayService,
+    ResourceCatalog,
+    RunLayout,
+    RunnerService,
+    RunStatusService,
+    RuntimeService,
+)
 from .runtime.workspace import WorkspaceService
 from .states import ConfigService, NamelistService, StatesService, WRFRunStates
 
@@ -126,6 +135,11 @@ class WRFRunVarAPI:
         return self.session.runtime.workspace
 
     @property
+    def status(self) -> RunStatusService:
+        """Persistent status of the active simulation run."""
+        return self.session.runtime.status
+
+    @property
     def config(self) -> ConfigService:
         """
         ``wrfrun`` configs.
@@ -192,6 +206,7 @@ def create_wrfrun_session() -> Token[WRFRunSession | None]:
     replay = ReplayService(resource, io, registry)
     runner = RunnerService(resource)
     workspace = WorkspaceService(resource, io)
+    status = RunStatusService(resource)
 
     config = ConfigService(io, resource)
     namelist = NamelistService(io)
@@ -204,6 +219,7 @@ def create_wrfrun_session() -> Token[WRFRunSession | None]:
             registry=registry,
             resource=resource,
             runner=runner,
+            status=status,
             workspace=workspace,
         ),
         states=StatesService(

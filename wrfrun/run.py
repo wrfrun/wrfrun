@@ -144,6 +144,7 @@ class WRFRunContext:
         self._token = create_wrfrun_session()
         WRFRUN_NEW.config.load_wrfrun_config(self.config_file_path, self.experiment, self.run_id)
         self.run_id = WRFRUN_NEW.layout.run_id
+        WRFRUN_NEW.status.start()
 
         # check workspace
         if not WRFRUN_NEW.workspace.check_workspace():
@@ -163,6 +164,7 @@ class WRFRunContext:
                 confirm_model_area()
 
             submit_scheduler_task(self._entry_file_path)
+            WRFRUN_NEW.status.update("submitted")
             logger.info("Work has been submitted to the configured scheduler")
             exit(0)
 
@@ -193,6 +195,8 @@ class WRFRunContext:
             else:
                 prepare_wps_input_data(self._wps_data_area)
 
+        WRFRUN_NEW.status.update("running")
+
         logger.debug(r"Enter wrfrun context")
 
         return self
@@ -213,6 +217,11 @@ class WRFRunContext:
         WRFRUN_NEW.states.set_wrfrun_context(False)
 
         clear_model_logs()
+
+        if exc_type is None:
+            WRFRUN_NEW.status.finish()
+        elif WRFRUN_NEW.status.state != "failed":
+            WRFRUN_NEW.status.fail(str(exc_val or exc_type.__name__))
 
         # clean session
         WRFRUN_NEW.reset_session(self._token)

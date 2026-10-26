@@ -14,6 +14,7 @@ Submodules
 :doc:`registry </api/core.runtime.registry>`   ``wrfrun`` ``Executable`` registry.
 :doc:`resource </api/core.runtime.resource>`   ``wrfrun`` resource service.
 :doc:`runner </api/core.runtime.runner>`       ``wrfrun`` external command runner service.
+:doc:`status </api/core.runtime.status>`       Persistent simulation run status service.
 :doc:`workspace </api/core.runtime.workspace>` ``wrfrun`` workspace service.
 ============================================== ========================================================
 
@@ -46,6 +47,7 @@ A typical ``wrfrun`` project has following directories:
     registry <core.runtime.registry>
     resource <core.runtime.resource>
     runner <core.runtime.runner>
+    status <core.runtime.status>
     workspace <core.runtime.workspace>
 """
 
@@ -55,4 +57,5 @@ from .record import *
 from .registry import *
 from .resource import *
 from .runner import *
+from .status import *
 from .workspace import *

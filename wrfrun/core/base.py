@@ -725,11 +725,26 @@ class ExecutableBase:
             stderr=stderr,
         )
 
-        result = WRFRUN_NEW.runner.run(command)
+        stdout_path = WRFRUN_NEW.resource.get_custom_resource(stdout.path)
+        stderr_path = WRFRUN_NEW.resource.get_custom_resource(stderr.path)
+        WRFRUN_NEW.status.start_command(self.name, command.argv, stdout_path, stderr_path)
+        try:
+            result = WRFRUN_NEW.runner.run(command)
+        except Exception as error:
+            WRFRUN_NEW.status.fail(str(error))
+            raise
+
         if not result.succeeded:
+            WRFRUN_NEW.status.fail(
+                "External command failed.",
+                returncode=result.returncode,
+                timed_out=result.timed_out,
+            )
             self.save_failure_artifacts(command)
             self.print_failure_logs(result)
             raise SystemExit(1)
+
+        WRFRUN_NEW.status.finish_command(result.returncode)
 
         if WRFRUN_NEW.states.DEBUG_MODE_EXECUTABLE:
             self.exec_debug()

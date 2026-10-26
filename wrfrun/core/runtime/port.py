@@ -17,6 +17,7 @@ from .record import ReplayService
 from .registry import ExecutableRegistry
 from .resource import ResourceCatalog
 from .runner import RunnerService
+from .status import RunStatusService
 from .workspace import WorkspaceService
 
 
@@ -54,6 +55,11 @@ class RuntimeService:
     workspace: WorkspaceService
     """
     Workspace service.
+    """
+
+    status: RunStatusService
+    """
+    Persistent run status service.
     """
 
 

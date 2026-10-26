@@ -106,6 +106,14 @@ directory with the final loaded namelist values. For example:
    ├── command.txt
    └── namelists/
 
+Run Status
+==========
+
+Each active run writes ``.wrfrun/runs/<experiment>/<run-id>/status.json``.
+It records the run lifecycle, current executable, command, and stdout/stderr
+paths. This status file is the shared source for future CLI and agent job
+inspection features.
+
 Job Scheduling
 ==============
 
