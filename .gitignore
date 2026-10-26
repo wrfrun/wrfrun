@@ -19,7 +19,7 @@ docs/source/api/generated/
 **/*.so
 test.*
 config.yaml
-main.py
+/main.py
 namelist.*
 uv.lock
 .codex
