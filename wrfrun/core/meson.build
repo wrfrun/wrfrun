@@ -12,4 +12,5 @@ py3.install_sources(
 )
 
 subdir('runtime')
+subdir('operations')
 subdir('states')

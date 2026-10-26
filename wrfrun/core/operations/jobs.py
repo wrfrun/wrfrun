@@ -1,6 +1,6 @@
 """
-wrfrun.jobs
-############
+wrfrun.core.operations.jobs
+############################
 
 Read run status files and follow external-command logs.
 

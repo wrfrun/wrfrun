@@ -16,6 +16,7 @@ Submodules
 :doc:`base </api/core.base>`           Definition of ``Executable`` base class.
 :doc:`core </api/core.core>`           Definition of proxy class ``WRFRUNProxy``.
 :doc:`error </api/core.error>`         Definition of ``wrfrun`` error exceptions.
+:doc:`operations </api/operations>`    Project and run management operations.
 :doc:`plugin </api/core.plugin>`       Definition of plugin protocol.
 :doc:`runtime </api/core.runtime>`     Definition of runtime service.
 :doc:`server </api/core.server>`       Functions and classes to start socket server.
@@ -30,6 +31,7 @@ Submodules
     base <core.base>
     core <core.core>
     error <core.error>
+    operations <operations>
     plugin <core.plugin>
     server <core.server>
     type <core.type>

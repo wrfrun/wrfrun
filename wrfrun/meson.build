@@ -1,10 +1,8 @@
 py3.install_sources(
     [
         '__init__.py',
-        'cli.py',
         'data.py',
         'log.py',
-        'profile.py',
         'run.py',
         'utils.py',
     ],
@@ -12,6 +10,7 @@ py3.install_sources(
 )
 
 subdir('core')
+subdir('cli')
 subdir('extension')
 subdir('model')
 subdir('plot')

@@ -14,6 +14,7 @@ You can check the sidebar on the *left* or refer to their own page for more info
 :doc:`extension </api/extension>` Extensions provide more functionalities.
 :doc:`log </api/log>`             Functions to setup logger.
 :doc:`model </api/model>`         Implements for numerical models.
+:doc:`operations </api/operations>` Project and run management operations.
 :doc:`plot </api/plot>`           Functions and classes to plot images.
 :doc:`res </api/res>`             ``wrfrun`` resource files.
 :doc:`run </api/run>`             ``wrfrun`` context.

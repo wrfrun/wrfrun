@@ -1,6 +1,6 @@
 """
-wrfrun.profile
-###############
+wrfrun.core.operations.profile
+###############################
 
 Save and load reusable experiment configuration profiles.
 
@@ -23,7 +23,7 @@ import tomli
 import tomli_w
 from platformdirs import user_config_dir
 
-from .core.runtime.resource import PROJECT_TREE
+from ..runtime.resource import PROJECT_TREE
 
 MANIFEST_FILE = "manifest.toml"
 

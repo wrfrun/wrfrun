@@ -7,6 +7,7 @@ py3.install_sources(
         'registry.py',
         'resource.py',
         'runner.py',
+        'status.py',
         'workspace.py',
     ],
     subdir: 'wrfrun/core/runtime'
