@@ -229,7 +229,7 @@ class EXT2ARPS(ExecutableBase):
         Internal URI which represents the absolute path of ext2arps namelist path.
     """
 
-    def __init__(self):
+    def __init__(self, arpstrn_run_id: str | None = None):
         """
         ``Executable`` for "ext2arps".
         """
@@ -250,6 +250,7 @@ class EXT2ARPS(ExecutableBase):
             mpi_core_num=mpi_core_num,
         )
 
+        self.arpstrn_run_id = arpstrn_run_id
         _check_and_prepare_namelist()
 
     def generate_custom_config(self):
@@ -258,7 +259,9 @@ class EXT2ARPS(ExecutableBase):
 
         * Namelist settings.
         """
-        self.custom_config.update({"namelist": WRFRUN_NEW.namelist.get_namelist("arps")})
+        self.custom_config.update(
+            {"arpstrn_run_id": self.arpstrn_run_id, "namelist": WRFRUN_NEW.namelist.get_namelist("arps")}
+        )
 
     def load_custom_config(self):
         """
@@ -266,6 +269,7 @@ class EXT2ARPS(ExecutableBase):
 
         * Namelist settings.
         """
+        self.arpstrn_run_id = self.custom_config["arpstrn_run_id"]
         WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arps")
 
     def before_exec(self):
@@ -277,14 +281,15 @@ class EXT2ARPS(ExecutableBase):
         input_file_list = _check_ext2arps_input_data()
         self.add_input_files([WRFRUN_NEW.resource.INPUT_DIR / "ext2arps" / file_name for file_name in input_file_list])
 
-        _arpstrn_data_dir = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.OUTPUT_DIR / "arpstrn")
+        arpstrn_result_ref = WRFRUN_NEW.resource.get_result_ref("arpstrn", self.arpstrn_run_id)
+        _arpstrn_data_dir = WRFRUN_NEW.resource.get_custom_resource(arpstrn_result_ref)
         _arpstrn_data = glob.glob("arpstrn.trndata*", root_dir=_arpstrn_data_dir)
         if len(_arpstrn_data) < 1:
             message = "Can't find arpstrn outputs in ext2arps outputs directory, which is essential to run ext2arps."
             LOGGER.error(message)
             raise FileNotFoundError(message)
 
-        _arpstrn_data_path = WRFRUN_NEW.resource.OUTPUT_DIR / "arpstrn" / _arpstrn_data[0]
+        _arpstrn_data_path = arpstrn_result_ref / _arpstrn_data[0]
 
         self.add_input_files(_arpstrn_data_path, is_output=False)
 
@@ -334,7 +339,14 @@ class ARPS(ExecutableBase):
         Internal URI which represents the absolute path of arps namelist path.
     """
 
-    def __init__(self, core_num: Optional[int] = None, use_arpsintrp_exbc=False):
+    def __init__(
+        self,
+        core_num: Optional[int] = None,
+        use_arpsintrp_exbc=False,
+        arpssfc_run_id: str | None = None,
+        ext2arps_run_id: str | None = None,
+        arpsintrp_run_id: str | None = None,
+    ):
         """
         ``Executable`` for "arps".
 
@@ -343,6 +355,9 @@ class ARPS(ExecutableBase):
         :type use_arpsintrp_exbc: bool
         """
         self.use_arpsintrp_exbc = use_arpsintrp_exbc
+        self.arpssfc_run_id = arpssfc_run_id
+        self.ext2arps_run_id = ext2arps_run_id
+        self.arpsintrp_run_id = arpsintrp_run_id
 
         if core_num is None or core_num == 1:
             mpi_use = False
@@ -382,7 +397,14 @@ class ARPS(ExecutableBase):
 
         * Namelist settings.
         """
-        self.custom_config.update({"namelist": WRFRUN_NEW.namelist.get_namelist("arps")})
+        self.custom_config.update(
+            {
+                "arpssfc_run_id": self.arpssfc_run_id,
+                "ext2arps_run_id": self.ext2arps_run_id,
+                "arpsintrp_run_id": self.arpsintrp_run_id,
+                "namelist": WRFRUN_NEW.namelist.get_namelist("arps"),
+            }
+        )
 
     def load_custom_config(self):
         """
@@ -390,6 +412,9 @@ class ARPS(ExecutableBase):
 
         * Namelist settings.
         """
+        self.arpssfc_run_id = self.custom_config["arpssfc_run_id"]
+        self.ext2arps_run_id = self.custom_config["ext2arps_run_id"]
+        self.arpsintrp_run_id = self.custom_config["arpsintrp_run_id"]
         WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arps")
 
     def before_exec(self):
@@ -400,7 +425,7 @@ class ARPS(ExecutableBase):
 
         # use outputs from arpssfc
         if model_config["soil_ebm"]["sfcdat"] == 2:
-            self.add_input_files(WRFRUN_NEW.resource.OUTPUT_DIR / "arpssfc/arpssfc.sfcdata")
+            self.add_input_files(WRFRUN_NEW.resource.get_result_ref("arpssfc", self.arpssfc_run_id) / "arpssfc.sfcdata")
             WRFRUN_NEW.namelist.update_namelist(
                 {
                     "soil_ebm": {"sfcdtfl": "./arpssfc.sfcdata"},
@@ -411,7 +436,7 @@ class ARPS(ExecutableBase):
         # use outputs from ext2arps
         if model_config["initialization"]["initopt"] == 3:
             # find ext2arps outputs
-            _ext2arps_out_dir_ref = WRFRUN_NEW.resource.OUTPUT_DIR / "ext2arps"
+            _ext2arps_out_dir_ref = WRFRUN_NEW.resource.get_result_ref("ext2arps", self.ext2arps_run_id)
             _ext2arps_out_files = glob.glob("ext2arps.*", root_dir=WRFRUN_NEW.resource.get_custom_resource(_ext2arps_out_dir_ref))
 
             if len(_ext2arps_out_files) < 2:
@@ -437,7 +462,7 @@ class ARPS(ExecutableBase):
         if model_config["boundary_condition_options"]["lbcopt"] == 2:
             exbc_config = {"exbcname": "./ext2arps"}
             if self.use_arpsintrp_exbc:
-                _arpsintrp_out_dir_ref = WRFRUN_NEW.resource.OUTPUT_DIR / "arpsintrp"
+                _arpsintrp_out_dir_ref = WRFRUN_NEW.resource.get_result_ref("arpsintrp", self.arpsintrp_run_id)
                 _arpsintrp_out_files = sorted(
                     glob.glob("arpsintrp.[0-9]*", root_dir=WRFRUN_NEW.resource.get_custom_resource(_arpsintrp_out_dir_ref))
                 )
@@ -510,21 +535,16 @@ class ARPS3DVar(ExecutableBase):
     file as the background. Observation files and error-statistics tables are
     configured by the ADAS and 3DVAR sections of the ARPS namelist.
 
-    :param arps_data_path: Directory containing the ARPS background files
-                           ``arps.hdf000000`` and ``arps.hdfgrdbas``.  If it
-                           is ``None``, use the archived ``arps`` output
-                           directory.
-    :type arps_data_path: str | None
+    :param arps_run_id: Run ID containing the ARPS background files. If it is
+                        ``None``, use the latest published results.
     """
 
-    def __init__(self):
+    def __init__(self, arps_run_id: str | None = None):
         """
         ``Executable`` for ``arps3dvar``.
 
-        :param arps_data_path: Directory containing the ARPS background
-                               history and grid/base-state files.  If it is
-                               ``None``, try the configured ARPS output path.
-        :type arps_data_path: str | None
+        :param arps_run_id: Run ID containing ARPS background files. If it is
+                            ``None``, use the latest published results.
         """
         work_path = ResourceRef("workspace_arps", "arps3dvar")
         self.namelist_path = work_path / "arps3dvar.nml"
@@ -536,14 +556,16 @@ class ARPS3DVar(ExecutableBase):
             stdin_file=self.namelist_path,
         )
 
+        self.arps_run_id = arps_run_id
         _check_and_prepare_namelist()
 
     def generate_custom_config(self):
         """Store the ARPS namelist and selected background directory."""
-        self.custom_config.update({"namelist": WRFRUN_NEW.namelist.get_namelist("arps")})
+        self.custom_config.update({"arps_run_id": self.arps_run_id, "namelist": WRFRUN_NEW.namelist.get_namelist("arps")})
 
     def load_custom_config(self):
         """Restore the ARPS namelist and selected background directory."""
+        self.arps_run_id = self.custom_config["arps_run_id"]
         WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arps")
 
     def before_exec(self):
@@ -558,7 +580,7 @@ class ARPS3DVar(ExecutableBase):
         missing_background_files = [file_name for file_name in background_files if file_name not in existing_files]
 
         if missing_background_files:
-            arps_data_path_ref = WRFRUN_NEW.resource.OUTPUT_DIR / "arps"
+            arps_data_path_ref = WRFRUN_NEW.resource.get_result_ref("arps", self.arps_run_id)
             arps_data_path = WRFRUN_NEW.resource.get_custom_resource(arps_data_path_ref)
             missing_source_files = [
                 file_name for file_name in missing_background_files if not exists(f"{arps_data_path}/{file_name}")
@@ -613,7 +635,7 @@ class ARPSIntrp(ExecutableBase):
     It uses the grid/base and history files archived from ``ext2arps``.
     """
 
-    def __init__(self):
+    def __init__(self, ext2arps_run_id: str | None = None):
         """Create an ``arpsintrp`` executable."""
         work_path = ResourceRef("workspace_arps", "arpsintrp")
         self.namelist_path = work_path / "arpsintrp.nml"
@@ -625,21 +647,25 @@ class ARPSIntrp(ExecutableBase):
             stdin_file=self.namelist_path,
         )
 
+        self.ext2arps_run_id = ext2arps_run_id
         prepare_arpsintrp_namelist()
 
     def generate_custom_config(self):
         """Store the ``arpsintrp`` namelist for replay."""
-        self.custom_config.update({"namelist": WRFRUN_NEW.namelist.get_namelist("arpsintrp")})
+        self.custom_config.update(
+            {"ext2arps_run_id": self.ext2arps_run_id, "namelist": WRFRUN_NEW.namelist.get_namelist("arpsintrp")}
+        )
 
     def load_custom_config(self):
         """Restore the ``arpsintrp`` namelist for replay."""
         if not WRFRUN_NEW.namelist.check_namelist_id("arpsintrp"):
             WRFRUN_NEW.namelist.register_namelist_id("arpsintrp")
+        self.ext2arps_run_id = self.custom_config["ext2arps_run_id"]
         WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arpsintrp")
 
     def _stage_history_data(self):
         """Stage history inputs and rewrite their namelist paths."""
-        input_dir_ref = WRFRUN_NEW.resource.OUTPUT_DIR / "ext2arps"
+        input_dir_ref = WRFRUN_NEW.resource.get_result_ref("ext2arps", self.ext2arps_run_id)
         input_files = list(WRFRUN_NEW.resource.get_custom_resource(input_dir_ref).iterdir())
         grid_base_file = next(file for file in input_files if file.suffix.endswith("grdbas"))
         history_files = sorted(file for file in input_files if file.suffix[-6:].isdigit())
@@ -694,7 +720,7 @@ class RadRemap(ExecutableBase):
     archived under ``outputs/radremap``.
     """
 
-    def __init__(self):
+    def __init__(self, arps_run_id: str | None = None):
         """Create a serial ``radremap`` executable."""
         work_path = ResourceRef("workspace_arps", "radremap")
         self.namelist_path = work_path / "radremap.nml"
@@ -706,16 +732,18 @@ class RadRemap(ExecutableBase):
             stdin_file=self.namelist_path,
         )
 
+        self.arps_run_id = arps_run_id
         prepare_radremap_namelist()
 
     def generate_custom_config(self):
         """Store the ``radremap`` namelist for replay."""
-        self.custom_config.update({"namelist": WRFRUN_NEW.namelist.get_namelist("radremap")})
+        self.custom_config.update({"arps_run_id": self.arps_run_id, "namelist": WRFRUN_NEW.namelist.get_namelist("radremap")})
 
     def load_custom_config(self):
         """Restore the ``radremap`` namelist for replay."""
         if not WRFRUN_NEW.namelist.check_namelist_id("radremap"):
             WRFRUN_NEW.namelist.register_namelist_id("radremap")
+        self.arps_run_id = self.custom_config["arps_run_id"]
         WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "radremap")
 
     def before_exec(self):
@@ -731,7 +759,7 @@ class RadRemap(ExecutableBase):
         outtime = int(history_file[-6:])
         valid_time = WRFRUN_NEW.config["simulation"]["time"]["start_time"] + timedelta(seconds=outtime)
 
-        arps_output_dir = WRFRUN_NEW.resource.OUTPUT_DIR / "arps"
+        arps_output_dir = WRFRUN_NEW.resource.get_result_ref("arps", self.arps_run_id)
         self.add_input_files([arps_output_dir / history_file, arps_output_dir / grid_base_file])
         self.add_input_files(WRFRUN_NEW.resource.INPUT_DIR / "radremap" / radar_file, is_output=False)
 

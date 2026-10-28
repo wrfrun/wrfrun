@@ -340,6 +340,13 @@ class ResourceCatalog:
         temporary_path.symlink_to(relpath(output_path, results_dir), target_is_directory=True)
         temporary_path.replace(result_path)
 
+    def get_result_ref(self, executable_name: str, run_id: str | None = None) -> ResourceRef:
+        """Return latest or run-specific archived results for one executable."""
+        if run_id is None:
+            return self.RESULTS_DIR / executable_name
+
+        return ResourceRef("project", f"data/outputs/{self.layout.experiment}/{run_id}/{executable_name}")
+
     @property
     def INPUT_DIR(self):
         """

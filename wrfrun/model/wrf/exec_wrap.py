@@ -49,7 +49,11 @@ def ungrib(vtable_file: Union[str, None] = None, input_data_path: Optional[str] 
 
 
 def metgrid(
-    geogrid_data_path: Optional[str] = None, ungrib_data_path: Optional[str] = None, fg_names: Union[str, list[str]] = "FILE"
+    geogrid_data_path: Optional[str] = None,
+    ungrib_data_path: Optional[str] = None,
+    fg_names: Union[str, list[str]] = "FILE",
+    geogrid_run_id: str | None = None,
+    ungrib_run_id: str | None = None,
 ):
     """
     Function interface for :class:`MetGrid <wrfrun.model.wrf.core.MetGrid>`.
@@ -62,29 +66,48 @@ def metgrid(
     :type ungrib_data_path: str
     :param fg_names: ``fg_name`` of metgrid, a single prefix string or a string list.
     :type fg_names: str | list
+    :param geogrid_run_id: Run ID containing ``geogrid`` outputs when
+                           ``geogrid_data_path`` is omitted.
+    :param ungrib_run_id: Run ID containing ``ungrib`` outputs when
+                          ``ungrib_data_path`` is omitted.
     """
-    MetGrid(geogrid_data_path, ungrib_data_path, WRFRUN_NEW.config.get_core_num()).set_metgrid_fg_names(fg_names)()
+    MetGrid(
+        geogrid_data_path,
+        ungrib_data_path,
+        WRFRUN_NEW.config.get_core_num(),
+        geogrid_run_id,
+        ungrib_run_id,
+    ).set_metgrid_fg_names(fg_names)()
 
 
-def real(metgrid_data_path: Union[str, None] = None):
+def real(metgrid_data_path: Union[str, None] = None, metgrid_run_id: str | None = None):
     """
     Function interface for :class:`Real <wrfrun.model.wrf.core.Real>`.
 
     :param metgrid_data_path: Directory path of :class:`MetGrid <wrfrun.model.wrf.core.MetGrid>` outputs.
                               If is ``None``, try to use the workspace path or output path in the config file.
+    :param metgrid_run_id: Run ID containing ``metgrid`` outputs when
+                           ``metgrid_data_path`` is omitted.
     """
-    Real(metgrid_data_path, WRFRUN_NEW.config.get_core_num())()
+    Real(metgrid_data_path, WRFRUN_NEW.config.get_core_num(), metgrid_run_id)()
 
 
-def wrf(input_file_dir_path: Union[str, None] = None, restart_file_dir_path: Optional[str] = None, save_restarts=False):
+def wrf(
+    input_file_dir_path: Union[str, None] = None,
+    restart_file_dir_path: Optional[str] = None,
+    save_restarts=False,
+    input_run_id: str | None = None,
+):
     """
     Function interface for :class:`WRF <wrfrun.model.wrf.core.WRF>`.
 
     :param input_file_dir_path: Directory path of input data.
     :param restart_file_dir_path: Directory path of restart files.
     :param save_restarts: If saving restart files. Defaults to False.
+    :param input_run_id: Run ID containing the default ``real`` or ``ndown``
+                         inputs when ``input_file_dir_path`` is omitted.
     """
-    WRF(input_file_dir_path, restart_file_dir_path, save_restarts, WRFRUN_NEW.config.get_core_num())()
+    WRF(input_file_dir_path, restart_file_dir_path, save_restarts, WRFRUN_NEW.config.get_core_num(), input_run_id)()
 
 
 def dfi(input_file_dir_path: Optional[str] = None, update_real_output=True):
@@ -99,7 +122,12 @@ def dfi(input_file_dir_path: Optional[str] = None, update_real_output=True):
     DFI(input_file_dir_path, update_real_output, WRFRUN_NEW.config.get_core_num())()
 
 
-def ndown(wrfout_file_path: str, real_output_dir_path: Optional[str] = None, update_namelist=True):
+def ndown(
+    wrfout_file_path: str,
+    real_output_dir_path: Optional[str] = None,
+    update_namelist=True,
+    real_run_id: str | None = None,
+):
     """
     Function interface for :class:`NDown <wrfrun.model.wrf.core.NDown>`.
 
@@ -109,8 +137,10 @@ def ndown(wrfout_file_path: str, real_output_dir_path: Optional[str] = None, upd
     :type real_output_dir_path: str
     :param update_namelist: If update namelist settings for the final integral.
     :type update_namelist: bool
+    :param real_run_id: Run ID containing ``real`` outputs when
+                        ``real_output_dir_path`` is omitted.
     """
-    NDown(wrfout_file_path, real_output_dir_path, update_namelist, WRFRUN_NEW.config.get_core_num())()
+    NDown(wrfout_file_path, real_output_dir_path, update_namelist, WRFRUN_NEW.config.get_core_num(), real_run_id)()
 
 
 __all__ = ["geogrid", "ungrib", "metgrid", "real", "wrf", "dfi", "ndown"]

@@ -322,7 +322,12 @@ class MetGrid(ExecutableBase):
     """
 
     def __init__(
-        self, geogrid_data_path: Optional[str] = None, ungrib_data_path: Optional[str] = None, core_num: Optional[int] = None
+        self,
+        geogrid_data_path: Optional[str] = None,
+        ungrib_data_path: Optional[str] = None,
+        core_num: Optional[int] = None,
+        geogrid_run_id: str | None = None,
+        ungrib_run_id: str | None = None,
     ):
         """
         ``Executable`` of "metgrid.exe".
@@ -361,6 +366,8 @@ class MetGrid(ExecutableBase):
 
         self.geogrid_data_path = geogrid_data_path
         self.ungrib_data_path = ungrib_data_path
+        self.geogrid_run_id = geogrid_run_id
+        self.ungrib_run_id = ungrib_run_id
 
         _check_and_prepare_namelist()
 
@@ -392,6 +399,8 @@ class MetGrid(ExecutableBase):
             {
                 "geogrid_data_path": self.geogrid_data_path,
                 "ungrib_data_path": self.ungrib_data_path,
+                "geogrid_run_id": self.geogrid_run_id,
+                "ungrib_run_id": self.ungrib_run_id,
                 "namelist": WRFRUN_NEW.namelist.get_namelist("wps"),
             }
         )
@@ -402,6 +411,8 @@ class MetGrid(ExecutableBase):
         """
         self.geogrid_data_path = self.custom_config["geogrid_data_path"]
         self.ungrib_data_path = self.custom_config["ungrib_data_path"]
+        self.geogrid_run_id = self.custom_config["geogrid_run_id"]
+        self.ungrib_run_id = self.custom_config["ungrib_run_id"]
         WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "wps")
 
     def before_exec(self):
@@ -415,22 +426,26 @@ class MetGrid(ExecutableBase):
 
             if "geo_em.d01.nc" not in file_list:
                 if self.geogrid_data_path is None:
-                    self.geogrid_data_path = WRFRUN_NEW.resource.OUTPUT_DIR / "geogrid"
+                    self.geogrid_data_path = WRFRUN_NEW.resource.get_result_ref("geogrid", self.geogrid_run_id)
                 geogrid_data_path = WRFRUN_NEW.resource.get_custom_resource(self.geogrid_data_path)
 
                 if not exists(geogrid_data_path) or "geo_em.d01.nc" not in listdir(geogrid_data_path):
                     logger.error(
-                        "Can't find geogrid outputs in WPS_WORK_PATH and your outputs directory, which is essential to run metgrid"
+                        "Can't find geogrid outputs in WPS_WORK_PATH and your outputs directory, "
+                        "which is essential to run metgrid"
                     )
                     raise FileNotFoundError(
-                        "Can't find geogrid outputs in WPS_WORK_PATH and your outputs directory, which is essential to run metgrid"
+                        "Can't find geogrid outputs in WPS_WORK_PATH and your outputs directory, "
+                        "which is essential to run metgrid"
                     )
 
                 else:
                     geogrid_file_list = [x for x in listdir(geogrid_data_path) if x.startswith("geo_em.d")]
                     for _file in geogrid_file_list:
                         _file_config = {
-                            "file_path": f"{self.geogrid_data_path}/{_file}",
+                            "file_path": self.geogrid_data_path / _file
+                            if isinstance(self.geogrid_data_path, ResourceRef)
+                            else f"{self.geogrid_data_path}/{_file}",
                             "save_path": self.work_path,
                             "is_data": True,
                             "is_output": True,
@@ -440,7 +455,7 @@ class MetGrid(ExecutableBase):
             ungrib_output_dir = WRFRUN_NEW.resource.get_custom_resource(get_ungrib_out_dir_path())
             if basename(ungrib_output_dir) not in file_list or len(listdir(ungrib_output_dir)) == 0:
                 if self.ungrib_data_path is None:
-                    self.ungrib_data_path = WRFRUN_NEW.resource.OUTPUT_DIR / "ungrib"
+                    self.ungrib_data_path = WRFRUN_NEW.resource.get_result_ref("ungrib", self.ungrib_run_id)
 
                 ungrib_data_path = WRFRUN_NEW.resource.get_custom_resource(self.ungrib_data_path)
 
@@ -456,7 +471,9 @@ class MetGrid(ExecutableBase):
                     ungrib_file_list = [x for x in listdir(ungrib_data_path)]
                     for _file in ungrib_file_list:
                         _file_config: FileConfigDict = {
-                            "file_path": f"{self.ungrib_data_path}/{_file}",
+                            "file_path": self.ungrib_data_path / _file
+                            if isinstance(self.ungrib_data_path, ResourceRef)
+                            else f"{self.ungrib_data_path}/{_file}",
                             "save_path": get_ungrib_out_dir_path(),
                             "is_data": True,
                             "is_output": True,
@@ -488,7 +505,12 @@ class Real(ExecutableBase):
     ``Executable`` of "real.exe".
     """
 
-    def __init__(self, metgrid_data_path: Optional[str] = None, core_num: Optional[int] = None):
+    def __init__(
+        self,
+        metgrid_data_path: Optional[str] = None,
+        core_num: Optional[int] = None,
+        metgrid_run_id: str | None = None,
+    ):
         """
         ``Executable`` of "real.exe".
 
@@ -524,6 +546,7 @@ class Real(ExecutableBase):
         )
 
         self.metgrid_data_path = metgrid_data_path
+        self.metgrid_run_id = metgrid_run_id
 
     def generate_custom_config(self):
         """
@@ -537,6 +560,7 @@ class Real(ExecutableBase):
             {
                 "namelist": WRFRUN_NEW.namelist.get_namelist("wrf"),
                 "metgrid_data_path": self.metgrid_data_path,
+                "metgrid_run_id": self.metgrid_run_id,
             }
         )
 
@@ -545,6 +569,7 @@ class Real(ExecutableBase):
         Load custom configs.
         """
         self.metgrid_data_path = self.custom_config["metgrid_data_path"]
+        self.metgrid_run_id = self.custom_config["metgrid_run_id"]
         WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "wrf")
 
     def before_exec(self):
@@ -553,7 +578,7 @@ class Real(ExecutableBase):
 
         if not WRFRUN_NEW.states.IS_IN_REPLAY and not WRFRUN_NEW.states.FAKE_SIMULATION_MODE:
             if self.metgrid_data_path is None:
-                self.metgrid_data_path = WRFRUN_NEW.resource.OUTPUT_DIR / "metgrid"
+                self.metgrid_data_path = WRFRUN_NEW.resource.get_result_ref("metgrid", self.metgrid_run_id)
 
             metgrid_data_path = WRFRUN_NEW.resource.get_custom_resource(self.metgrid_data_path)
             reconcile_namelist_metgrid(metgrid_data_path)
@@ -561,7 +586,9 @@ class Real(ExecutableBase):
             file_list = [x for x in listdir(metgrid_data_path) if x.startswith("met_em")]
             for _file in file_list:
                 _file_config: FileConfigDict = {
-                    "file_path": f"{self.metgrid_data_path}/{_file}",
+                    "file_path": self.metgrid_data_path / _file
+                    if isinstance(self.metgrid_data_path, ResourceRef)
+                    else f"{self.metgrid_data_path}/{_file}",
                     "save_path": self.work_path,
                     "is_data": True,
                     "is_output": True,
@@ -595,6 +622,7 @@ class WRF(ExecutableBase):
         restart_file_dir_path: Optional[str] = None,
         save_restarts=False,
         core_num: Optional[int] = None,
+        input_run_id: str | None = None,
     ):
         """
         ``Executable`` of "wrf.exe"
@@ -636,6 +664,7 @@ class WRF(ExecutableBase):
         self.input_file_dir_path = input_file_dir_path
         self.restart_file_dir_path = restart_file_dir_path
         self.save_restarts = save_restarts
+        self.input_run_id = input_run_id
 
     def generate_custom_config(self):
         """
@@ -649,6 +678,7 @@ class WRF(ExecutableBase):
             {
                 "input_file_dir_path": self.input_file_dir_path,
                 "restart_file_dir_path": self.restart_file_dir_path,
+                "input_run_id": self.input_run_id,
                 "namelist": WRFRUN_NEW.namelist.get_namelist("wrf"),
             }
         )
@@ -659,6 +689,7 @@ class WRF(ExecutableBase):
         """
         self.input_file_dir_path = self.custom_config["input_file_dir_path"]
         self.restart_file_dir_path = self.custom_config["restart_file_dir_path"]
+        self.input_run_id = self.custom_config["input_run_id"]
         WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "wrf")
 
     def before_exec(self):
@@ -673,10 +704,10 @@ class WRF(ExecutableBase):
             if self.input_file_dir_path is None:
                 if last_work_status == "":
                     # assume we already have outputs from real.exe.
-                    self.input_file_dir_path = WRFRUN_NEW.resource.OUTPUT_DIR / "real"
+                    self.input_file_dir_path = WRFRUN_NEW.resource.get_result_ref("real", self.input_run_id)
                     is_output = False
                 else:
-                    self.input_file_dir_path = WRFRUN_NEW.resource.OUTPUT_DIR / last_work_status
+                    self.input_file_dir_path = WRFRUN_NEW.resource.get_result_ref(last_work_status, self.input_run_id)
                     is_output = True
 
             else:
@@ -689,7 +720,9 @@ class WRF(ExecutableBase):
 
                 for _file in file_list:
                     _file_config: FileConfigDict = {
-                        "file_path": f"{self.input_file_dir_path}/{_file}",
+                        "file_path": self.input_file_dir_path / _file
+                        if isinstance(self.input_file_dir_path, ResourceRef)
+                        else f"{self.input_file_dir_path}/{_file}",
                         "save_path": self.work_path,
                         "is_data": True,
                         "is_output": is_output,
@@ -873,6 +906,7 @@ class NDown(ExecutableBase):
         real_output_dir_path: Optional[str] = None,
         update_namelist=True,
         core_num: Optional[int] = None,
+        real_run_id: str | None = None,
     ):
         """
         ``Executable`` of "ndown.exe".
@@ -914,6 +948,7 @@ class NDown(ExecutableBase):
         self.wrfout_file_path = wrfout_file_path
         self.real_output_dir_path = real_output_dir_path
         self.update_namelist = update_namelist
+        self.real_run_id = real_run_id
 
     def generate_custom_config(self):
         """
@@ -928,6 +963,7 @@ class NDown(ExecutableBase):
         self.custom_config.update(
             {
                 "real_output_dir_path": self.real_output_dir_path,
+                "real_run_id": self.real_run_id,
                 "update_namelist": self.update_namelist,
                 "namelist": WRFRUN_NEW.namelist.get_namelist("wrf"),
             }
@@ -938,6 +974,7 @@ class NDown(ExecutableBase):
         Load custom configs.
         """
         self.real_output_dir_path = self.custom_config["real_output_dir_path"]
+        self.real_run_id = self.custom_config["real_run_id"]
         self.update_namelist = self.custom_config["update_namelist"]
         WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "wrf")
 
@@ -950,14 +987,16 @@ class NDown(ExecutableBase):
         WRFRUN_NEW.namelist.update_namelist({"time_control": {"io_form_auxinput2": 2}}, "wrf")
 
         if self.real_output_dir_path is None:
-            self.real_output_dir_path = WRFRUN_NEW.resource.OUTPUT_DIR / "real"
+            self.real_output_dir_path = WRFRUN_NEW.resource.get_result_ref("real", self.real_run_id)
             is_output = True
 
         else:
             is_output = False
 
         wrfndi_file_config: FileConfigDict = {
-            "file_path": f"{self.real_output_dir_path}/wrfinput_d02",
+            "file_path": self.real_output_dir_path / "wrfinput_d02"
+            if isinstance(self.real_output_dir_path, ResourceRef)
+            else f"{self.real_output_dir_path}/wrfinput_d02",
             "save_path": self.work_path,
             "is_data": True,
             "is_output": is_output,
@@ -980,7 +1019,7 @@ class NDown(ExecutableBase):
         self.add_output_files(save_path=self._output_save_path, filenames=["wrfinput_d02", "wrfbdy_d02"])
         # also save other outputs of real.exe, so WRF can directly use them.
         self.add_output_files(
-            output_dir=WRFRUN_NEW.resource.OUTPUT_DIR / "real",
+            output_dir=self.real_output_dir_path,
             save_path=self._output_save_path,
             startswith="wrflowinp_",
             no_file_error=False,
