@@ -145,11 +145,11 @@ class DebugMixIn:
 
         if is_debug:
             LOGGER.setLevel(logging.DEBUG)
-            LOGGER.info("Logger debug mode is on.")
+            LOGGER.debug("Logger debug mode is on.")
 
         else:
             LOGGER.setLevel(logging.INFO)
-            LOGGER.info("Logger debug mode is off.")
+            LOGGER.debug("Logger debug mode is off.")
 
 
 __all__ = ["DebugMixIn"]
