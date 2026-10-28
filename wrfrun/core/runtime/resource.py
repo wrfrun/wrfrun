@@ -17,6 +17,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from importlib import resources
+from os.path import relpath
 from pathlib import Path, PurePath
 from uuid import uuid4
 
@@ -45,6 +46,7 @@ class RunLayout:
     run_id: str
     input_dir: Path
     output_dir: Path
+    results_dir: Path
     log_dir: Path
     workspace_dir: Path
     replay_dir: Path
@@ -64,6 +66,8 @@ class RunLayout:
         >>> layout = RunLayout.create("project", "project/.wrfrun", "v01", "run-1")
         >>> layout.workspace_dir
         PosixPath('project/.wrfrun/runs/v01/run-1/workspace')
+        >>> layout.results_dir
+        PosixPath('project/data/outputs/v01/results')
         """
         project_root = Path(project_path)
         runtime_root = Path(work_dir) / "runs" / experiment
@@ -78,6 +82,7 @@ class RunLayout:
             run_id=run_id,
             input_dir=input_dir,
             output_dir=project_root / "data/outputs" / experiment / run_id,
+            results_dir=project_root / "data/outputs" / experiment / "results",
             log_dir=project_root / "logs" / experiment / run_id,
             workspace_dir=run_root / "workspace",
             replay_dir=run_root / "replay",
@@ -275,6 +280,7 @@ class ResourceCatalog:
         self.register_provider("config", _project_path / "configs")
         self.register_provider("input", self._layout.input_dir)
         self.register_provider("output", self._layout.output_dir)
+        self.register_provider("results", self._layout.results_dir)
         self.register_provider("workspace", self._layout.workspace_dir)
         self.register_provider("temp", self._layout.temp_dir)
         self.register_provider("replay", self._layout.replay_dir)
@@ -317,6 +323,22 @@ class ResourceCatalog:
         :rtype: ResourceRef
         """
         return ResourceRef("output", "")
+
+    @property
+    def RESULTS_DIR(self):
+        """Return the experiment-level directory of latest executable results."""
+        return ResourceRef("results", "")
+
+    def publish_results(self, executable_name: str):
+        """Atomically publish one executable's archived results for this experiment."""
+        output_path = self.get_custom_resource(self.OUTPUT_DIR / executable_name)
+        results_dir = self.get_custom_resource(self.RESULTS_DIR)
+        results_dir.mkdir(parents=True, exist_ok=True)
+
+        result_path = results_dir / executable_name
+        temporary_path = results_dir / f".{executable_name}.{uuid4().hex}"
+        temporary_path.symlink_to(relpath(output_path, results_dir), target_is_directory=True)
+        temporary_path.replace(result_path)
 
     @property
     def INPUT_DIR(self):

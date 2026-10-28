@@ -106,6 +106,20 @@ directory with the final loaded namelist values. For example:
    ├── command.txt
    └── namelists/
 
+Latest Executable Results
+=========================
+
+Each successful executable archives its outputs under its run ID. ``wrfrun``
+also atomically updates an experiment-level symbolic link for that executable:
+
+.. code-block:: text
+
+   data/outputs/<experiment>/results/<executable>
+       -> ../<run-id>/<executable>
+
+These links provide the latest results for a later simulation stage. The
+run-ID directories remain the immutable record of every execution.
+
 Run Status
 ==========
 

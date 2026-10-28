@@ -651,6 +651,7 @@ class ExecutableBase:
         LOGGER.info(
             f"All {self.name} output files have been copied to {WRFRUN_NEW.resource.get_custom_resource(self._output_save_path)}"
         )
+        WRFRUN_NEW.resource.publish_results(self.name)
 
         if WRFRUN_NEW.states.DEBUG_MODE_EXECUTABLE:
             self.after_exec_debug()
