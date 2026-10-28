@@ -13,7 +13,7 @@ from os.path import exists
 
 from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
 
-from ._common import check_and_prepare_arps_namelist
+from ._common import prepare_arps_namelist
 
 LOGGER = logging.getLogger("wrfrun")
 
@@ -33,16 +33,18 @@ class ARPS3DVar(ExecutableBase):
         )
 
         self.arps_run_id = arps_run_id
-        check_and_prepare_arps_namelist()
+        prepare_arps_namelist("arps3dvar")
 
     def generate_custom_config(self):
         """Store the selected ARPS run and namelist for replay."""
-        self.custom_config.update({"arps_run_id": self.arps_run_id, "namelist": WRFRUN_NEW.namelist.get_namelist("arps")})
+        self.custom_config.update(
+            {"arps_run_id": self.arps_run_id, "namelist": WRFRUN_NEW.namelist.get_namelist("arps3dvar")}
+        )
 
     def load_custom_config(self):
         """Restore the selected ARPS run and namelist for replay."""
         self.arps_run_id = self.custom_config["arps_run_id"]
-        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arps")
+        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arps3dvar")
 
     def before_exec(self):
         background_files = ["arps.hdf000000", "arps.hdfgrdbas"]
@@ -70,11 +72,11 @@ class ARPS3DVar(ExecutableBase):
             "initialization": {"inifile": "./arps.hdf000000", "inigbf": "./arps.hdfgrdbas"},
             "output": {"dirname": "./outputs/"},
         }
-        if WRFRUN_NEW.namelist.get_namelist("arps")["incr_out"]["incrdmp"] > 0:
+        if WRFRUN_NEW.namelist.get_namelist("arps3dvar")["incr_out"]["incrdmp"] > 0:
             updates["incr_out"] = {"incdmpf": f"./outputs/{self.name}.incr"}
 
-        WRFRUN_NEW.namelist.update_namelist(updates, "arps")
-        WRFRUN_NEW.namelist.write_namelist(self.namelist_path, "arps")
+        WRFRUN_NEW.namelist.update_namelist(updates, "arps3dvar")
+        WRFRUN_NEW.namelist.write_namelist(self.namelist_path, "arps3dvar")
         super().before_exec()
 
     def after_exec(self):

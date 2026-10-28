@@ -4,7 +4,6 @@ py3.install_sources(
         'arpstrn.py',
         'compat.py',
         'exec_wrap.py',
-        'namelist.py',
         'plugin.py',
         'workspace.py',
     ],

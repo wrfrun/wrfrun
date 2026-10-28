@@ -14,7 +14,7 @@ from os.path import exists
 
 from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
 
-from ._common import check_and_prepare_arps_namelist
+from ._common import prepare_arps_namelist
 
 LOGGER = logging.getLogger("wrfrun")
 
@@ -22,7 +22,7 @@ LOGGER = logging.getLogger("wrfrun")
 def _check_ext2arps_input_data() -> list[str]:
     """Return external-data filenames required by the current ARPS namelist."""
     data_input_dir = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.INPUT_DIR / "ext2arps")
-    namelist = WRFRUN_NEW.namelist.get_namelist("arps")
+    namelist = WRFRUN_NEW.namelist.get_namelist("ext2arps")
     extdname = namelist["extdfile"]["extdname"]
     nextdfil = namelist["extdfile"]["nextdfil"]
     extdtime = namelist["extdfile"]["extdtime"]
@@ -81,16 +81,18 @@ class EXT2ARPS(ExecutableBase):
         )
 
         self.arpstrn_run_id = arpstrn_run_id
-        check_and_prepare_arps_namelist()
+        prepare_arps_namelist("ext2arps")
 
     def generate_custom_config(self):
         """Store the selected terrain run and ARPS namelist for replay."""
-        self.custom_config.update({"arpstrn_run_id": self.arpstrn_run_id, "namelist": WRFRUN_NEW.namelist.get_namelist("arps")})
+        self.custom_config.update(
+            {"arpstrn_run_id": self.arpstrn_run_id, "namelist": WRFRUN_NEW.namelist.get_namelist("ext2arps")}
+        )
 
     def load_custom_config(self):
         """Restore the selected terrain run and ARPS namelist for replay."""
         self.arpstrn_run_id = self.custom_config["arpstrn_run_id"]
-        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arps")
+        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "ext2arps")
 
     def before_exec(self):
         WRFRUN_NEW.states.check_wrfrun_context(True)
@@ -116,9 +118,9 @@ class EXT2ARPS(ExecutableBase):
                 "terrain": {"terndta": f"./{terrain_file.name}"},
                 "extdfile": {"dir_extd": "./", "grdbasopt": 1},
             },
-            "arps",
+            "ext2arps",
         )
-        WRFRUN_NEW.namelist.write_namelist(self.namelist_path, "arps")
+        WRFRUN_NEW.namelist.write_namelist(self.namelist_path, "ext2arps")
 
         super().before_exec()
 

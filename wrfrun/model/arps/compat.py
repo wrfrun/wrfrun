@@ -27,7 +27,7 @@ def copy_arps_namelist_template():
         match _submodel:
             case "arps" | "arpssfc" | "ext2arps" | "arps3dvar":
                 namelist_name = "arps.input"
-                component = "arps"
+                component = _submodel
 
             case "arpstrn":
                 namelist_name = "arpstrn.input"

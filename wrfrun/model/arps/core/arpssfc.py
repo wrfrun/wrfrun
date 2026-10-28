@@ -9,7 +9,7 @@ ARPS surface-data executable.
 
 from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
 
-from ._common import check_and_prepare_arps_namelist
+from ._common import prepare_arps_namelist
 
 
 class ARPSSFC(ExecutableBase):
@@ -27,23 +27,23 @@ class ARPSSFC(ExecutableBase):
             stdin_file=self.namelist_path,
         )
 
-        check_and_prepare_arps_namelist()
+        prepare_arps_namelist("arpssfc")
 
     def generate_custom_config(self):
         """Store the ARPS namelist for replay."""
-        self.custom_config.update({"namelist": WRFRUN_NEW.namelist.get_namelist("arps")})
+        self.custom_config.update({"namelist": WRFRUN_NEW.namelist.get_namelist("arpssfc")})
 
     def load_custom_config(self):
         """Restore the ARPS namelist for replay."""
-        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arps")
+        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arpssfc")
 
     def before_exec(self):
         WRFRUN_NEW.states.check_wrfrun_context(True)
         WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "arpssfc"
 
         WRFRUN_NEW.resource.mkdir(self.work_path / "outputs")
-        WRFRUN_NEW.namelist.update_namelist({"jobname": {"runname": self.name}}, "arps")
-        WRFRUN_NEW.namelist.write_namelist(self.namelist_path, "arps")
+        WRFRUN_NEW.namelist.update_namelist({"jobname": {"runname": self.name}}, "arpssfc")
+        WRFRUN_NEW.namelist.write_namelist(self.namelist_path, "arpssfc")
 
         super().before_exec()
 

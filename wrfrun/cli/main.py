@@ -15,6 +15,9 @@ CLI_SESSION = create_wrfrun_session()
 def main_entry():
     """Run the ``wrfrun`` command line interface."""
     args_parser = argparse.ArgumentParser()
+    args_parser.add_argument("-v", "--version", action="store_true", help="Print version of wrfrun.")
+    args_parser.set_defaults(func=lambda _: print("Version: 0.5.1"))
+
     subparsers = args_parser.add_subparsers(title="Subcommands", description="Valid Subcommands", help="Subcommands")
 
     init_parser = subparsers.add_parser("init", help="Initialize a wrfrun project.", add_help=True)

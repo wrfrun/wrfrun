@@ -9,7 +9,7 @@ ARPS interpolation executable.
 
 from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
 
-from ..namelist import prepare_arpsintrp_namelist
+from ._common import prepare_component_namelist
 
 
 class ARPSIntrp(ExecutableBase):
@@ -27,7 +27,7 @@ class ARPSIntrp(ExecutableBase):
         )
 
         self.ext2arps_run_id = ext2arps_run_id
-        prepare_arpsintrp_namelist()
+        prepare_component_namelist("arpsintrp")
 
     def generate_custom_config(self):
         """Store the selected ``ext2arps`` run and namelist for replay."""

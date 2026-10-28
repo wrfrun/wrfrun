@@ -14,7 +14,7 @@ from pathlib import Path
 
 from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
 
-from ._common import check_and_prepare_arps_namelist
+from ._common import prepare_arps_namelist
 
 LOGGER = logging.getLogger("wrfrun")
 
@@ -62,7 +62,7 @@ class ARPS(ExecutableBase):
             mpi_core_num=mpi_core_num,
         )
 
-        check_and_prepare_arps_namelist()
+        prepare_arps_namelist("arps")
 
     def generate_custom_config(self):
         """Store ARPS namelist and upstream run choices for replay."""

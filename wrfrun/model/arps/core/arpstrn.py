@@ -14,12 +14,12 @@ import logging
 
 from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
 
-from ...namelist import get_project_namelist_files
+from ._common import apply_component_namelist_updates, load_component_namelist
 
 LOGGER = logging.getLogger("wrfrun")
 
 
-def _check_and_prepare_namelist():
+def _prepare_namelist():
     global_config = WRFRUN_NEW.config.get_model_config("arps")
     model_config: dict = global_config.get("arpstrn", {})
 
@@ -28,11 +28,7 @@ def _check_and_prepare_namelist():
         raise KeyError("Config for arpstrn not found in your TOML, check it.")
 
     dir_terrain_data = model_config["dir_terrain_data"]
-    if not WRFRUN_NEW.namelist.check_namelist_id("arpstrn"):
-        WRFRUN_NEW.namelist.register_namelist_id("arpstrn")
-
-    template_file, update_files = get_project_namelist_files("arps", "arpstrn", "arpstrn.nml")
-    WRFRUN_NEW.namelist.read_namelist(template_file.as_posix(), "arpstrn")
+    load_component_namelist("arpstrn", "arpstrn.nml")
 
     update_value = {
         "jobname": {"runname": "wrfrun"},
@@ -41,9 +37,7 @@ def _check_and_prepare_namelist():
     }
     WRFRUN_NEW.namelist.update_namelist(update_value, "arpstrn")
 
-    for update_file in update_files:
-        if update_file.is_file():
-            WRFRUN_NEW.namelist.update_namelist(update_file.as_posix(), "arpstrn")
+    apply_component_namelist_updates("arpstrn", "arpstrn.nml")
 
 
 class ARPSTrn(ExecutableBase):
@@ -72,7 +66,7 @@ class ARPSTrn(ExecutableBase):
             mpi_core_num=mpi_core_num,
         )
 
-        _check_and_prepare_namelist()
+        _prepare_namelist()
 
     def generate_custom_config(self):
         """

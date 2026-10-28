@@ -39,13 +39,13 @@ class ARPSPlugin:
 
     def initialize_project_files(self, project_path: Path):
         """Create ARPS namelist directories in a project."""
-        for component in ("arps", "arpstrn", "arpsintrp", "radremap", "arpssfc", "ext2arps"):
+        for component in ("arps", "arpstrn", "arpsintrp", "radremap", "arpssfc", "ext2arps", "arps3dvar"):
             (project_path / "configs/namelists/templates/arps" / component).mkdir(parents=True, exist_ok=True)
             (project_path / "configs/namelists/user/arps" / component).mkdir(parents=True, exist_ok=True)
 
     def initialize_experiment_files(self, experiment_path: Path):
         """Create ARPS namelist directories for one experiment."""
-        for component in ("arps", "arpstrn", "arpsintrp", "radremap", "arpssfc", "ext2arps"):
+        for component in ("arps", "arpstrn", "arpsintrp", "radremap", "arpssfc", "ext2arps", "arps3dvar"):
             (experiment_path / "namelists/arps" / component).mkdir(parents=True, exist_ok=True)
 
     def register(self):

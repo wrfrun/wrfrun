@@ -12,7 +12,7 @@ from pathlib import Path
 
 from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
 
-from ..namelist import prepare_radremap_namelist
+from ._common import prepare_component_namelist
 
 
 class RadRemap(ExecutableBase):
@@ -30,7 +30,7 @@ class RadRemap(ExecutableBase):
         )
 
         self.arps_run_id = arps_run_id
-        prepare_radremap_namelist()
+        prepare_component_namelist("radremap")
 
     def generate_custom_config(self):
         """Store the selected ARPS run and ``radremap`` namelist for replay."""
