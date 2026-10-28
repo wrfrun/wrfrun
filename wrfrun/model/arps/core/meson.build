@@ -6,6 +6,7 @@ py3.install_sources(
         'arps3dvar.py',
         'arpsintrp.py',
         'arpssfc.py',
+        'arpstrn.py',
         'ext2arps.py',
         'radremap.py',
     ],
