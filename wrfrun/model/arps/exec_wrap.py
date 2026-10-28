@@ -17,7 +17,7 @@ Function wrapper of ARPS :doc:`Executables </api/model.arps.core>`.
 
 from wrfrun.core import WRFRUN_NEW
 
-from .core import ARPS, ARPSSFC, EXT2ARPS, ARPS3DVar, ARPSIntrp, RadRemap
+from .core import ARPS, ARPSSFC, EXT2ARPS, ARPS3DVar, ARPSIntrp, ARPSTrn, RadRemap
 
 
 def arpssfc():
@@ -107,4 +107,13 @@ def radremap(arps_run_id: str | None = None):
     RadRemap(arps_run_id)()
 
 
-__all__ = ["arpssfc", "arps", "arps3dvar", "arpsintrp", "ext2arps", "radremap"]
+def arpstrn():
+    """
+    Function interface for :class:`ARPSTrn`.
+
+    Parameters needed to initialize :class:`ARPSTrn` is read from global variable :doc:`WRFRUN </api/core.core>`.
+    """
+    ARPSTrn()()
+
+
+__all__ = ["arpssfc", "arps", "arps3dvar", "arpsintrp", "ext2arps", "radremap", "arpstrn"]

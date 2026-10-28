@@ -10,8 +10,8 @@ from pathlib import Path
 
 from wrfrun.core import WRFRUN_NEW, ExecRegisterError
 
-from .arpstrn import ARPSTrn
 from .core import ARPS, ARPSSFC, EXT2ARPS, ARPSIntrp, RadRemap
+from .core.arpstrn import ARPSTrn
 from .workspace import check_arps_workspace, prepare_arps_workspace
 
 LOGGER = logging.getLogger("wrfrun")

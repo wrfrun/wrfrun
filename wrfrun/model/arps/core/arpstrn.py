@@ -8,14 +8,13 @@ Implementation of ``arpstrn`` submodel.
     :toctree: generated/
 
     ARPSTrn
-    arpstrn
 """
 
 import logging
 
 from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
 
-from ..namelist import get_project_namelist_files
+from ...namelist import get_project_namelist_files
 
 LOGGER = logging.getLogger("wrfrun")
 
@@ -135,13 +134,4 @@ class ARPSTrn(ExecutableBase):
         super().after_exec()
 
 
-def arpstrn():
-    """
-    Function interface for :class:`ARPSTrn`.
-
-    Parameters needed to initialize :class:`ARPSTrn` is read from global variable :doc:`WRFRUN </api/core.core>`.
-    """
-    ARPSTrn()()
-
-
-__all__ = ["ARPSTrn", "arpstrn"]
+__all__ = ["ARPSTrn"]
