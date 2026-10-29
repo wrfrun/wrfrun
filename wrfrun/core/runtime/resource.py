@@ -19,6 +19,7 @@ from datetime import datetime
 from importlib import resources
 from os.path import relpath
 from pathlib import Path, PurePath
+from shutil import rmtree
 from uuid import uuid4
 
 from ..type import ResourceRef, ResourceType
@@ -338,6 +339,13 @@ class ResourceCatalog:
         result_path = results_dir / executable_name
         temporary_path = results_dir / f".{executable_name}.{uuid4().hex}"
         temporary_path.symlink_to(relpath(output_path, results_dir), target_is_directory=True)
+
+        if not result_path.is_symlink():
+            LOGGER.warning(f"External changes are detected of '{relpath(result_path)}'.")
+            LOGGER.warning("DO NOT make any change to this path, cause it will be overwrited once a new result is publiced.")
+            LOGGER.warning("And you will lose your changes!")
+            rmtree(result_path)
+
         temporary_path.replace(result_path)
 
     def get_result_ref(self, executable_name: str, run_id: str | None = None) -> ResourceRef:
