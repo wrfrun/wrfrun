@@ -11,18 +11,20 @@ Functions to interact with job scheduler.
     prepare_scheduler_script
 """
 
+import logging
 import re
 import sys
 from os.path import abspath, dirname, exists
 from shlex import join, quote
 
 from wrfrun.core import WRFRUN_NEW, call_subprocess
-from wrfrun.log import logger
 from wrfrun.res import RUN_SH_TEMPLATE
 
 from .lsf import lsf_generate_settings
 from .pbs import pbs_generate_settings
 from .slurm import slurm_generate_settings
+
+LOGGER = logging.getLogger("wrfrun")
 
 ENV_KEY_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 ENVIRONMENT_MARKER = "# wrfrun:environment"
@@ -51,10 +53,10 @@ def submit_scheduler_task(main_file_path: str):
             submit_command = ["bsub"]
 
         case _:
-            logger.error(f"Unknown scheduler name: {scheduler_name}")
+            LOGGER.error(f"Unknown scheduler name: {scheduler_name}")
             raise ValueError(f"Unknown scheduler name: {scheduler_name}")
 
-    logger.info(f"Submit scheduler task with backend '{scheduler_name}'.")
+    LOGGER.info(f"Submit scheduler task with backend '{scheduler_name}'.")
 
     if scheduler_name == "lsf":
         call_subprocess(submit_command, stdin_path=script_path)
@@ -73,7 +75,7 @@ def prepare_scheduler_script(main_file_path: str) -> str:
     """
     # check main file path
     if not exists(main_file_path):
-        logger.error(f"Wrong path of main entry file: {main_file_path}")
+        LOGGER.error(f"Wrong path of main entry file: {main_file_path}")
         raise FileNotFoundError(f"Wrong path of main entry file: {main_file_path}")
 
     # get absolute path of main entry file's parent directory
@@ -88,7 +90,7 @@ def prepare_scheduler_script(main_file_path: str) -> str:
     if len(scheduler_configs["env_settings"]) > 0:
         for key in scheduler_configs["env_settings"]:
             if not ENV_KEY_PATTERN.fullmatch(key):
-                logger.error(f"Invalid environment variable name: {key}")
+                LOGGER.error(f"Invalid environment variable name: {key}")
                 raise ValueError(f"Invalid environment variable name: {key}")
 
             value = str(scheduler_configs["env_settings"][key])
@@ -97,6 +99,8 @@ def prepare_scheduler_script(main_file_path: str) -> str:
     # generate command
     python_interpreter = scheduler_configs["python_interpreter"] or sys.executable
     exec_cmd = join([python_interpreter, main_file_path])
+
+    LOGGER.debug(f"Start command in scheduler: {exec_cmd}")
 
     experiment_template_path = WRFRUN_NEW.resource.get_custom_resource(
         WRFRUN_NEW.resource.CONFIG_DIR / f"experiments/{WRFRUN_NEW.layout.experiment}/scheduler/submit.sh"
@@ -124,7 +128,7 @@ def prepare_scheduler_script(main_file_path: str) -> str:
                 scheduler_settings = slurm_generate_settings(scheduler_configs)
 
             case _:
-                logger.error(f"Unknown scheduler name: {scheduler_configs['job_scheduler']}")
+                LOGGER.error(f"Unknown scheduler name: {scheduler_configs['job_scheduler']}")
                 raise ValueError(f"Unknown scheduler name: {scheduler_configs['job_scheduler']}")
 
         shell_template_path = WRFRUN_NEW.resource.get_package_resource(RUN_SH_TEMPLATE)
@@ -139,7 +143,7 @@ def prepare_scheduler_script(main_file_path: str) -> str:
     script_path.parent.mkdir(parents=True, exist_ok=True)
     script_path.write_text(template)
 
-    logger.info(f"Job scheduler script written to {script_path}")
+    LOGGER.info(f"Job scheduler script written to {script_path}")
 
     return str(script_path)
 

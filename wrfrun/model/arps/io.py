@@ -8,10 +8,13 @@ Conditional executable inputs for ARPS.
     stage_input_requirements
 """
 
+import logging
 from dataclasses import dataclass
 from typing import Callable, Sequence
 
 from wrfrun.core import ExecutableBase
+
+LOGGER = logging.getLogger("wrfrun")
 
 
 @dataclass(frozen=True)
@@ -25,6 +28,12 @@ class IORequirement:
 
 def stage_io_requirements(executable: ExecutableBase, namelist: dict, requirements: Sequence[IORequirement]) -> None:
     """Stage every input/output enabled by the current namelist."""
+    LOGGER.debug(f"Stage IO files for {executable.name}")
+    LOGGER.debug("Got namelist: ")
+    LOGGER.debug(namelist)
+    LOGGER.debug("Got requirements: ")
+    LOGGER.debug(requirements)
+
     for requirement in requirements:
         if requirement.enabled(executable, namelist):
             requirement.stage(executable, namelist)
