@@ -15,7 +15,7 @@ from wrfrun.core import ExecutableBase
 
 
 @dataclass(frozen=True)
-class InputRequirement:
+class IORequirement:
     """Describe one optional executable input."""
 
     name: str
@@ -23,11 +23,11 @@ class InputRequirement:
     stage: Callable[[ExecutableBase, dict], None]
 
 
-def stage_input_requirements(executable: ExecutableBase, namelist: dict, requirements: Sequence[InputRequirement]) -> None:
+def stage_input_requirements(executable: ExecutableBase, namelist: dict, requirements: Sequence[IORequirement]) -> None:
     """Stage every input enabled by the current namelist."""
     for requirement in requirements:
         if requirement.enabled(executable, namelist):
             requirement.stage(executable, namelist)
 
 
-__all__ = ["InputRequirement", "stage_input_requirements"]
+__all__ = ["IORequirement", "stage_input_requirements"]

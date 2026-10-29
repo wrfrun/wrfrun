@@ -673,9 +673,7 @@ class ExecutableBase:
 
         command_path = log_path / "command.txt"
         command_path.write_text(
-            f"Command: {join(command.argv)}\n"
-            f"Working directory: {command.cwd or ''}\n"
-            f"Standard input: {command.stdin_path or ''}\n"
+            f"Command: {join(command.argv)}\nWorking directory: {command.cwd or ''}\nStandard input: {command.stdin_path or ''}\n"
         )
 
         LOGGER.error(f"Command failed. Failure artifacts saved to {log_path}")
@@ -766,6 +764,18 @@ class ExecutableBase:
 
         if not WRFRUN_NEW.states.IS_IN_REPLAY and WRFRUN_NEW.states.IS_RECORDING:
             WRFRUN_NEW.replay.record(self.export_config())
+
+    # #################################### Properties ##########################################
+
+    @property
+    def OUTPUT_SAVE_PATH(self) -> ResourceRef:
+        """Access output save path."""
+        return self._output_save_path
+
+    @property
+    def LOG_SAVE_PATH(self) -> ResourceRef:
+        """Access log save path."""
+        return self._log_save_path
 
 
 __all__ = ["ExecutableBase", "call_subprocess"]

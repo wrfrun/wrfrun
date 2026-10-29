@@ -14,102 +14,158 @@ from pathlib import Path
 
 from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
 
-from ..input import InputRequirement, stage_input_requirements
+from ..io import IORequirement, stage_input_requirements
 from ._common import prepare_arps_namelist
 
 LOGGER = logging.getLogger("wrfrun")
 
 
-def _stage_sfcdata(executable: "ARPS", _: dict) -> None:
-    source = WRFRUN_NEW.resource.get_result_ref("arpssfc", executable.arpssfc_run_id) / "arpssfc.sfcdata"
-    executable.add_input_files(source)
-    WRFRUN_NEW.namelist.update_namelist({"soil_ebm": {"sfcdtfl": "./arpssfc.sfcdata"}}, "arps")
+class ARPSInputsRules:
+    """ARPS input rules."""
 
+    @classmethod
+    def _stage_sfcdata(cls, executable: "ARPS", _: dict) -> None:
+        source = WRFRUN_NEW.resource.get_result_ref("arpssfc", executable.arpssfc_run_id) / "arpssfc.sfcdata"
+        executable.add_input_files(source)
+        WRFRUN_NEW.namelist.update_namelist({"soil_ebm": {"sfcdtfl": "./arpssfc.sfcdata"}}, "arps")
 
-def _stage_ext2arps(executable: "ARPS", _: dict) -> None:
-    source = WRFRUN_NEW.resource.get_result_ref("ext2arps", executable.ext2arps_run_id)
-    filenames = glob.glob("ext2arps.*", root_dir=WRFRUN_NEW.resource.get_custom_resource(source))
-    if len(filenames) < 2:
-        message = "Can't find all ext2arps outputs in outputs directory, which is essential to run arps."
-        LOGGER.error(message)
-        raise FileNotFoundError(message)
+    @classmethod
+    def _stage_ext2arps(cls, executable: "ARPS", _: dict) -> None:
+        source = WRFRUN_NEW.resource.get_result_ref("ext2arps", executable.ext2arps_run_id)
+        filenames = glob.glob("ext2arps.*", root_dir=WRFRUN_NEW.resource.get_custom_resource(source))
+        if len(filenames) < 2:
+            message = "Can't find all ext2arps outputs in outputs directory, which is essential to run arps."
+            LOGGER.error(message)
+            raise FileNotFoundError(message)
 
-    executable.add_input_files([source / name for name in filenames])
-    WRFRUN_NEW.namelist.update_namelist(
-        {"initialization": {"inifile": "./ext2arps.hdf000000", "inigbf": "./ext2arps.hdfgrdbas"}}, "arps"
-    )
+        executable.add_input_files([source / name for name in filenames])
+        WRFRUN_NEW.namelist.update_namelist(
+            {"initialization": {"inifile": "./ext2arps.hdf000000", "inigbf": "./ext2arps.hdfgrdbas"}}, "arps"
+        )
 
+    @classmethod
+    def _stage_sounding(cls, executable: "ARPS", namelist: dict) -> None:
+        sounding_file = Path(namelist["initialization"]["sndfile"]).name
+        executable.add_input_files(WRFRUN_NEW.resource.INPUT_DIR / sounding_file)
 
-def _stage_sounding(executable: "ARPS", namelist: dict) -> None:
-    sounding_file = Path(namelist["initialization"]["sndfile"]).name
-    executable.add_input_files(WRFRUN_NEW.resource.INPUT_DIR / sounding_file)
+    @classmethod
+    def _stage_arpsintrp_exbc(cls, executable: "ARPS", _: dict) -> None:
+        source = WRFRUN_NEW.resource.get_result_ref("arpsintrp", executable.arpsintrp_run_id)
+        filenames = sorted(glob.glob("arpsintrp.[0-9]*", root_dir=WRFRUN_NEW.resource.get_custom_resource(source)))
+        if len(filenames) < 2:
+            raise FileNotFoundError("Can't find enough arpsintrp EXBC outputs to run ARPS.")
 
+        boundary_times = [datetime.strptime(name.removeprefix("arpsintrp."), "%Y%m%d.%H%M%S") for name in filenames]
+        executable.add_input_files([source / name for name in filenames])
+        WRFRUN_NEW.namelist.update_namelist(
+            {
+                "exbcpara": {
+                    "exbcname": "./arpsintrp",
+                    "tinitebd": boundary_times[0].strftime("%Y-%m-%d.%H:%M:%S"),
+                    "tintvebd": int((boundary_times[1] - boundary_times[0]).total_seconds()),
+                    "exbcfmt": 3,
+                }
+            },
+            "arps",
+        )
 
-def _stage_arpsintrp_exbc(executable: "ARPS", _: dict) -> None:
-    source = WRFRUN_NEW.resource.get_result_ref("arpsintrp", executable.arpsintrp_run_id)
-    filenames = sorted(glob.glob("arpsintrp.[0-9]*", root_dir=WRFRUN_NEW.resource.get_custom_resource(source)))
-    if len(filenames) < 2:
-        raise FileNotFoundError("Can't find enough arpsintrp EXBC outputs to run ARPS.")
+    @classmethod
+    def _stage_restart_data(cls, executable: "ARPS", namelist: dict):
+        restart_file = Path(namelist.get("initialization", {}).get("rstinf")).name
 
-    boundary_times = [datetime.strptime(name.removeprefix("arpsintrp."), "%Y%m%d.%H%M%S") for name in filenames]
-    executable.add_input_files([source / name for name in filenames])
-    WRFRUN_NEW.namelist.update_namelist(
-        {
-            "exbcpara": {
-                "exbcname": "./arpsintrp",
-                "tinitebd": boundary_times[0].strftime("%Y-%m-%d.%H:%M:%S"),
-                "tintvebd": int((boundary_times[1] - boundary_times[0]).total_seconds()),
-                "exbcfmt": 3,
-            }
-        },
-        "arps",
-    )
+        # check public results first
+        source = WRFRUN_NEW.resource.get_result_ref("arps") / restart_file
 
+        # then check input dir
+        if not WRFRUN_NEW.resource.get_custom_resource(source).is_file():
+            source = WRFRUN_NEW.resource.INPUT_DIR / "arps" / restart_file
 
-def _stage_restart_data(executable: "ARPS", namelist: dict):
-    restart_file = Path(namelist.get("initialization", {}).get("rstinf")).name
+        if not WRFRUN_NEW.resource.get_custom_resource(source).is_file():
+            message = f"Can't find your restart file '{restart_file}' both in input and output directory."
+            LOGGER.error(message)
+            raise FileNotFoundError(message)
 
-    # check public results first
-    source = WRFRUN_NEW.resource.get_result_ref("arps") / restart_file
-
-    # then check input dir
-    if not WRFRUN_NEW.resource.get_custom_resource(source).is_file():
-        source = WRFRUN_NEW.resource.INPUT_DIR / "arps" / restart_file
-
-    if not WRFRUN_NEW.resource.get_custom_resource(source).is_file():
-        message = f"Can't find your restart file '{restart_file}' both in input and output directory."
-        LOGGER.error(message)
-        raise FileNotFoundError(message)
-
-    executable.add_input_files(source)
-    WRFRUN_NEW.namelist.update_namelist(
-        {"initialization": {"rstinf": f"./{restart_file}"}},
-        "arps",
-    )
+        executable.add_input_files(source)
+        WRFRUN_NEW.namelist.update_namelist(
+            {"initialization": {"rstinf": f"./{restart_file}"}},
+            "arps",
+        )
 
 
 ARPS_INPUT_REQUIREMENTS = (
-    InputRequirement("sfcdata", lambda _, namelist: namelist["soil_ebm"]["sfcdat"] == 2, _stage_sfcdata),
-    InputRequirement("ext2arps", lambda _, namelist: namelist["initialization"]["initopt"] == 3, _stage_ext2arps),
-    InputRequirement(
+    IORequirement("sfcdata", lambda _, namelist: namelist["soil_ebm"]["sfcdat"] == 2, ARPSInputsRules._stage_sfcdata),
+    IORequirement("ext2arps", lambda _, namelist: namelist["initialization"]["initopt"] == 3, ARPSInputsRules._stage_ext2arps),
+    IORequirement(
         "sounding",
         lambda _, namelist: namelist["initialization"]["initopt"] == 1 and namelist["initialization"]["inibasopt"] == 1,
-        _stage_sounding,
+        ARPSInputsRules._stage_sounding,
     ),
-    InputRequirement(
+    IORequirement(
         "arpsintrp_exbc",
         lambda executable, namelist: (
             executable.use_arpsintrp_exbc  # type: ignore
             and namelist["boundary_condition_options"]["lbcopt"] == 2
         ),
-        _stage_arpsintrp_exbc,
+        ARPSInputsRules._stage_arpsintrp_exbc,
     ),
-    InputRequirement(
+    IORequirement(
         "restart",
         lambda _, namelist: namelist["initialization"]["initopt"] == 2,
-        _stage_restart_data,
+        ARPSInputsRules._stage_restart_data,
     ),
 )
+
+
+class ARPSOutputsRules:
+    """ARPS output rules."""
+
+    @classmethod
+    def _stage_essential_outputs(cls, executable: "ARPS", namelist: dict):
+        executable.add_output_files(
+            startswith=f"{executable.name}.hdf",
+            output_dir=executable.work_path / "outputs",
+            save_path=executable.OUTPUT_SAVE_PATH,
+            no_file_error=False,
+        )
+        executable.add_output_files(
+            startswith=f"{executable.name}.h5f",
+            output_dir=executable.work_path / "outputs",
+            save_path=executable.OUTPUT_SAVE_PATH,
+            no_file_error=False,
+        )
+        executable.add_output_files(
+            filenames="arps.nml",
+            output_dir=executable.work_path,
+            save_path=executable.LOG_SAVE_PATH,
+        )
+        executable.add_output_files(
+            filenames=f"{executable.name}.sound",
+            output_dir=executable.work_path / "outputs",
+            save_path=executable.LOG_SAVE_PATH,
+            no_file_error=False,
+        )
+
+    @classmethod
+    def _stage_output_restart_datas(cls, executable: "ARPS", namelist: dict):
+        executable.add_output_files(
+            startswith=f"{executable.name}.rst",
+            output_dir=executable.work_path / "outputs",
+            save_path=executable.OUTPUT_SAVE_PATH,
+        )
+
+
+ARPS_OUTPUT_REUQIREMENTS = {
+    IORequirement(
+        "results",
+        lambda i, j: True,
+        ARPSOutputsRules._stage_essential_outputs,
+    ),
+    IORequirement(
+        "restart",
+        lambda _, namelist: namelist.get("output", {}).get("trstout", 0.0) > 0.0,
+        ARPSOutputsRules._stage_output_restart_datas,
+    ),
+}
 
 
 class ARPS(ExecutableBase):
