@@ -14,9 +14,102 @@ from pathlib import Path
 
 from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
 
+from ..input import InputRequirement, stage_input_requirements
 from ._common import prepare_arps_namelist
 
 LOGGER = logging.getLogger("wrfrun")
+
+
+def _stage_sfcdata(executable: "ARPS", _: dict) -> None:
+    source = WRFRUN_NEW.resource.get_result_ref("arpssfc", executable.arpssfc_run_id) / "arpssfc.sfcdata"
+    executable.add_input_files(source)
+    WRFRUN_NEW.namelist.update_namelist({"soil_ebm": {"sfcdtfl": "./arpssfc.sfcdata"}}, "arps")
+
+
+def _stage_ext2arps(executable: "ARPS", _: dict) -> None:
+    source = WRFRUN_NEW.resource.get_result_ref("ext2arps", executable.ext2arps_run_id)
+    filenames = glob.glob("ext2arps.*", root_dir=WRFRUN_NEW.resource.get_custom_resource(source))
+    if len(filenames) < 2:
+        message = "Can't find all ext2arps outputs in outputs directory, which is essential to run arps."
+        LOGGER.error(message)
+        raise FileNotFoundError(message)
+
+    executable.add_input_files([source / name for name in filenames])
+    WRFRUN_NEW.namelist.update_namelist(
+        {"initialization": {"inifile": "./ext2arps.hdf000000", "inigbf": "./ext2arps.hdfgrdbas"}}, "arps"
+    )
+
+
+def _stage_sounding(executable: "ARPS", namelist: dict) -> None:
+    sounding_file = Path(namelist["initialization"]["sndfile"]).name
+    executable.add_input_files(WRFRUN_NEW.resource.INPUT_DIR / sounding_file)
+
+
+def _stage_arpsintrp_exbc(executable: "ARPS", _: dict) -> None:
+    source = WRFRUN_NEW.resource.get_result_ref("arpsintrp", executable.arpsintrp_run_id)
+    filenames = sorted(glob.glob("arpsintrp.[0-9]*", root_dir=WRFRUN_NEW.resource.get_custom_resource(source)))
+    if len(filenames) < 2:
+        raise FileNotFoundError("Can't find enough arpsintrp EXBC outputs to run ARPS.")
+
+    boundary_times = [datetime.strptime(name.removeprefix("arpsintrp."), "%Y%m%d.%H%M%S") for name in filenames]
+    executable.add_input_files([source / name for name in filenames])
+    WRFRUN_NEW.namelist.update_namelist(
+        {
+            "exbcpara": {
+                "exbcname": "./arpsintrp",
+                "tinitebd": boundary_times[0].strftime("%Y-%m-%d.%H:%M:%S"),
+                "tintvebd": int((boundary_times[1] - boundary_times[0]).total_seconds()),
+                "exbcfmt": 3,
+            }
+        },
+        "arps",
+    )
+
+
+def _stage_restart_data(executable: "ARPS", namelist: dict):
+    restart_file = Path(namelist.get("initialization", {}).get("rstinf")).name
+
+    # check public results first
+    source = WRFRUN_NEW.resource.get_result_ref("arps") / restart_file
+
+    # then check input dir
+    if not WRFRUN_NEW.resource.get_custom_resource(source).is_file():
+        source = WRFRUN_NEW.resource.INPUT_DIR / "arps" / restart_file
+
+    if not WRFRUN_NEW.resource.get_custom_resource(source).is_file():
+        message = f"Can't find your restart file '{restart_file}' both in input and output directory."
+        LOGGER.error(message)
+        raise FileNotFoundError(message)
+
+    executable.add_input_files(source)
+    WRFRUN_NEW.namelist.update_namelist(
+        {"initialization": {"rstinf": f"./{restart_file}"}},
+        "arps",
+    )
+
+
+ARPS_INPUT_REQUIREMENTS = (
+    InputRequirement("sfcdata", lambda _, namelist: namelist["soil_ebm"]["sfcdat"] == 2, _stage_sfcdata),
+    InputRequirement("ext2arps", lambda _, namelist: namelist["initialization"]["initopt"] == 3, _stage_ext2arps),
+    InputRequirement(
+        "sounding",
+        lambda _, namelist: namelist["initialization"]["initopt"] == 1 and namelist["initialization"]["inibasopt"] == 1,
+        _stage_sounding,
+    ),
+    InputRequirement(
+        "arpsintrp_exbc",
+        lambda executable, namelist: (
+            executable.use_arpsintrp_exbc  # type: ignore
+            and namelist["boundary_condition_options"]["lbcopt"] == 2
+        ),
+        _stage_arpsintrp_exbc,
+    ),
+    InputRequirement(
+        "restart",
+        lambda _, namelist: namelist["initialization"]["initopt"] == 2,
+        _stage_restart_data,
+    ),
+)
 
 
 class ARPS(ExecutableBase):
@@ -88,47 +181,7 @@ class ARPS(ExecutableBase):
         WRFRUN_NEW.resource.mkdir(self.work_path / "outputs")
         model_config = WRFRUN_NEW.namelist.get_namelist("arps")
 
-        if model_config["soil_ebm"]["sfcdat"] == 2:
-            self.add_input_files(WRFRUN_NEW.resource.get_result_ref("arpssfc", self.arpssfc_run_id) / "arpssfc.sfcdata")
-            WRFRUN_NEW.namelist.update_namelist({"soil_ebm": {"sfcdtfl": "./arpssfc.sfcdata"}}, "arps")
-
-        if model_config["initialization"]["initopt"] == 3:
-            ext2arps_ref = WRFRUN_NEW.resource.get_result_ref("ext2arps", self.ext2arps_run_id)
-            ext2arps_files = glob.glob("ext2arps.*", root_dir=WRFRUN_NEW.resource.get_custom_resource(ext2arps_ref))
-            if len(ext2arps_files) < 2:
-                message = "Can't find all ext2arps outputs in outputs directory, which is essential to run arps."
-                LOGGER.error(message)
-                raise FileNotFoundError(message)
-
-            self.add_input_files([ext2arps_ref / name for name in ext2arps_files])
-            WRFRUN_NEW.namelist.update_namelist(
-                {"initialization": {"inifile": "./ext2arps.hdf000000", "inigbf": "./ext2arps.hdfgrdbas"}}, "arps"
-            )
-        elif model_config["initialization"]["initopt"] == 1 and model_config["initialization"]["inibasopt"] == 1:
-            sounding_file = Path(model_config["initialization"]["sndfile"]).name
-            self.add_input_files(WRFRUN_NEW.resource.INPUT_DIR / sounding_file)
-
-        if model_config["boundary_condition_options"]["lbcopt"] == 2 and self.use_arpsintrp_exbc:
-            arpsintrp_ref = WRFRUN_NEW.resource.get_result_ref("arpsintrp", self.arpsintrp_run_id)
-            arpsintrp_files = sorted(
-                glob.glob("arpsintrp.[0-9]*", root_dir=WRFRUN_NEW.resource.get_custom_resource(arpsintrp_ref))
-            )
-            if len(arpsintrp_files) < 2:
-                raise FileNotFoundError("Can't find enough arpsintrp EXBC outputs to run ARPS.")
-
-            boundary_times = [datetime.strptime(name.removeprefix("arpsintrp."), "%Y%m%d.%H%M%S") for name in arpsintrp_files]
-            self.add_input_files([arpsintrp_ref / name for name in arpsintrp_files])
-            WRFRUN_NEW.namelist.update_namelist(
-                {
-                    "exbcpara": {
-                        "exbcname": "./arpsintrp",
-                        "tinitebd": boundary_times[0].strftime("%Y-%m-%d.%H:%M:%S"),
-                        "tintvebd": int((boundary_times[1] - boundary_times[0]).total_seconds()),
-                        "exbcfmt": 3,
-                    }
-                },
-                "arps",
-            )
+        stage_input_requirements(self, model_config, ARPS_INPUT_REQUIREMENTS)
         WRFRUN_NEW.namelist.update_namelist({"jobname": {"runname": self.name}}, "arps")
         WRFRUN_NEW.namelist.write_namelist(self.namelist_path, "arps")
         super().before_exec()

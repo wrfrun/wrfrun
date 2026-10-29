@@ -55,6 +55,7 @@ dev = [
     "sphinx-autobuild",
     "ruff>=0.14.3",
     "pyright>=1.1.407",
+    "pytest>=9.2.0",
 ]
 
 [tool.ruff]
@@ -63,6 +64,9 @@ line-length = 130
 [tool.ruff.lint]
 select = ["D", "E", "F", "I"]
 ignore = ["F403", "D211", "D212", "D200", "D203", "D401", "D404", "D205", "D400", "D415"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"]
 
 [tool.pyright]
 include = ["wrfrun"]
