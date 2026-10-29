@@ -154,7 +154,7 @@ class ARPSOutputsRules:
         )
 
 
-ARPS_OUTPUT_REUQIREMENTS = {
+ARPS_OUTPUT_REUQIREMENTS = (
     IORequirement(
         "results",
         lambda i, j: True,
@@ -165,7 +165,7 @@ ARPS_OUTPUT_REUQIREMENTS = {
         lambda _, namelist: namelist.get("output", {}).get("trstout", 0.0) > 0.0,
         ARPSOutputsRules._stage_output_restart_datas,
     ),
-}
+)
 
 
 class ARPS(ExecutableBase):

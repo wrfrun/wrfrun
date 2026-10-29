@@ -207,7 +207,8 @@ For now, we create a very simple config file to make our ``Executable`` work.
     queue_name = ""
     node_num = 1
     env_settings = {}
-    python_interpreter = "/usr/bin/python3"     # or just "python3"
+    # Leave empty to reuse the interpreter running wrfrun.
+    python_interpreter = ""
     
     [model]
     [model.wrf]

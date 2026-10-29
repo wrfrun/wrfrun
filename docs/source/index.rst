@@ -94,7 +94,8 @@ Manage all simulation settings in TOML files: A main config file, and model conf
    queue_name = ""
    node_num = 1
    env_settings = {}
-   python_interpreter = "/usr/bin/python3"     # or just "python3"
+   # Leave empty to reuse the interpreter running wrfrun.
+   python_interpreter = ""
 
    [model]
    [model.wrf]

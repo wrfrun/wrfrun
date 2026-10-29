@@ -12,6 +12,7 @@ Functions to interact with job scheduler.
 """
 
 import re
+import sys
 from os.path import abspath, dirname, exists
 from shlex import join, quote
 
@@ -94,7 +95,8 @@ def prepare_scheduler_script(main_file_path: str) -> str:
             env_settings += f"export {key}={quote(value)}\n"
 
     # generate command
-    exec_cmd = join([scheduler_configs["python_interpreter"], main_file_path])
+    python_interpreter = scheduler_configs["python_interpreter"] or sys.executable
+    exec_cmd = join([python_interpreter, main_file_path])
 
     experiment_template_path = WRFRUN_NEW.resource.get_custom_resource(
         WRFRUN_NEW.resource.CONFIG_DIR / f"experiments/{WRFRUN_NEW.layout.experiment}/scheduler/submit.sh"

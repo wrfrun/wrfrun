@@ -101,7 +101,8 @@ You can check full config here.
 
         # Path of the python interpreter that will be used to run wrfrun.
         # You can also give its name only.
-        python_interpreter = "/usr/bin/python3" # or just "python3"
+        # Leave empty to reuse the interpreter running wrfrun.
+        python_interpreter = ""
 
 
         [model]

@@ -41,9 +41,9 @@ node_num = 1
 # Custom environment settings
 env_settings = {}
 
-# Path of the python interpreter that will be used to run wrfrun.
-# You can also give its name only.
-python_interpreter = "/usr/bin/python3"     # or just "python3"
+# Path of the Python interpreter used to run wrfrun.
+# Leave empty to reuse the interpreter running wrfrun.
+python_interpreter = ""
 
 
 [model]

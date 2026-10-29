@@ -56,7 +56,8 @@ Configuration file templates are located in the ``wrfrun/res/config/`` directory
 
         # Path of the python interpreter that will be used to run wrfrun.
         # You can also give its name only.
-        python_interpreter = "/usr/bin/python3"     # or just "python3"
+        # Leave empty to reuse the interpreter running wrfrun.
+        python_interpreter = ""
 
 
         [model]
@@ -263,8 +264,8 @@ The ``[job_scheduler]`` section defines job submission related configurations:
     # Custom environment variable settings
     env_settings = {}
 
-    # Python interpreter path
-    python_interpreter = "/usr/bin/python3"
+    # Python interpreter path. Leave empty to reuse the interpreter running wrfrun.
+    python_interpreter = ""
 
 Model Configuration
 ===================
