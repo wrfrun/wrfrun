@@ -23,11 +23,11 @@ class IORequirement:
     stage: Callable[[ExecutableBase, dict], None]
 
 
-def stage_input_requirements(executable: ExecutableBase, namelist: dict, requirements: Sequence[IORequirement]) -> None:
-    """Stage every input enabled by the current namelist."""
+def stage_io_requirements(executable: ExecutableBase, namelist: dict, requirements: Sequence[IORequirement]) -> None:
+    """Stage every input/output enabled by the current namelist."""
     for requirement in requirements:
         if requirement.enabled(executable, namelist):
             requirement.stage(executable, namelist)
 
 
-__all__ = ["IORequirement", "stage_input_requirements"]
+__all__ = ["IORequirement", "stage_io_requirements"]

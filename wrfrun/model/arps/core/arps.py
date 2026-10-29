@@ -14,7 +14,7 @@ from pathlib import Path
 
 from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
 
-from ..io import IORequirement, stage_input_requirements
+from ..io import IORequirement, stage_io_requirements
 from ._common import prepare_arps_namelist
 
 LOGGER = logging.getLogger("wrfrun")
@@ -235,38 +235,18 @@ class ARPS(ExecutableBase):
         WRFRUN_NEW.states.check_wrfrun_context(True)
         WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "arps"
         WRFRUN_NEW.resource.mkdir(self.work_path / "outputs")
-        model_config = WRFRUN_NEW.namelist.get_namelist("arps")
+        namelist = WRFRUN_NEW.namelist.get_namelist("arps")
 
-        stage_input_requirements(self, model_config, ARPS_INPUT_REQUIREMENTS)
+        stage_io_requirements(self, namelist, ARPS_INPUT_REQUIREMENTS)
         WRFRUN_NEW.namelist.update_namelist({"jobname": {"runname": self.name}}, "arps")
         WRFRUN_NEW.namelist.write_namelist(self.namelist_path, "arps")
         super().before_exec()
 
     def after_exec(self):
+        namelist = WRFRUN_NEW.namelist.get_namelist("arps")
+
         if not WRFRUN_NEW.states.IS_IN_REPLAY:
-            self.add_output_files(
-                startswith=f"{self.name}.hdf",
-                output_dir=self.work_path / "outputs",
-                save_path=self._output_save_path,
-                no_file_error=False,
-            )
-            self.add_output_files(
-                startswith=f"{self.name}.h5f",
-                output_dir=self.work_path / "outputs",
-                save_path=self._output_save_path,
-                no_file_error=False,
-            )
-            self.add_output_files(
-                filenames="arps.nml",
-                output_dir=self.work_path,
-                save_path=self._output_save_path / "logs",
-            )
-            self.add_output_files(
-                filenames=f"{self.name}.sound",
-                output_dir=self.work_path / "outputs",
-                save_path=self._output_save_path / "logs",
-                no_file_error=False,
-            )
+            stage_io_requirements(self, namelist, ARPS_OUTPUT_REUQIREMENTS)
 
         super().after_exec()
 
