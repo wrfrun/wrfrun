@@ -7,13 +7,44 @@ Scheduler interface for LSF system.
 .. autosummary::
     :toctree: generated/
 
+    LSFBackend
     lsf_generate_settings
 """
 
-from wrfrun.core import WRFRUN_NEW
+import logging
+import re
+from os import getenv
+from pathlib import Path
+
+from wrfrun.core import WRFRUN_NEW, call_subprocess
 from wrfrun.res import SCHEDULER_LSF_TEMPLATE
 
 from .utils import get_core_num
+
+LOGGER = logging.getLogger("wrfrun")
+
+
+class LSFBackend:
+    """Submit and identify LSF jobs."""
+
+    name = "lsf"
+
+    def submit(self, script_path: Path) -> str | None:
+        """Submit ``script_path`` through ``bsub`` and return its job ID."""
+        result = call_subprocess(["bsub"], stdin_path=str(script_path))
+        output = result.stdout.decode(errors="replace")
+        match = re.search(r"Job <([^>]+)>", output)
+        if match is None:
+            LOGGER.warning("Could not read LSF job ID from bsub output. Check whether the task was submitted.")
+            LOGGER.warning("bsub stdout:\n%s", output)
+            if result.stderr:
+                LOGGER.warning("bsub stderr:\n%s", result.stderr.decode(errors="replace"))
+            return None
+        return match.group(1)
+
+    def detect_job_id(self) -> str | None:
+        """Return the LSF job ID from the execution environment."""
+        return getenv("LSB_JOBID")
 
 
 def lsf_generate_settings(scheduler_config: dict) -> str:
@@ -45,4 +76,4 @@ def lsf_generate_settings(scheduler_config: dict) -> str:
     )
 
 
-__all__ = ["lsf_generate_settings"]
+__all__ = ["LSFBackend", "lsf_generate_settings"]

@@ -7,6 +7,7 @@ Functions to interact with job scheduler.
 .. autosummary::
     :toctree: generated/
 
+    detect_scheduler_job
     submit_scheduler_task
     prepare_scheduler_script
 """
@@ -15,11 +16,13 @@ import logging
 import re
 import sys
 from os.path import abspath, dirname, exists
+from pathlib import Path
 from shlex import join, quote
 
-from wrfrun.core import WRFRUN_NEW, call_subprocess
+from wrfrun.core import WRFRUN_NEW
 from wrfrun.res import RUN_SH_TEMPLATE
 
+from .backend import get_scheduler_backend
 from .lsf import lsf_generate_settings
 from .pbs import pbs_generate_settings
 from .slurm import slurm_generate_settings
@@ -31,37 +34,32 @@ ENVIRONMENT_MARKER = "# wrfrun:environment"
 COMMAND_MARKER = "# wrfrun:command"
 
 
-def submit_scheduler_task(main_file_path: str):
+def submit_scheduler_task(main_file_path: str) -> str | None:
     """
     Prepare the bash script for scheduler and submit it.
 
     :param main_file_path: Path of the main entry Python file.
     :type main_file_path: str
+    :return: Submitted scheduler job ID, if it can be parsed.
+    :rtype: str | None
     """
     script_path = prepare_scheduler_script(main_file_path)
 
     scheduler_name = WRFRUN_NEW.config.get_job_scheduler_config()["job_scheduler"]
 
-    match scheduler_name:
-        case "pbs":
-            submit_command = ["qsub", script_path]
-
-        case "slurm":
-            submit_command = ["sbatch", script_path]
-
-        case "lsf":
-            submit_command = ["bsub"]
-
-        case _:
-            LOGGER.error(f"Unknown scheduler name: {scheduler_name}")
-            raise ValueError(f"Unknown scheduler name: {scheduler_name}")
-
     LOGGER.info(f"Submit scheduler task with backend '{scheduler_name}'.")
+    return get_scheduler_backend(scheduler_name).submit(Path(script_path))
 
-    if scheduler_name == "lsf":
-        call_subprocess(submit_command, stdin_path=script_path)
-    else:
-        call_subprocess(submit_command)
+
+def detect_scheduler_job() -> dict[str, str] | None:
+    """Return the current scheduler identity from the execution environment."""
+    scheduler_name = WRFRUN_NEW.config.get_job_scheduler_config()["job_scheduler"]
+    backend = get_scheduler_backend(scheduler_name)
+    job_id = backend.detect_job_id()
+    if job_id is None:
+        return None
+
+    return {"backend": backend.name, "job_id": job_id}
 
 
 def prepare_scheduler_script(main_file_path: str) -> str:
@@ -148,4 +146,4 @@ def prepare_scheduler_script(main_file_path: str) -> str:
     return str(script_path)
 
 
-__all__ = ["prepare_scheduler_script", "submit_scheduler_task"]
+__all__ = ["detect_scheduler_job", "prepare_scheduler_script", "submit_scheduler_task"]

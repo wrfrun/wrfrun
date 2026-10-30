@@ -52,7 +52,7 @@ from .core.type import ExecutableBaseProtocol
 from .data import prepare_wps_input_data
 from .log import logger, logger_add_file_handler
 from .model import clear_model_logs, generate_domain_area
-from .scheduler import in_job_scheduler, submit_scheduler_task
+from .scheduler import detect_scheduler_job, in_job_scheduler, submit_scheduler_task
 
 
 def confirm_model_area():
@@ -163,8 +163,15 @@ class WRFRunContext:
             if not self._skip_domain_confirm:
                 confirm_model_area()
 
-            submit_scheduler_task(self._entry_file_path)
+            job_id = submit_scheduler_task(self._entry_file_path)
             WRFRUN_NEW.status.update("submitted")
+            if job_id is not None:
+                WRFRUN_NEW.status.update(
+                    scheduler={
+                        "backend": WRFRUN_NEW.config.get_job_scheduler_config()["job_scheduler"],
+                        "job_id": job_id,
+                    },
+                )
             logger.info("Work has been submitted to the configured scheduler")
             exit(0)
 
@@ -196,6 +203,9 @@ class WRFRunContext:
                 prepare_wps_input_data(self._wps_data_area)
 
         WRFRUN_NEW.status.update("running")
+        scheduler_job = detect_scheduler_job()
+        if scheduler_job is not None:
+            WRFRUN_NEW.status.update(scheduler=scheduler_job)
 
         logger.debug(r"Enter wrfrun context")
 

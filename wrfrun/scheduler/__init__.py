@@ -9,6 +9,7 @@ Submodules
 
 ======================================= ===========================================================
 :doc:`core </api/scheduler.core>`       Functions to interact with scheduler.
+:doc:`backend </api/scheduler.backend>` Scheduler backend interface and lookup.
 :doc:`env </api/scheduler.env>`         Functions to manage environment variables in job scheduler.
 :doc:`lsf </api/scheduler.lsf>`         Scheduler interface for LSF job scheduler.
 :doc:`pbs </api/scheduler.pbs>`         Scheduler interface for PBS job scheduler.
@@ -21,6 +22,7 @@ Submodules
     :hidden:
 
     core <scheduler.core>
+    backend <scheduler.backend>
     env <scheduler.env>
     lsf <scheduler.lsf>
     pbs <scheduler.pbs>
@@ -28,6 +30,7 @@ Submodules
     utils <scheduler.utils>
 """
 
+from .backend import *
 from .core import *
 from .env import *
 from .lsf import *

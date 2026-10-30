@@ -169,6 +169,8 @@ def call_subprocess(
                             Defaults to None.
     :param stdin_path: Read command's standard input from the given file path. Defaults to None.
     :type stdin_path: str | None
+    :return: Completed process result.
+    :rtype: subprocess.CompletedProcess
     """
     if work_path is not None:
         origin_path = getcwd()
@@ -202,6 +204,8 @@ def call_subprocess(
     if print_output:
         LOGGER.info(stdout_text)
         LOGGER.warning(stderr_text)
+
+    return status
 
 
 class ExecutableBase:
