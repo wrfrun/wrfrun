@@ -218,14 +218,13 @@ class RunnerService:
                     start_new_session=(os.name == "posix"),
                 )
 
-                LOGGER.debug("External command ends normally.")
-
             except OSError as exc:
                 raise CommandExecutionError(f"Failed to start command: {join(command.argv)}") from exc
 
             try:
                 stdout_bytes, stderr_bytes = process.communicate(timeout=command.timeout_seconds)
                 timed_out = False
+                LOGGER.debug("External command ends normally.")
             except subprocess.TimeoutExpired:
                 self._terminate(process)
                 stdout_bytes, stderr_bytes = process.communicate()
