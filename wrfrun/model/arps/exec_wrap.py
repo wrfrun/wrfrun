@@ -75,14 +75,16 @@ def arps3dvar(arps_run_id: str | None = None):
     ARPS3DVar(arps_run_id)()
 
 
-def arpsintrp(ext2arps_run_id: str | None = None):
+def arpsintrp(history_executable: str | None = None, history_run_id: str | None = None):
     """
     Function interface for :class:`ARPSIntrp <wrfrun.model.arps.core.ARPSIntrp>`.
 
-    :param ext2arps_run_id: Run ID containing ``ext2arps`` history files. If
-                             omitted, use the latest published results.
+    :param history_executable: Executable whose results provide history files.
+                               If omitted, use ``data/inputs/.../arpsintrp``.
+    :param history_run_id: Run ID containing the selected executable's history
+                           files. If omitted, use the latest published results.
     """
-    ARPSIntrp(ext2arps_run_id)()
+    ARPSIntrp(history_executable, history_run_id)()
 
 
 def radremap(arps_run_id: str | None = None):

@@ -7,16 +7,18 @@ ARPS interpolation executable.
     ARPSIntrp
 """
 
+import re
+
 from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
 
 from ._common import prepare_component_namelist
 
 
 class ARPSIntrp(ExecutableBase):
-    """Create external ARPS boundary data from ``ext2arps`` outputs."""
+    """Create external ARPS boundary data from staged history files."""
 
-    def __init__(self, ext2arps_run_id: str | None = None):
-        """Create an ``arpsintrp`` executable."""
+    def __init__(self, history_executable: str | None = None, history_run_id: str | None = None):
+        """Create an ``arpsintrp`` executable and select its history source."""
         work_path = ResourceRef("workspace_arps", "arpsintrp")
         self.namelist_path = work_path / "arpsintrp.nml"
         super().__init__(
@@ -26,28 +28,39 @@ class ARPSIntrp(ExecutableBase):
             stdin_file=self.namelist_path,
         )
 
-        self.ext2arps_run_id = ext2arps_run_id
+        self.history_executable = history_executable
+        self.history_run_id = history_run_id
         prepare_component_namelist("arpsintrp")
 
     def generate_custom_config(self):
-        """Store the selected ``ext2arps`` run and namelist for replay."""
+        """Store the selected history source and namelist for replay."""
         self.custom_config.update(
-            {"ext2arps_run_id": self.ext2arps_run_id, "namelist": WRFRUN_NEW.namelist.get_namelist("arpsintrp")}
+            {
+                "history_executable": self.history_executable,
+                "history_run_id": self.history_run_id,
+                "namelist": WRFRUN_NEW.namelist.get_namelist("arpsintrp"),
+            }
         )
 
     def load_custom_config(self):
-        """Restore the selected ``ext2arps`` run and namelist for replay."""
+        """Restore the selected history source and namelist for replay."""
         if not WRFRUN_NEW.namelist.check_namelist_id("arpsintrp"):
             WRFRUN_NEW.namelist.register_namelist_id("arpsintrp")
-        self.ext2arps_run_id = self.custom_config["ext2arps_run_id"]
+        self.history_executable = self.custom_config["history_executable"]
+        self.history_run_id = self.custom_config["history_run_id"]
         WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arpsintrp")
 
     def _stage_history_data(self):
         """Stage history inputs and write their runtime namelist paths."""
-        input_ref = WRFRUN_NEW.resource.get_result_ref("ext2arps", self.ext2arps_run_id)
+        if self.history_executable is not None:
+            input_ref = WRFRUN_NEW.resource.get_result_ref(self.history_executable, self.history_run_id)
+
+        else:
+            input_ref = WRFRUN_NEW.resource.INPUT_DIR / "arpsintrp"
+
         input_files = list(WRFRUN_NEW.resource.get_custom_resource(input_ref).iterdir())
-        grid_base_file = next(file for file in input_files if file.suffix.endswith("grdbas"))
-        history_files = sorted(file for file in input_files if file.suffix[-6:].isdigit())
+        grid_base_file = next(file for file in input_files if re.fullmatch(r".+\.(?:hdf|h5f)grdbas", file.name))
+        history_files = sorted(file for file in input_files if re.fullmatch(r".+\.(?:hdf|h5f)\d{6}", file.name))
 
         self.add_input_files([input_ref / file.name for file in [grid_base_file, *history_files]])
         WRFRUN_NEW.namelist.update_namelist(
@@ -63,6 +76,7 @@ class ARPSIntrp(ExecutableBase):
         )
 
     def before_exec(self):
+        """Stage history data and write the ARPSIntrp namelist."""
         WRFRUN_NEW.states.check_wrfrun_context(True)
         WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "arpsintrp"
         WRFRUN_NEW.resource.mkdir(self.work_path / "outputs")
@@ -72,6 +86,7 @@ class ARPSIntrp(ExecutableBase):
         super().before_exec()
 
     def after_exec(self):
+        """Archive generated boundary data and the runtime namelist."""
         if not WRFRUN_NEW.states.IS_IN_REPLAY:
             self.add_output_files(
                 startswith=f"{self.name}.",
