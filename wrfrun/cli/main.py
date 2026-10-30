@@ -2,6 +2,7 @@
 
 import argparse
 import sys
+from importlib.metadata import version
 
 from ..core import create_wrfrun_session
 from .experiment import entry_create
@@ -15,8 +16,13 @@ CLI_SESSION = create_wrfrun_session()
 def main_entry():
     """Run the ``wrfrun`` command line interface."""
     args_parser = argparse.ArgumentParser()
-    args_parser.add_argument("-v", "--version", action="store_true", help="Print version of wrfrun.")
-    args_parser.set_defaults(func=lambda _: print("Version: 0.5.1"))
+    args_parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version=f"%(prog)s {version('wrfrun')}",
+        help="Print version of wrfrun.",
+    )
 
     subparsers = args_parser.add_subparsers(title="Subcommands", description="Valid Subcommands", help="Subcommands")
 
