@@ -84,7 +84,11 @@ def arpsintrp(history_executable: str | None = None, history_run_id: str | None 
     :param history_run_id: Run ID containing the selected executable's history
                            files. If omitted, use the latest published results.
     """
-    ARPSIntrp(history_executable, history_run_id)()
+    ARPSIntrp(
+        history_executable,
+        history_run_id,
+        core_num=WRFRUN_NEW.config.get_core_num(),
+    )()
 
 
 def radremap(arps_run_id: str | None = None):

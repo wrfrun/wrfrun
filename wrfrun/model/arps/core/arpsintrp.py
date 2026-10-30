@@ -7,25 +7,51 @@ ARPS interpolation executable.
     ARPSIntrp
 """
 
+import logging
 import re
 
 from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
 
 from ._common import prepare_component_namelist
 
+LOGGER = logging.getLogger("wrfrun")
+
 
 class ARPSIntrp(ExecutableBase):
     """Create external ARPS boundary data from staged history files."""
 
-    def __init__(self, history_executable: str | None = None, history_run_id: str | None = None):
+    def __init__(
+        self,
+        history_executable: str | None = None,
+        history_run_id: str | None = None,
+        core_num: int | None = None,
+    ):
         """Create an ``arpsintrp`` executable and select its history source."""
-        work_path = ResourceRef("workspace_arps", "arpsintrp")
+        if core_num is None or core_num == 1:
+            cmd = "./arpsintrp"
+            work_path = ResourceRef("workspace_arps", "arpsintrp")
+            mpi_use = False
+            mpi_cmd = None
+            mpi_core_num = None
+            LOGGER.info("Use serial arpsintrp.")
+        else:
+            cmd = "./arps_mpi"
+            work_path = ResourceRef("workspace_arps", "arpsintrp_mpi")
+            mpi_use = True
+            mpi_cmd = "mpirun"
+            mpi_core_num = core_num
+            LOGGER.info("Use parallel arpsintrp.")
+
         self.namelist_path = work_path / "arpsintrp.nml"
+
         super().__init__(
             name="arpsintrp",
-            cmd="./arpsintrp",
+            cmd=cmd,
             work_path=work_path,
             stdin_file=self.namelist_path,
+            mpi_use=mpi_use,
+            mpi_cmd=mpi_cmd,
+            mpi_core_num=mpi_core_num,
         )
 
         self.history_executable = history_executable
