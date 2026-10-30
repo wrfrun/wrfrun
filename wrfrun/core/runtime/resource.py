@@ -340,7 +340,7 @@ class ResourceCatalog:
         temporary_path = results_dir / f".{executable_name}.{uuid4().hex}"
         temporary_path.symlink_to(relpath(output_path, results_dir), target_is_directory=True)
 
-        if not result_path.is_symlink():
+        if result_path.is_dir() and not result_path.is_symlink():
             LOGGER.warning(f"External changes are detected of '{relpath(result_path)}'.")
             LOGGER.warning("DO NOT make any change to this path, cause it will be overwrited once a new result is publiced.")
             LOGGER.warning("And you will lose your changes!")

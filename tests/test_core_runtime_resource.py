@@ -47,6 +47,18 @@ def test_publish_results_replaces_latest_result_link(runtime):
     assert result_link.resolve() == second_archive
 
 
+def test_publish_results_replaces_normal_result_directory(runtime):
+    archive = runtime.project / "data/outputs/v01/run-1/arps"
+    archive.mkdir(parents=True)
+    result_directory = runtime.project / "data/outputs/v01/results/arps"
+    result_directory.mkdir(parents=True)
+
+    runtime.resource.publish_results("arps")
+
+    assert result_directory.is_symlink()
+    assert result_directory.resolve() == archive
+
+
 def test_resource_catalog_rejects_duplicate_and_unknown_providers(runtime):
     with pytest.raises(ValueError, match="already registered"):
         runtime.resource.register_provider("project", runtime.project)
