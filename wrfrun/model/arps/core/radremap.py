@@ -7,10 +7,11 @@ ARPS radar-remapping executable.
     RadRemap
 """
 
+from dataclasses import asdict
 from datetime import timedelta
 from pathlib import Path
 
-from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
+from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef, ResultSource
 
 from ._common import prepare_component_namelist
 
@@ -18,7 +19,7 @@ from ._common import prepare_component_namelist
 class RadRemap(ExecutableBase):
     """Remap a radar volume with an archived ARPS background state."""
 
-    def __init__(self, arps_run_id: str | None = None):
+    def __init__(self, arps_source: ResultSource | None = None):
         """Create a serial ``radremap`` executable."""
         work_path = ResourceRef("workspace_arps", "radremap")
         self.namelist_path = work_path / "radremap.nml"
@@ -29,18 +30,24 @@ class RadRemap(ExecutableBase):
             stdin_file=self.namelist_path,
         )
 
-        self.arps_run_id = arps_run_id
+        self.arps_source = arps_source
         prepare_component_namelist("radremap")
 
     def generate_custom_config(self):
-        """Store the selected ARPS run and ``radremap`` namelist for replay."""
-        self.custom_config.update({"arps_run_id": self.arps_run_id, "namelist": WRFRUN_NEW.namelist.get_namelist("radremap")})
+        """Store the selected ARPS source and ``radremap`` namelist for replay."""
+        self.custom_config.update(
+            {
+                "arps_source": asdict(self.arps_source) if self.arps_source is not None else None,
+                "namelist": WRFRUN_NEW.namelist.get_namelist("radremap"),
+            }
+        )
 
     def load_custom_config(self):
-        """Restore the selected ARPS run and ``radremap`` namelist for replay."""
+        """Restore the selected ARPS source and ``radremap`` namelist for replay."""
         if not WRFRUN_NEW.namelist.check_namelist_id("radremap"):
             WRFRUN_NEW.namelist.register_namelist_id("radremap")
-        self.arps_run_id = self.custom_config["arps_run_id"]
+        arps_source = self.custom_config["arps_source"]
+        self.arps_source = ResultSource(**arps_source) if arps_source is not None else None
         WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "radremap")
 
     def before_exec(self):
@@ -56,7 +63,7 @@ class RadRemap(ExecutableBase):
         outtime = int(history_file[-6:])
         valid_time = WRFRUN_NEW.config["simulation"]["time"]["start_time"] + timedelta(seconds=outtime)
 
-        arps_ref = WRFRUN_NEW.resource.get_result_ref("arps", self.arps_run_id)
+        arps_ref = WRFRUN_NEW.resource.get_result_ref("arps", source=self.arps_source)
         self.add_input_files([arps_ref / history_file, arps_ref / grid_base_file])
         self.add_input_files(WRFRUN_NEW.resource.INPUT_DIR / "radremap" / radar_file, is_output=False)
         WRFRUN_NEW.namelist.update_namelist(

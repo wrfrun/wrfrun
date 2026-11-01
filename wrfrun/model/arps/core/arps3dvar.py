@@ -8,10 +8,11 @@ ARPS three-dimensional variational analysis executable.
 """
 
 import logging
+from dataclasses import asdict
 from os import listdir
 from os.path import exists
 
-from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
+from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef, ResultSource
 
 from ._common import prepare_arps_namelist
 
@@ -21,7 +22,7 @@ LOGGER = logging.getLogger("wrfrun")
 class ARPS3DVar(ExecutableBase):
     """Run ARPS 3DVAR using archived ARPS fields as background data."""
 
-    def __init__(self, arps_run_id: str | None = None):
+    def __init__(self, arps_source: ResultSource | None = None):
         """Create an ``arps3dvar`` executable."""
         work_path = ResourceRef("workspace_arps", "arps3dvar")
         self.namelist_path = work_path / "arps3dvar.nml"
@@ -32,21 +33,26 @@ class ARPS3DVar(ExecutableBase):
             stdin_file=self.namelist_path,
         )
 
-        self.arps_run_id = arps_run_id
+        self.arps_source = arps_source
         prepare_arps_namelist("arps3dvar")
 
     def generate_custom_config(self):
-        """Store the selected ARPS run and namelist for replay."""
+        """Store the selected ARPS source and namelist for replay."""
         self.custom_config.update(
-            {"arps_run_id": self.arps_run_id, "namelist": WRFRUN_NEW.namelist.get_namelist("arps3dvar")}
+            {
+                "arps_source": asdict(self.arps_source) if self.arps_source is not None else None,
+                "namelist": WRFRUN_NEW.namelist.get_namelist("arps3dvar"),
+            }
         )
 
     def load_custom_config(self):
-        """Restore the selected ARPS run and namelist for replay."""
-        self.arps_run_id = self.custom_config["arps_run_id"]
+        """Restore the selected ARPS source and namelist for replay."""
+        arps_source = self.custom_config["arps_source"]
+        self.arps_source = ResultSource(**arps_source) if arps_source is not None else None
         WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arps3dvar")
 
     def before_exec(self):
+        """Stage ARPS background data and write the 3DVAR namelist."""
         background_files = ["arps.hdf000000", "arps.hdfgrdbas"]
         WRFRUN_NEW.states.check_wrfrun_context(True)
         WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "arps3dvar"
@@ -55,7 +61,7 @@ class ARPS3DVar(ExecutableBase):
         work_dir = WRFRUN_NEW.resource.get_custom_resource(self.work_path)
         missing_files = [name for name in background_files if name not in listdir(work_dir)]
         if missing_files:
-            arps_ref = WRFRUN_NEW.resource.get_result_ref("arps", self.arps_run_id)
+            arps_ref = WRFRUN_NEW.resource.get_result_ref("arps", source=self.arps_source)
             arps_dir = WRFRUN_NEW.resource.get_custom_resource(arps_ref)
             missing_sources = [name for name in missing_files if not exists(f"{arps_dir}/{name}")]
             if missing_sources:
@@ -80,6 +86,7 @@ class ARPS3DVar(ExecutableBase):
         super().before_exec()
 
     def after_exec(self):
+        """Archive 3DVAR outputs and its runtime namelist."""
         if not WRFRUN_NEW.states.IS_IN_REPLAY:
             self.add_output_files(
                 startswith=f"{self.name}.",

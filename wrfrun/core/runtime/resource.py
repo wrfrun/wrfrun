@@ -22,7 +22,7 @@ from pathlib import Path, PurePath
 from shutil import rmtree
 from uuid import uuid4
 
-from ..type import ResourceRef, ResourceType
+from ..type import ResourceRef, ResourceType, ResultSource
 
 LOGGER = logging.getLogger("wrfrun")
 
@@ -348,12 +348,29 @@ class ResourceCatalog:
 
         temporary_path.replace(result_path)
 
-    def get_result_ref(self, executable_name: str, run_id: str | None = None) -> ResourceRef:
-        """Return latest or run-specific archived results for one executable."""
-        if run_id is None:
-            return self.RESULTS_DIR / executable_name
+    def get_result_ref(
+        self,
+        executable_name: str | None = None,
+        run_id: str | None = None,
+        source: ResultSource | None = None,
+    ) -> ResourceRef:
+        """Return archived results selected by an executable, experiment, and run."""
+        if source is not None:
+            executable_name = source.executable or executable_name
+            experiment = source.experiment or self.layout.experiment
+            run_id = source.run_id
+        else:
+            experiment = self.layout.experiment
 
-        return ResourceRef("project", f"data/outputs/{self.layout.experiment}/{run_id}/{executable_name}")
+        if executable_name is None:
+            raise ValueError("An executable name is required to resolve archived results.")
+
+        if run_id is None:
+            if experiment == self.layout.experiment:
+                return self.RESULTS_DIR / executable_name
+            return ResourceRef("project", f"data/outputs/{experiment}/results/{executable_name}")
+
+        return ResourceRef("project", f"data/outputs/{experiment}/{run_id}/{executable_name}")
 
     @property
     def INPUT_DIR(self):

@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from wrfrun.core import ResultSource
 from wrfrun.core.core import WRFRUN_NEW, create_wrfrun_session
 from wrfrun.model.arps.core.arpsintrp import ARPSIntrp
 
@@ -18,8 +19,7 @@ def test_arpsintrp_stages_history_from_inputs_or_selected_results(tmp_path: Path
             (input_path / name).touch()
 
         executable = ARPSIntrp.__new__(ARPSIntrp)
-        executable.history_executable = None
-        executable.history_run_id = None
+        executable.history_source = None
         staged = []
         executable.add_input_files = staged.extend
         executable._stage_history_data()
@@ -36,17 +36,29 @@ def test_arpsintrp_stages_history_from_inputs_or_selected_results(tmp_path: Path
             "hisfile": ["./arps.hdf000000", "./arps.hdf000060"],
         }
 
-        result_path = project / "data/outputs/v01/run-0/arps"
+        result_path = project / "data/outputs/v02/run-0/arps"
         result_path.mkdir(parents=True)
         for name in ("arps.h5fgrdbas", "arps.h5f000000"):
             (result_path / name).touch()
 
-        executable.history_executable = "arps"
-        executable.history_run_id = "run-0"
+        executable.history_source = ResultSource("arps", "v02", "run-0")
         staged.clear()
         executable._stage_history_data()
 
         assert [source.name for source in staged] == ["arps.h5fgrdbas", "arps.h5f000000"]
         assert WRFRUN_NEW.namelist.get_namelist("arpsintrp")["history_data"]["nhisfile"] == 1
+
+        executable.custom_config = {}
+        executable.generate_custom_config()
+        assert executable.custom_config["history_source"] == {
+            "executable": "arps",
+            "experiment": "v02",
+            "run_id": "run-0",
+        }
+
+        restored = ARPSIntrp.__new__(ARPSIntrp)
+        restored.custom_config = executable.custom_config
+        restored.load_custom_config()
+        assert restored.history_source == executable.history_source
     finally:
         WRFRUN_NEW.reset_session(token)

@@ -120,10 +120,26 @@ also atomically updates an experiment-level symbolic link for that executable:
 These links provide the latest results for a later simulation stage. The
 run-ID directories remain the immutable record of every execution.
 
-Model wrappers use these latest-result links by default. A wrapper parameter
-named ``*_run_id`` selects the archived results of one specific run instead;
-for example, ``arps(ext2arps_run_id="...")`` uses that ``ext2arps`` run rather
-than the latest published one.
+Model wrappers use these latest-result links by default. Use
+``ResultSource`` to select a result from another experiment or a specific run:
+
+.. code-block:: python
+
+   from wrfrun.core import ResultSource
+   from wrfrun.model.arps import arps
+
+   arps(
+       history_source=ResultSource(
+           executable="ext2arps",
+           experiment="v01",
+           run_id="20261101T120000-a1b2c3d4",
+       )
+   )
+
+An omitted ``run_id`` uses the selected experiment's latest published result.
+An omitted ``experiment`` uses the active experiment. A result source with no
+``executable`` may be used only where the receiving executable already knows
+the upstream executable type.
 
 Run Status
 ==========

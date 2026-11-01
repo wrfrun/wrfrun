@@ -9,10 +9,11 @@ ARPS external-data conversion executable.
 
 import glob
 import logging
+from dataclasses import asdict
 from datetime import datetime, timedelta
 from os.path import exists
 
-from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
+from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef, ResultSource
 
 from ._common import prepare_arps_namelist
 
@@ -68,7 +69,7 @@ def _check_ext2arps_input_data() -> list[str]:
 class EXT2ARPS(ExecutableBase):
     """Convert external fields into ARPS initial and boundary data."""
 
-    def __init__(self, arpstrn_run_id: str | None = None):
+    def __init__(self, arpstrn_source: ResultSource | None = None):
         """Create an ``ext2arps`` executable."""
         work_path = ResourceRef("workspace_arps", "ext2arps")
         self.namelist_path = work_path / "ext2arps.nml"
@@ -80,21 +81,26 @@ class EXT2ARPS(ExecutableBase):
             stdin_file=self.namelist_path,
         )
 
-        self.arpstrn_run_id = arpstrn_run_id
+        self.arpstrn_source = arpstrn_source
         prepare_arps_namelist("ext2arps")
 
     def generate_custom_config(self):
-        """Store the selected terrain run and ARPS namelist for replay."""
+        """Store the selected terrain source and ARPS namelist for replay."""
         self.custom_config.update(
-            {"arpstrn_run_id": self.arpstrn_run_id, "namelist": WRFRUN_NEW.namelist.get_namelist("ext2arps")}
+            {
+                "arpstrn_source": asdict(self.arpstrn_source) if self.arpstrn_source is not None else None,
+                "namelist": WRFRUN_NEW.namelist.get_namelist("ext2arps"),
+            }
         )
 
     def load_custom_config(self):
-        """Restore the selected terrain run and ARPS namelist for replay."""
-        self.arpstrn_run_id = self.custom_config["arpstrn_run_id"]
+        """Restore the selected terrain source and ARPS namelist for replay."""
+        arpstrn_source = self.custom_config["arpstrn_source"]
+        self.arpstrn_source = ResultSource(**arpstrn_source) if arpstrn_source is not None else None
         WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "ext2arps")
 
     def before_exec(self):
+        """Stage external and terrain data, then write the namelist."""
         WRFRUN_NEW.states.check_wrfrun_context(True)
         WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "ext2arps"
         WRFRUN_NEW.resource.mkdir(self.work_path / "outputs")
@@ -102,7 +108,7 @@ class EXT2ARPS(ExecutableBase):
         input_files = _check_ext2arps_input_data()
         self.add_input_files([WRFRUN_NEW.resource.INPUT_DIR / "ext2arps" / name for name in input_files])
 
-        terrain_ref = WRFRUN_NEW.resource.get_result_ref("arpstrn", self.arpstrn_run_id)
+        terrain_ref = WRFRUN_NEW.resource.get_result_ref("arpstrn", source=self.arpstrn_source)
         terrain_dir = WRFRUN_NEW.resource.get_custom_resource(terrain_ref)
         terrain_files = glob.glob("arpstrn.trndata*", root_dir=terrain_dir)
         if not terrain_files:
@@ -125,6 +131,7 @@ class EXT2ARPS(ExecutableBase):
         super().before_exec()
 
     def after_exec(self):
+        """Archive converted ARPS fields and its runtime namelist."""
         if not WRFRUN_NEW.states.IS_IN_REPLAY:
             self.add_output_files(
                 startswith=f"{self.name}.",

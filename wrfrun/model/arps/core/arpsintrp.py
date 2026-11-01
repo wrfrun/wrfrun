@@ -9,8 +9,9 @@ ARPS interpolation executable.
 
 import logging
 import re
+from dataclasses import asdict
 
-from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
+from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef, ResultSource
 
 from ._common import prepare_component_namelist
 
@@ -22,8 +23,7 @@ class ARPSIntrp(ExecutableBase):
 
     def __init__(
         self,
-        history_executable: str | None = None,
-        history_run_id: str | None = None,
+        history_source: ResultSource | None = None,
         core_num: int | None = None,
     ):
         """Create an ``arpsintrp`` executable and select its history source."""
@@ -54,16 +54,14 @@ class ARPSIntrp(ExecutableBase):
             mpi_core_num=mpi_core_num,
         )
 
-        self.history_executable = history_executable
-        self.history_run_id = history_run_id
+        self.history_source = history_source
         prepare_component_namelist("arpsintrp")
 
     def generate_custom_config(self):
         """Store the selected history source and namelist for replay."""
         self.custom_config.update(
             {
-                "history_executable": self.history_executable,
-                "history_run_id": self.history_run_id,
+                "history_source": asdict(self.history_source) if self.history_source is not None else None,
                 "namelist": WRFRUN_NEW.namelist.get_namelist("arpsintrp"),
             }
         )
@@ -72,14 +70,14 @@ class ARPSIntrp(ExecutableBase):
         """Restore the selected history source and namelist for replay."""
         if not WRFRUN_NEW.namelist.check_namelist_id("arpsintrp"):
             WRFRUN_NEW.namelist.register_namelist_id("arpsintrp")
-        self.history_executable = self.custom_config["history_executable"]
-        self.history_run_id = self.custom_config["history_run_id"]
+        history_source = self.custom_config["history_source"]
+        self.history_source = ResultSource(**history_source) if history_source is not None else None
         WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arpsintrp")
 
     def _stage_history_data(self):
         """Stage history inputs and write their runtime namelist paths."""
-        if self.history_executable is not None:
-            input_ref = WRFRUN_NEW.resource.get_result_ref(self.history_executable, self.history_run_id)
+        if self.history_source is not None:
+            input_ref = WRFRUN_NEW.resource.get_result_ref(source=self.history_source)
 
         else:
             input_ref = WRFRUN_NEW.resource.INPUT_DIR / "arpsintrp"

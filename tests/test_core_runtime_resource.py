@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from wrfrun.core.runtime.resource import ResourceCatalog, RunLayout
-from wrfrun.core.type import ResourceRef
+from wrfrun.core.type import ResourceRef, ResultSource
 
 
 def test_run_layout_uses_experiment_specific_paths(tmp_path: Path):
@@ -25,6 +25,12 @@ def test_resource_catalog_resolves_latest_and_specific_results(runtime):
     assert runtime.resource.get_result_ref("arps") == ResourceRef("results", "./arps")
     assert runtime.resource.get_result_ref("arps", "run-0") == ResourceRef(
         "project", "data/outputs/v01/run-0/arps"
+    )
+    assert runtime.resource.get_result_ref(source=ResultSource("arps", "v02")) == ResourceRef(
+        "project", "data/outputs/v02/results/arps"
+    )
+    assert runtime.resource.get_result_ref(source=ResultSource("arps", "v02", "run-0")) == ResourceRef(
+        "project", "data/outputs/v02/run-0/arps"
     )
 
 

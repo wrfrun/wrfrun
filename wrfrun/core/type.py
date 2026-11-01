@@ -9,6 +9,7 @@ Define custom types.
 
     ResourceType
     ResourceRef
+    ResultSource
     InputFileType
     FileConfigDict
     ExecutableClassConfig
@@ -128,6 +129,23 @@ class ResourceRef:
         :rtype: str
         """
         return Path(self.resource_path).name
+
+
+@dataclass(frozen=True)
+class ResultSource:
+    """
+    Select archived results from an executable, experiment, and run.
+
+    An omitted experiment uses the active experiment. An omitted run uses that
+    experiment's latest published results.
+
+    >>> ResultSource(executable="arps", experiment="v01", run_id="run-1")
+    ResultSource(executable='arps', experiment='v01', run_id='run-1')
+    """
+
+    executable: str | None = None
+    experiment: str | None = None
+    run_id: str | None = None
 
 
 class InputFileType(Enum):
@@ -303,5 +321,6 @@ __all__ = [
     "ExecutableConfig",
     "ResourceType",
     "ResourceRef",
+    "ResultSource",
     "ExecutableBaseProtocol",
 ]

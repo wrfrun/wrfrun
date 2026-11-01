@@ -9,10 +9,11 @@ ARPS forecast executable.
 
 import glob
 import logging
+from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
-from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
+from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef, ResultSource
 
 from ..io import IORequirement, stage_io_requirements
 from ._common import prepare_arps_namelist
@@ -25,28 +26,14 @@ class ARPSInputsRules:
 
     @classmethod
     def _stage_sfcdata(cls, executable: "ARPS", _: dict) -> None:
-        source = WRFRUN_NEW.resource.get_result_ref("arpssfc", executable.arpssfc_run_id) / "arpssfc.sfcdata"
+        source = WRFRUN_NEW.resource.get_result_ref("arpssfc", source=executable.arpssfc_source) / "arpssfc.sfcdata"
         executable.add_input_files(source)
         WRFRUN_NEW.namelist.update_namelist({"soil_ebm": {"sfcdtfl": "./arpssfc.sfcdata"}}, "arps")
 
     @classmethod
-    def _stage_ext2arps(cls, executable: "ARPS", _: dict) -> None:
-        source = WRFRUN_NEW.resource.get_result_ref("ext2arps", executable.ext2arps_run_id)
-        filenames = glob.glob("ext2arps.*", root_dir=WRFRUN_NEW.resource.get_custom_resource(source))
-        if len(filenames) < 2:
-            message = "Can't find all ext2arps outputs in outputs directory, which is essential to run arps."
-            LOGGER.error(message)
-            raise FileNotFoundError(message)
-
-        executable.add_input_files([source / name for name in filenames])
-        WRFRUN_NEW.namelist.update_namelist(
-            {"initialization": {"inifile": "./ext2arps.hdf000000", "inigbf": "./ext2arps.hdfgrdbas"}}, "arps"
-        )
-
-    @classmethod
     def _stage_histories(cls, executable: "ARPS", namelist: dict) -> None:
-        if executable.history_executable is not None:
-            input_ref = WRFRUN_NEW.resource.get_result_ref(executable.history_executable, executable.history_run_id)
+        if executable.history_source is not None:
+            input_ref = WRFRUN_NEW.resource.get_result_ref(source=executable.history_source)
 
         else:
             input_ref = WRFRUN_NEW.resource.INPUT_DIR / "arps"
@@ -79,7 +66,7 @@ class ARPSInputsRules:
 
     @classmethod
     def _stage_arpsintrp_exbc(cls, executable: "ARPS", _: dict) -> None:
-        source = WRFRUN_NEW.resource.get_result_ref("arpsintrp", executable.arpsintrp_run_id)
+        source = WRFRUN_NEW.resource.get_result_ref("arpsintrp", source=executable.arpsintrp_source)
         filenames = sorted(glob.glob("arpsintrp.[0-9]*", root_dir=WRFRUN_NEW.resource.get_custom_resource(source)))
         if len(filenames) < 2:
             raise FileNotFoundError("Can't find enough arpsintrp EXBC outputs to run ARPS.")
@@ -203,20 +190,14 @@ class ARPS(ExecutableBase):
     def __init__(
         self,
         core_num: int | None = None,
-        use_arpsintrp_exbc: bool = False,
-        arpssfc_run_id: str | None = None,
-        ext2arps_run_id: str | None = None,
-        arpsintrp_run_id: str | None = None,
-        history_executable: str | None = None,
-        history_run_id: str | None = None,
+        arpssfc_source: ResultSource | None = None,
+        arpsintrp_source: ResultSource | None = None,
+        history_source: ResultSource | None = None,
     ):
-        """Create an ARPS executable and select its upstream result runs."""
-        self.use_arpsintrp_exbc = use_arpsintrp_exbc
-        self.arpssfc_run_id = arpssfc_run_id
-        self.ext2arps_run_id = ext2arps_run_id
-        self.arpsintrp_run_id = arpsintrp_run_id
-        self.history_executable = history_executable
-        self.history_run_id = history_run_id
+        """Create an ARPS executable and select its upstream result sources."""
+        self.arpssfc_source = arpssfc_source
+        self.arpsintrp_source = arpsintrp_source
+        self.history_source = history_source
 
         if core_num is None or core_num == 1:
             cmd = "./arps"
@@ -247,24 +228,28 @@ class ARPS(ExecutableBase):
         prepare_arps_namelist("arps")
 
     def generate_custom_config(self):
-        """Store ARPS namelist and upstream run choices for replay."""
+        """Store ARPS namelist and upstream result sources for replay."""
         self.custom_config.update(
             {
-                "arpssfc_run_id": self.arpssfc_run_id,
-                "ext2arps_run_id": self.ext2arps_run_id,
-                "arpsintrp_run_id": self.arpsintrp_run_id,
+                "arpssfc_source": asdict(self.arpssfc_source) if self.arpssfc_source is not None else None,
+                "arpsintrp_source": asdict(self.arpsintrp_source) if self.arpsintrp_source is not None else None,
+                "history_source": asdict(self.history_source) if self.history_source is not None else None,
                 "namelist": WRFRUN_NEW.namelist.get_namelist("arps"),
             }
         )
 
     def load_custom_config(self):
-        """Restore ARPS namelist and upstream run choices for replay."""
-        self.arpssfc_run_id = self.custom_config["arpssfc_run_id"]
-        self.ext2arps_run_id = self.custom_config["ext2arps_run_id"]
-        self.arpsintrp_run_id = self.custom_config["arpsintrp_run_id"]
+        """Restore ARPS namelist and upstream result sources for replay."""
+        arpssfc_source = self.custom_config["arpssfc_source"]
+        arpsintrp_source = self.custom_config["arpsintrp_source"]
+        history_source = self.custom_config["history_source"]
+        self.arpssfc_source = ResultSource(**arpssfc_source) if arpssfc_source is not None else None
+        self.arpsintrp_source = ResultSource(**arpsintrp_source) if arpsintrp_source is not None else None
+        self.history_source = ResultSource(**history_source) if history_source is not None else None
         WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arps")
 
     def before_exec(self):
+        """Stage inputs and write the ARPS namelist."""
         WRFRUN_NEW.states.check_wrfrun_context(True)
         WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "arps"
         WRFRUN_NEW.resource.mkdir(self.work_path / "outputs")
@@ -276,6 +261,7 @@ class ARPS(ExecutableBase):
         super().before_exec()
 
     def after_exec(self):
+        """Archive ARPS outputs selected by the namelist."""
         namelist = WRFRUN_NEW.namelist.get_namelist("arps")
 
         if not WRFRUN_NEW.states.IS_IN_REPLAY:
