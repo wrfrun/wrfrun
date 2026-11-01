@@ -35,7 +35,7 @@ class ARPSIntrp(ExecutableBase):
             mpi_core_num = None
             LOGGER.info("Use serial arpsintrp.")
         else:
-            cmd = "./arps_mpi"
+            cmd = "./arpsintrp_mpi"
             work_path = ResourceRef("workspace_arps", "arpsintrp_mpi")
             mpi_use = True
             mpi_cmd = "mpirun"

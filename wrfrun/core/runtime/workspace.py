@@ -168,7 +168,7 @@ class WorkspaceService:
         :raises KeyError: Check function not found.
         """
         if model_name in self._workspace_check_func_map:
-            return self._workspace_init_func_map[model_name]()
+            return self._workspace_check_func_map[model_name]()
 
         else:
             message = f"Workspace check function of model '{model_name}' not found, use 'register_check_func' register it."

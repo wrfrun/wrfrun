@@ -57,19 +57,18 @@ def prepare_arps_workspace():
             )
             model_config.setdefault(_submodel, {})["is_valid"] = True
 
-    # arps core has two version: arps and arps_mpi, we also need to check arps_mpi
-    if not (arps_bin_dir / "arps_mpi").is_file():
-        LOGGER.warning(
-            f"[magenta]arps_mpi[/magenta] not found in {arps_bin_dir}. "
-            "If you want to run arps with MPI, make sure you have compiled MPI version of ARPS core."
-        )
-        model_config.setdefault("arps_mpi", {})["is_valid"] = False
-    else:
-        WRFRUN_NEW.io.symlink(
-            file_path=arps_bin_dir / "arps_mpi",
-            save_path=arps_work_path / "arps_mpi/arps_mpi",
-        )
-        model_config.setdefault("arps_mpi", {})["is_valid"] = True
+        if not (arps_bin_dir / f"{_submodel}_mpi").is_file():
+            LOGGER.warning(
+                f"[magenta]{_submodel}_mpi[/magenta] not found in {arps_bin_dir}, mark it with [magenta]is_valid=False[/magenta]."
+            )
+            model_config.setdefault(f"{_submodel}_mpi", {})["is_valid"] = False
+
+        else:
+            WRFRUN_NEW.io.symlink(
+                file_path=arps_bin_dir / f"{_submodel}_mpi",
+                save_path=arps_work_path / f"{_submodel}_mpi" / f"{_submodel}_mpi",
+            )
+            model_config.setdefault(f"{_submodel}_mpi", {})["is_valid"] = True
 
 
 def check_arps_workspace() -> bool:
