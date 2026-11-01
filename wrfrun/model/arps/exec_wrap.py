@@ -42,6 +42,8 @@ def arps(
     ext2arps_run_id: str | None = None,
     use_arpsintrp_exbc=False,
     arpsintrp_run_id: str | None = None,
+    history_executable: str | None = None,
+    history_run_id: str | None = None,
 ):
     """
     Function interface for :class:`ARPS <wrfrun.model.arps.core.ARPS>`.
@@ -55,6 +57,10 @@ def arps(
     :type use_arpsintrp_exbc: bool
     :param arpsintrp_run_id: Run ID containing ``arpsintrp`` boundary outputs.
                               Defaults to the latest published results.
+    :param history_executable: Executable whose results provide history files.
+                               If omitted, use ``data/inputs/.../arpsintrp``.
+    :param history_run_id: Run ID containing the selected executable's history
+                           files. If omitted, use the latest published results.
     """
     ARPS(
         core_num=WRFRUN_NEW.config.get_core_num(),
@@ -62,6 +68,8 @@ def arps(
         arpssfc_run_id=arpssfc_run_id,
         ext2arps_run_id=ext2arps_run_id,
         arpsintrp_run_id=arpsintrp_run_id,
+        history_executable=history_executable,
+        history_run_id=history_run_id,
     )()
 
 

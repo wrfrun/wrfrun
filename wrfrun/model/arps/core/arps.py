@@ -44,6 +44,35 @@ class ARPSInputsRules:
         )
 
     @classmethod
+    def _stage_histories(cls, executable: "ARPS", namelist: dict) -> None:
+        if executable.history_executable is not None:
+            input_ref = WRFRUN_NEW.resource.get_result_ref(executable.history_executable, executable.history_run_id)
+
+        else:
+            input_ref = WRFRUN_NEW.resource.INPUT_DIR / "arps"
+
+        grid_base = Path(namelist.get("initialization", {}).get("inigbf")).name
+        input_history = Path(namelist.get("initialization", {}).get("inifile")).name
+        input_dir = WRFRUN_NEW.resource.get_custom_resource(input_ref)
+
+        if not (input_dir / grid_base).is_file():
+            message = f"Can't find your grid base file '{grid_base}' in {input_dir}."
+            LOGGER.error(message)
+            raise FileNotFoundError(message)
+
+        if not (input_dir / input_history).is_file():
+            message = f"Can't find your history file '{input_history}' in {input_dir}."
+            LOGGER.error(message)
+            raise FileNotFoundError(message)
+
+        executable.add_input_files([input_ref / grid_base, input_ref / input_history])
+
+        WRFRUN_NEW.namelist.update_namelist(
+            {"initialization": {"inigbf": f"./{grid_base}", "inifile": f"./{input_history}"}},
+            "arps",
+        )
+
+    @classmethod
     def _stage_sounding(cls, executable: "ARPS", namelist: dict) -> None:
         sounding_file = Path(namelist["initialization"]["sndfile"]).name
         executable.add_input_files(WRFRUN_NEW.resource.INPUT_DIR / sounding_file)
@@ -94,7 +123,7 @@ class ARPSInputsRules:
 
 ARPS_INPUT_REQUIREMENTS = (
     IORequirement("sfcdata", lambda _, namelist: namelist["soil_ebm"]["sfcdat"] == 2, ARPSInputsRules._stage_sfcdata),
-    IORequirement("ext2arps", lambda _, namelist: namelist["initialization"]["initopt"] == 3, ARPSInputsRules._stage_ext2arps),
+    IORequirement("history", lambda _, namelist: namelist["initialization"]["initopt"] == 3, ARPSInputsRules._stage_histories),
     IORequirement(
         "sounding",
         lambda _, namelist: namelist["initialization"]["initopt"] == 1 and namelist["initialization"]["inibasopt"] == 1,
@@ -178,12 +207,16 @@ class ARPS(ExecutableBase):
         arpssfc_run_id: str | None = None,
         ext2arps_run_id: str | None = None,
         arpsintrp_run_id: str | None = None,
+        history_executable: str | None = None,
+        history_run_id: str | None = None,
     ):
         """Create an ARPS executable and select its upstream result runs."""
         self.use_arpsintrp_exbc = use_arpsintrp_exbc
         self.arpssfc_run_id = arpssfc_run_id
         self.ext2arps_run_id = ext2arps_run_id
         self.arpsintrp_run_id = arpsintrp_run_id
+        self.history_executable = history_executable
+        self.history_run_id = history_run_id
 
         if core_num is None or core_num == 1:
             cmd = "./arps"
