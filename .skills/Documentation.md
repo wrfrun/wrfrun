@@ -50,6 +50,20 @@ The docstring of every ``wrfrun`` Python module is source material for the
 Sphinx API documentation. Keep its structure aligned with the corresponding
 file under ``docs/source/api/``.
 
+### Preserve module paths and package hierarchy
+
+Name each API ``.rst`` file after the full module path below ``wrfrun``. For
+example, ``wrfrun/core/operations/project.py`` maps to
+``docs/source/api/core.operations.project.rst``; do not shorten it to
+``operations.project.rst``. This keeps API file names unambiguous and aligned
+with imports.
+
+Build the API navigation from the same hierarchy. A package page lists only
+its direct children: ``wrfrun.core`` contains ``wrfrun.core.runtime`` and
+``wrfrun.core.operations``; ``wrfrun.core.runtime`` then contains
+``wrfrun.core.runtime.io`` and its other direct modules. Do not place nested
+packages or modules beside their ancestors in an index or toctree.
+
 ### Package entry points
 
 For ``wrfrun/**/__init__.py`` files, write a short package overview followed by
