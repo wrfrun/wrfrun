@@ -1,6 +1,6 @@
 """
-wrfrun.core.session.states
-##########################
+wrfrun.core.states.states
+#########################
 
 ``wrfrun`` session states store.
 

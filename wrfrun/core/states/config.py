@@ -5,18 +5,10 @@ wrfrun.core.states.config
 .. autosummary::
     :toctree: generated/
 
-    WRFRunConfig
+    ConfigService
 
-WRFRunConfig
-************
-
-This class inherits :class:`NamelistMixIn <wrfrun.core._namelist.NamelistMixIn>`
-and :class:`DebugMixIn <wrfrun.core._debug.DebugMixIn>`.
-URI registration and resolution are delegated to
-:class:`WRFRUNURI <wrfrun.core.uri.WRFRUNURI>`; use ``WRFRUN.uri`` for new code.
-
-Besides the methods from its parents, :class:`WRFRunConfig` provides methods to read and access user config files.
-Its URI methods remain compatibility interfaces.
+``ConfigService`` loads the project configuration, applies experiment overrides,
+and provides access to the resulting session configuration.
 """
 
 import logging

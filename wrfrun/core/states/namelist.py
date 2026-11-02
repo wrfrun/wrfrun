@@ -1,97 +1,16 @@
 """
-wrfrun.core.session._namelist
-#############################
+wrfrun.core.states.namelist
+###########################
 
-Manager namelist used by the session.
+Store, update, and write namelists for one session.
 
 .. autosummary::
     :toctree: generated/
 
-    NamelistMixIn
+    NamelistService
 
-NamelistMixIn
-*************
-
-This mixin provides methods to manage namelist used by the session.
-
-Namelist values are stored with a unique ``namelist_id``,
-which enables wrfrun to manage multiple namelist settings simultaneously.
-
-TODO: Check examples here.
-
-**Read namelist file**
-
-.. code-block:: Python
-    :caption: main.py
-
-    from wrfrun.core import WRFRUN
-    from wrfrun.run import WRFRun
-
-    with WRFRun("/path/to/config.toml") as wrf_run:
-        _session = WRFRUN.session
-
-        namelist_file_path = "./namelist.wps"
-        namelist_id = "wps"
-
-        # remember to check namelist id first
-        if not _session.namelist.check_namelist_id(namelist_id):
-            _session.namelist.register_namelist_id(namelist_id)
-
-        # read namelist file
-        _session.namelist.read_namelist(namelist_file_path, namelist_id)
-
-**Write namelist file**
-
-.. code-block:: Python
-    :caption: main.py
-
-    from wrfrun.core import WRFRUN
-    from wrfrun.run import WRFRun
-
-    with WRFRun("/path/to/config.toml") as wrf_run:
-        _session = WRFRUN.session
-
-        namelist_file_path = "./namelist.wps"
-        namelist_id = "wps"
-
-        # will overwrite existing file by default.
-        _session.namelist.write_namelist(namelist_file_path, namelist_id)
-        # doesn't overwrite existing file
-        _session.namelist.write_namelist(namelist_file_path, namelist_id, overwrite=False)
-
-**Update namelist values**
-
-1. You can provide a whole namelist file
-
-.. code-block:: Python
-    :caption: main.py
-
-    from wrfrun.core import WRFRUN
-    from wrfrun.run import WRFRun
-
-    with WRFRun("/path/to/config.toml") as wrf_run:
-        _session = WRFRUN.session
-
-        namelist_file_path = "./namelist.wps"
-        namelist_id = "wps"
-
-        _session.namelist.update_namelist(namelist_file_path, namelist_id)
-
-2. Or just some values in a dictionary
-
-.. code-block:: Python
-    :caption: main.py
-
-    from wrfrun.core import WRFRUN
-    from wrfrun.run import WRFRun
-
-    with WRFRun("/path/to/config.toml") as wrf_run:
-        _session = WRFRUN.session
-
-        namelist_value = {"share": {"max_dom": 1}}
-        namelist_id = "wps"
-
-        _session.namelist.update_namelist(namelist_value, namelist_id)
+Namelists are stored by ``namelist_id`` so executables can independently
+prepare their configuration.
 """
 
 import logging

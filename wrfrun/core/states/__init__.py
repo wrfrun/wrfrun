@@ -2,18 +2,18 @@
 wrfrun.core.states
 ##################
 
-wrfrun states services which will stores all states of a session.
+Session state and configuration services.
 
 Submodules
 **********
 
-============================================== ========================================================
-:doc:`_debug </api/core.states._debug>`        ``wrfrun`` debug mixin.
-:doc:`config </api/core.states.config>`        ``wrfrun`` configs of a session.
-:doc:`namelist </api/core.states.namelist>`    Stored namelists of a session.
-:doc:`port </api/core.states.port>`            Port states service.
-:doc:`states </api/core.states.states>`        Session states store.
-============================================== ========================================================
+====================================================================== ========================================================
+:doc:`_debug </api/core.states._debug>`                                   Debug-mode mixin.
+:doc:`config </api/core.states.config>`                                   Session configuration loading and access.
+:doc:`namelist </api/core.states.namelist>`                               Session namelist storage and updates.
+:doc:`port </api/core.states.port>`                                       State service container.
+:doc:`states </api/core.states.states>`                                   Mutable session state.
+====================================================================== ========================================================
 
 .. toctree::
     :maxdepth: 1

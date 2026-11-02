@@ -1,34 +1,13 @@
 """
-wrfrun.core.session._debug
-##########################
+wrfrun.core.states._debug
+#########################
 
 .. autosummary::
     :toctree: generated/
 
     DebugMixIn
 
-DebugMixIn
-**********
-
-This class provides methods and attributes to debug ``wrfrun`` itself.
-
-Attribute
-=========
-
-``DebugMixIn`` provides three attributes to set debug mode for different part.
-
-* ``DEBUG_MODE``: ``bool`` attribute, basic switch for all other options. Defaults to ``False``.
-* ``DEBUG_MODE_LOGGER``: ``bool | None`` attribute, switch for logging logger. If ``None``, use ``DEBUG_MODE`` value. Defaults to ``False``.
-* ``DEBUG_MODE_EXECUTABLE``: ``bool | None`` attribute, switch for ``Executable``. If ``None``, use ``DEBUG_MODE`` value. Defaults to ``False``.
-
-Environmental parameters
-========================
-
-``DebugMixIn`` also can read environmental variables.
-
-* ``WRFRUN_DEBUG_MODE``: For ``DEBUG_MODE``, ``1`` or ``0``.
-* ``WRFRUN_DEBUG_MODE_LOGGER``: For ``DEBUG_MODE_LOGGER``, ``1`` or ``0``.
-* ``WRFRUN_DEBUG_MODE_EXECUTABLE``: For ``DEBUG_MODE_EXECUTABLE``, ``1`` or ``0``.
+``DebugMixIn`` provides the debug switches used by session state.
 """
 
 import logging
