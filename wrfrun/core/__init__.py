@@ -12,17 +12,17 @@ The functionalities are split into several submodules, which are listed in the t
 Submodules
 **********
 
-====================================== ========================================================
-:doc:`base </api/core.base>`           Definition of ``Executable`` base class.
-:doc:`core </api/core.core>`           Definition of proxy class ``WRFRUNProxy``.
-:doc:`error </api/core.error>`         Definition of ``wrfrun`` error exceptions.
-:doc:`operations </api/operations>`    Project and run management operations.
-:doc:`plugin </api/core.plugin>`       Definition of plugin protocol.
-:doc:`runtime </api/core.runtime>`     Definition of runtime service.
-:doc:`server </api/core.server>`       Functions and classes to start socket server.
-:doc:`states </api/core.states>`       Definition of session states.
-:doc:`type </api/core.type>`           Definition of various types used in ``wrfrun``.
-====================================== ========================================================
+========================================= ========================================================
+:doc:`base </api/core.base>`              Definition of ``Executable`` base class.
+:doc:`core </api/core.core>`              Definition of proxy class ``WRFRUNProxy``.
+:doc:`error </api/core.error>`            Definition of ``wrfrun`` error exceptions.
+:doc:`operations </api/core.operations>`  Project and run management operations.
+:doc:`plugin </api/core.plugin>`          Definition of plugin protocol.
+:doc:`runtime </api/core.runtime>`        Definition of runtime service.
+:doc:`server </api/core.server>`          Functions and classes to start socket server.
+:doc:`states </api/core.states>`          Definition of session states.
+:doc:`type </api/core.type>`              Definition of various types used in ``wrfrun``.
+========================================= ========================================================
 
 .. toctree::
     :maxdepth: 1
@@ -31,9 +31,11 @@ Submodules
     base <core.base>
     core <core.core>
     error <core.error>
-    operations <operations>
+    operations <core.operations>
     plugin <core.plugin>
+    runtime <core.runtime>
     server <core.server>
+    states <core.states>
     type <core.type>
 """
 
