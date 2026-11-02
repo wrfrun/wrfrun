@@ -1,4 +1,7 @@
 """
+wrfrun.model.arps.core.arps
+###########################
+
 ARPS forecast executable.
 
 .. autosummary::

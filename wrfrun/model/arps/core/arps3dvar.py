@@ -1,4 +1,7 @@
 """
+wrfrun.model.arps.core.arps3dvar
+################################
+
 ARPS three-dimensional variational analysis executable.
 
 .. autosummary::

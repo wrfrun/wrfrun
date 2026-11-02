@@ -1,6 +1,6 @@
 """
-wrfrun.model.arps.arpstrn
-#########################
+wrfrun.model.arps.core.arpstrn
+##############################
 
 Implementation of ``arpstrn`` submodel.
 

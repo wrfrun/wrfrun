@@ -1,4 +1,7 @@
 """
+wrfrun.model.arps.core.arpsintrp
+################################
+
 ARPS interpolation executable.
 
 .. autosummary::

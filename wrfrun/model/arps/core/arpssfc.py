@@ -1,4 +1,7 @@
 """
+wrfrun.model.arps.core.arpssfc
+##############################
+
 ARPS surface-data executable.
 
 .. autosummary::
@@ -38,6 +41,7 @@ class ARPSSFC(ExecutableBase):
         WRFRUN.namelist.update_namelist(self.custom_config["namelist"], "arpssfc")
 
     def before_exec(self):
+        """Prepare the surface-data workspace and write the runtime namelist."""
         WRFRUN.states.check_wrfrun_context(True)
         WRFRUN.states.WRFRUN_WORK_STATUS = "arpssfc"
 
@@ -48,6 +52,7 @@ class ARPSSFC(ExecutableBase):
         super().before_exec()
 
     def after_exec(self):
+        """Archive generated surface data and the runtime namelist."""
         if not WRFRUN.states.IS_IN_REPLAY:
             self.add_output_files(
                 filenames=f"{self.name}.sfcdata",

@@ -1,4 +1,15 @@
-"""Shared ARPS namelist preparation helpers."""
+"""
+wrfrun.model.arps.core._common
+##############################
+
+Shared ARPS namelist preparation helpers.
+
+.. autosummary::
+    :toctree: generated/
+
+    prepare_arps_namelist
+    prepare_component_namelist
+"""
 
 import logging
 from datetime import datetime
