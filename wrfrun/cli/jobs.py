@@ -33,3 +33,6 @@ def entry_jobs(args: argparse.Namespace):
             job.status["updated_at"],
         )
     get_wrfrun_rich_console().print(table)
+
+
+__all__ = ["entry_jobs"]

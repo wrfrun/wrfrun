@@ -26,3 +26,6 @@ def entry_create(args: argparse.Namespace):
     create_experiment(config_path, args.name, args.copy)
     input_mode = "copied" if args.copy else "symlinked"
     logger.info(f"Created experiment '{args.name}' with {input_mode} inputs.")
+
+
+__all__ = ["entry_create"]

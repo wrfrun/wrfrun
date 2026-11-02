@@ -59,3 +59,6 @@ def entry_model(args: argparse.Namespace):
 
     add_models(config_path, args.add)
     logger.info(f"Added models: {args.add}")
+
+
+__all__ = ["entry_init", "entry_model"]

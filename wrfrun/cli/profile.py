@@ -49,3 +49,6 @@ def entry_load(args: argparse.Namespace):
     archive_path = get_global_profile_path(args.source) if args.global_profile else Path(args.source)
     load_profile(archive_path, args.path)
     logger.info(f"Created project '{Path(args.path).resolve()}' from '{archive_path.resolve()}'.")
+
+
+__all__ = ["entry_save", "entry_load"]

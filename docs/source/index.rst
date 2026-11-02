@@ -26,7 +26,7 @@ What wrfrun provides
   workspace and immutable output archive. ``results/<executable>`` points to
   the latest published output for a later stage of the same experiment.
 - **Reproducibility tools**. The runtime records executable configuration and
-  file handoffs for replay; a :class:`ResultSource <wrfrun.core.ResultSource>`
+  file handoffs for replay; a :class:`ResultSource <wrfrun.core.type.ResultSource>`
   can explicitly select an upstream result from another experiment or run.
 - **Cluster support**. Scheduler scripts can be rendered from project-provided
   templates and submitted through supported scheduler backends.
@@ -35,14 +35,53 @@ Typical workflow
 ****************
 
 1. Create a project and enable the numerical-model plugins you need.
+
+   .. code-block:: console
+
+      $ wrfrun init --path my-project --models arps
+
 2. Prepare the model namelist templates and user updates under ``configs/``.
-3. Create experiments for configuration variations and place their input data
-   in their experiment-specific directories.
-4. Enter a :class:`WRFRun <wrfrun.run.WRFRun>` context and call model wrappers
+
+   .. code-block:: console
+
+      $ cd my-project
+      $ $EDITOR config.toml
+      $ $EDITOR configs/namelists/templates/arps/arps/arps.nml  # All namelist settings
+      $ $EDITOR configs/namelists/templates/arps/arps/arps.nml  # Only the value you want to change
+
+3. Place the input files needed for the first simulation under the default
+   ``common`` input directory.
+
+   .. code-block:: console
+
+      $ mkdir -p data/inputs/common/<executable>
+      $ cp <input-files> data/inputs/common/<executable>/
+
+4. Enter a :class:`WRFRunContext <wrfrun.run.WRFRunContext>` context and call model wrappers
    in the required order. Each executable stages its declared inputs, runs in
    the active isolated workspace, and archives its outputs.
+
+   .. code-block:: python
+
+      from wrfrun.run import WRFRunContext
+      from wrfrun.model.arps import arps
+
+      with WRFRunContext("config.toml"):
+          arps()
+
 5. Inspect logs and archived outputs, or use a published result as the input to
    a later simulation stage.
+
+   .. code-block:: console
+
+      $ wrfrun jobs --config config.toml
+      $ wrfrun jobs --config config.toml --follow <run-id>
+
+   .. code-block:: python
+
+      from wrfrun.core import ResultSource
+
+      source = ResultSource(executable="arps", run_id="<run-id>")
 
 Start here
 **********

@@ -44,6 +44,68 @@ Add a new page only when an existing page cannot describe the feature clearly.
 Every new page must be reachable from the appropriate `index.rst` toctree;
 do not leave guidance discoverable only through a direct path.
 
+## Document Python modules consistently
+
+The docstring of every ``wrfrun`` Python module is source material for the
+Sphinx API documentation. Keep its structure aligned with the corresponding
+file under ``docs/source/api/``.
+
+### Package entry points
+
+For ``wrfrun/**/__init__.py`` files, write a short package overview followed by
+a ``Submodules`` section. Do not use ``autosummary`` in these entry points.
+
+- List the package's direct modules in a reStructuredText table. Each row must
+  contain a ``:doc:`` link to its API page and a concise description of its
+  responsibility.
+- Add a hidden ``toctree`` that lists the same API pages, so Sphinx preserves
+  the package hierarchy in navigation.
+- Create the matching API page under ``docs/source/api/``. For example,
+  ``wrfrun/core/__init__.py`` maps to ``docs/source/api/core.rst`` and
+  ``wrfrun/core/runtime/__init__.py`` maps to
+  ``docs/source/api/core.runtime.rst``.
+
+```rst
+Submodules
+**********
+
+====================================== ========================================================
+:doc:`base </api/core.base>`           Definition of ``Executable`` base class.
+:doc:`runtime </api/core.runtime>`     Runtime services shared by one session.
+====================================== ========================================================
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   base <core.base>
+   runtime <core.runtime>
+```
+
+### Concrete modules
+
+For every other ``wrfrun/**/*.py`` module, begin the file docstring with its
+fully qualified module path as the title. Follow it with ``autosummary`` for
+the public classes and functions defined by that module, then add only the
+supplementary concepts that their individual docstrings cannot explain.
+
+```rst
+wrfrun.core.base
+################
+
+.. autosummary::
+   :toctree: generated/
+
+   check_subprocess_status
+   ExecutableBase
+```
+
+Create a matching API page under ``docs/source/api/`` for every concrete
+module, such as ``wrfrun/core/base.py`` to ``docs/source/api/core.base.rst``.
+Use an ``automodule`` directive there and ensure the page is reachable from the
+relevant API index or package toctree. Do not edit ``docs/source/api/generated``;
+it is Sphinx output from ``autosummary``.
+
 ## Coordinate with implementation skills
 
 Read the linked implementation skill before documenting its domain:
