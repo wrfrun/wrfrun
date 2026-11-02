@@ -6,14 +6,14 @@ wrfrun.run
     :toctree: generated/
 
     confirm_model_area
-    WRFRun
+    WRFRunContext
 
 This module defines class and function used by ``wrfrun`` to run simulations.
 
-Use ``WRFRun`` to control simulations better
+Use ``WRFRunContext`` to control simulations better
 ********************************************
 
-:class:`WRFRun` provides many useful features:
+:class:`WRFRunContext` provides many useful features:
 
 * Set log files.
 * Load config and namelist from files.
@@ -23,16 +23,16 @@ Use ``WRFRun`` to control simulations better
 * Record and replay simulations.
 * Start socket server.
 
-Though you can do same things manually, why bother yourself while :class:`WRFRun` is easy to use:
+Though you can do same things manually, why bother yourself while :class:`WRFRunContext` is easy to use:
 
 .. code-block:: python
     :caption: main.py
 
-    from wrfrun.run import WRFRun
+    from wrfrun.run import WRFRunContext
 
     config_file = "./config.toml"
 
-    with WRFRun(config_file) as wrf_run:
+    with WRFRunContext(config_file) as wrf_run:
         # do something
         ...
 """

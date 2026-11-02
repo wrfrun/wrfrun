@@ -1,199 +1,84 @@
-.. wrfrun documentation master file, created by
-   sphinx-quickstart on Sun Feb 16 12:49:45 2025.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 wrfrun documentation
 ####################
 
-.. note::
-   I'm still working on to complete ``wrfrun``'s documentation, you'll find some empty pages, which is normal :)
+``wrfrun`` is a Python toolkit for organizing numerical-model simulations as
+repeatable, inspectable workflows. It keeps the model-specific work—writing
+namelists, staging inputs, running external programs, and collecting
+outputs—close to the model interface, while providing one project layout for
+configuration, experiments, logs, archived results, and isolated runtime
+workspaces.
 
-   I hope you like my work.
+It is useful when a simulation involves more than one executable or must be
+repeated with small configuration changes. A supported model is invoked from a
+short Python script inside :class:`WRFRunContext <wrfrun.run.WRFRunContext>`; ``wrfrun`` then
+prepares that run's workspace and records its files and outputs in the project.
 
-🌀 What is wrfrun?
-******************
+What wrfrun provides
+*********************
 
-``wrfrun`` is a modern, unified framework for running and managing numerical models. Designed for researchers who want to focus on science — not on the details of model execution.
+- **Model interfaces** for external numerical-model executables. An executable
+  owns its namelist preparation, input staging, command execution, and output
+  collection.
+- **Project and experiment management**. A project can contain several named
+  experiments, each with its own configuration overrides, namelist updates,
+  input-data directory, outputs, and logs.
+- **Isolated runs and result archives**. Each run receives an independent
+  workspace and immutable output archive. ``results/<executable>`` points to
+  the latest published output for a later stage of the same experiment.
+- **Reproducibility tools**. The runtime records executable configuration and
+  file handoffs for replay; a :class:`ResultSource <wrfrun.core.ResultSource>`
+  can explicitly select an upstream result from another experiment or run.
+- **Cluster support**. Scheduler scripts can be rendered from project-provided
+  templates and submitted through supported scheduler backends.
 
-It automates the tedious parts of model execution — preparing input data, handling ``namelist`` configurations, organizing logs, and submitting jobs — so that you can spend your time on research, not on managing model runs.
-
-``wrfrun`` is not just limited to WRF; it provides a general-purpose, reproducible, and extensible framework that can be adapted to various numerical models through its unified interface architecture.
-
-✨ Core Features
+Typical workflow
 ****************
 
-🧩 Unified Interface Architecture
-=================================
+1. Create a project and enable the numerical-model plugins you need.
+2. Prepare the model namelist templates and user updates under ``configs/``.
+3. Create experiments for configuration variations and place their input data
+   in their experiment-specific directories.
+4. Enter a :class:`WRFRun <wrfrun.run.WRFRun>` context and call model wrappers
+   in the required order. Each executable stages its declared inputs, runs in
+   the active isolated workspace, and archives its outputs.
+5. Inspect logs and archived outputs, or use a published result as the input to
+   a later simulation stage.
 
-``wrfrun`` enforces a unified interface specification for all numerical models. Specifically, each model interface must inherit from a provided base class, ensuring a consistent structure and behavior across different models.
-
-This design makes model execution intuitive — any supported model can be launched simply by calling a Python function or class method, while ``wrfrun`` automatically handles all background tasks such as data preparation and configuration file management.
-
-.. code-block:: python
-   
-   from wrfrun.run import WRFRun
-   from wrfrun.model.wrf import geogrid, metgrid, real, ungrib, wrf
-
-   # wrfrun will prepare input data, generate namelist file,
-   # save outputs and logs automatically.
-   with WRFRun("./config.toml", init_workspace=True) as wrf_run:
-       geogrid()
-       ungrib()
-       metgrid()
-       real()
-       wrf()
-
-🪶 Record & Replay
-===================
-
-Every simulation can be fully recorded and later reproduced from a single ``.replay`` file — ensuring total reproducibility.
-
-.. code-block:: python
-
-   from wrfrun.run import WRFRun
-   from wrfrun.model.wrf import geogrid, ungrib, metgrid, real, wrf
-
-
-   # 1. Record simulation with method `record_simulation`.
-   with WRFRun("./config.toml", init_workspace=True) as wrf_run:
-       wrf_run.record_simulation(output_path="./outputs/example.replay")
-
-       geogrid()
-       ungrib()
-       metgrid()
-       real()
-       wrf()
-
-   # 2. Replay the simulation in a different directory or on a different machine.
-   with WRFRun("./config.toml", init_workspace=True) as wrf_run:
-       wrf_run.replay_simulation("./example.replay")
-
-⚙️ Simplified Configuration
-============================
-
-Manage all simulation settings in TOML files: A main config file, and model config files.
-
-.. code-block:: toml
-
-   # main config file: config.toml
-   work_dir = "./.wrfrun"
-
-   input_data_path = ""
-   output_path = "./outputs"
-   log_path = "./logs"
-
-   server_host = "localhost"
-   server_port = 54321
-
-   core_num = 36
-
-   [job_scheduler]
-   job_scheduler = "pbs"
-
-   queue_name = ""
-   node_num = 1
-   env_settings = {}
-   # Leave empty to reuse the interpreter running wrfrun.
-   python_interpreter = ""
-
-   [model]
-   [model.wrf]
-   use = false
-   include = "./configs/wrf.toml"
-
-``wrfrun`` remains compatible with original ``namelist`` inputs, just set namelist file path in the model config.
-
-💻 Job Scheduling Integration
-==============================
-
-Automatically submit jobs to supported schedulers:
-
-- PBS
-- Slurm
-- LSF
-
-``wrfrun`` takes care of resource requests and queue management automatically.
-
-.. code-block:: python
-
-   from wrfrun.run import WRFRun
-   from wrfrun.model.wrf import geogrid, metgrid, real, ungrib, wrf
-
-   # just set submit_job=True
-   with WRFRun("./config.toml", init_workspace=True, submit_job=True) as wrf_run:
-       geogrid()
-       ungrib()
-       metgrid()
-       real()
-       wrf()
-
-📡 Real-time Monitoring
-========================
-
-``wrfrun`` can parse model log files and start a lightweight socket server to report simulation progress.
-
-.. code-block:: python
-
-   from wrfrun.run import WRFRun
-   from wrfrun.model.wrf import geogrid, metgrid, real, ungrib, wrf
-
-   # just set start_server=True
-   with WRFRun("./config.toml", init_workspace=True, start_server=True) as wrf_run:
-       geogrid()
-       ungrib()
-       metgrid()
-       real()
-       wrf()
-
-🌍 Current Capabilities
-************************
-
-- Automated ERA5 data download (requires ``cdsapi`` authentication)
-- Real-time progress reporting via socket interface
-- Numerical model support:
-   * Partial WRF support:
-      + Full support for WPS
-      + Wrapped execution for ``real`` and ``wrf``
-   * PALM model support (in progress)
-- Job submission on PBS, Slurm, and LSF
-- ``record`` / ``replay`` reproducibility for all compliant interfaces
-
-Get started
-***********
-
-These sections will teach you how to install ``wrfrun``, and help you explore ``wrfrun`` using the same cases from `WRF–ARW Online Tutorial <https://www2.mmm.ucar.edu/wrf/OnLineTutorial/>`_.
-
-.. toctree::
-   :maxdepth: 3
-   :caption: Get started:
-
-   usage/index
-
-User guide
+Start here
 **********
 
-These sections will explain important concepts of ``wrfrun`` and help you understand how ``wrfrun`` works.
+- :doc:`Usage guide </usage/index>` explains installation, project creation,
+  the first simulation, experiments, jobs, profiles, and custom executables.
+- :doc:`Quick start </usage/quick_start>` is the practical entry point for a
+  first WRF workflow.
+- :doc:`Experiments </usage/experiments>` describes how related simulations are
+  organized within one project.
+- :doc:`Jobs </usage/jobs>` documents status inspection and following an active
+  executable log.
+
+Understand a project and run
+****************************
+
+- :doc:`Configuration </documentation/config_file>` describes the top-level,
+  model, and experiment TOML files.
+- :doc:`Runtime context </documentation/context>` explains what happens when a
+  ``WRFRun`` context starts, how outputs are archived, and how replay works.
+- :doc:`Concepts and configuration </documentation/index>` collects the
+  remaining architecture and configuration material.
+
+Reference and development
+*************************
+
+- :doc:`API reference </api/index>` documents the public Python and command
+  line interfaces.
+- :doc:`Development guide </development/index>` is for model-plugin and core
+  contributors.
 
 .. toctree::
-   :maxdepth: 3
-   :caption: User guide:
+   :maxdepth: 2
+   :hidden:
 
+   usage/index
    documentation/index
-
-API reference
-*************
-
-:doc:`/api/index` contains a detailed description of the ``wrfrun`` API. It describes how the methods work and which parameters can be used.
-
-.. toctree::
-   :hidden:
-   :maxdepth: 2
-
    api/index
-
-.. toctree::
-   :hidden:
-   :maxdepth: 2
-
    development/index
