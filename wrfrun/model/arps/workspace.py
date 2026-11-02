@@ -2,7 +2,7 @@
 wrfrun.model.arps.workspace
 ###########################
 
-Functions to prepare workspace for ARPS model and its submodels.
+Prepare and validate ARPS workspaces.
 
 .. autosummary::
     :toctree: generated/
@@ -21,15 +21,7 @@ LOGGER = logging.getLogger("wrfrun")
 
 
 def prepare_arps_workspace():
-    """
-    Initialize workspace for ARPS model and its submodels.
-
-    This function will check following paths,
-    and create them or delete old files inside:
-
-    1. ``$WORKSPACE/model/ARPS/arps``
-    2. ``$WORKSPACE/model/ARPS/{SUBMODEL_NAME}``
-    """
+    """Stage available ARPS binaries in their model-owned workspaces."""
     LOGGER.info("Initialize workspace for ARPS.")
 
     model_config = WRFRUN.config.get_model_config("arps")

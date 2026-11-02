@@ -1,3 +1,13 @@
+"""
+wrfrun.model.arps.data
+######################
+
+Experimental ERA5 download script for one ARPS case.
+
+Importing this module starts CDS requests, so it is not part of the public API
+or the Sphinx API reference.
+"""
+
 import cdsapi
 
 dataset = "reanalysis-era5-single-levels"

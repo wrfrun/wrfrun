@@ -1,11 +1,14 @@
 """
-Conditional executable inputs for ARPS.
+wrfrun.model.arps.io
+####################
+
+Conditional ARPS input and output rules.
 
 .. autosummary::
     :toctree: generated/
 
-    InputRequirement
-    stage_input_requirements
+    IORequirement
+    stage_io_requirements
 """
 
 import logging

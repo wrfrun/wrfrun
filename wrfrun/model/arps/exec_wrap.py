@@ -13,6 +13,7 @@ Function wrapper of ARPS :doc:`Executables </api/model.arps.core>`.
     arpsintrp
     ext2arps
     radremap
+    arpstrn
 """
 
 from wrfrun.core import WRFRUN, ResultSource
@@ -107,9 +108,9 @@ def radremap(arps_source: ResultSource | None = None):
 
 def arpstrn():
     """
-    Function interface for :class:`ARPSTrn`.
+    Function interface for :class:`ARPSTrn <wrfrun.model.arps.core.arpstrn.ARPSTrn>`.
 
-    Parameters needed to initialize :class:`ARPSTrn` is read from global variable :doc:`WRFRUN </api/core.core>`.
+    Parameters are read from the active ``wrfrun`` session configuration.
     """
     ARPSTrn()()
 

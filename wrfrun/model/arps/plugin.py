@@ -3,6 +3,11 @@ wrfrun.model.arps.plugin
 ########################
 
 Define plugin class which will be provided to ``wrfrun`` to register ``Executable``.
+
+.. autosummary::
+    :toctree: generated/
+
+    ARPSPlugin
 """
 
 import logging

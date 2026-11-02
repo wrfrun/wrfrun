@@ -1,7 +1,15 @@
 """
-Compat layer of ARPS.
+wrfrun.model.arps.compat
+########################
 
-This module may be removed at ANY time.
+Legacy ARPS compatibility helpers.
+
+This module may be removed at any time.
+
+.. autosummary::
+    :toctree: generated/
+
+    copy_arps_namelist_template
 """
 
 import logging
