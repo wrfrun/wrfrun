@@ -7,7 +7,11 @@ External command runner.
 .. autosummary::
     :toctree: generated/
 
-
+    StreamMode
+    CommandStdStream
+    Command
+    CommandResult
+    RunnerService
 """
 
 import logging

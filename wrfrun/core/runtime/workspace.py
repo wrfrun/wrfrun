@@ -7,7 +7,7 @@ Workspace service.
 .. autosummary::
     :toctree: generated/
 
-
+    WorkspaceService
 """
 
 import logging

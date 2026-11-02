@@ -5,10 +5,10 @@ wrfrun.core.runtime.record
 .. autosummary::
     :toctree: generated/
 
-    ExecutableRecorder
+    ReplayService
 
-ExecutableRecorder
-******************
+ReplayService
+*************
 
 This class provides methods to record simulations.
 It will save configs and resources of ``Executable``, and input data optionally.
