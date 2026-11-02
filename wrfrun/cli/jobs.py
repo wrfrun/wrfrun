@@ -1,4 +1,14 @@
-"""CLI handlers for run-status commands."""
+"""
+wrfrun.cli.jobs
+################
+
+CLI handlers for run-status commands.
+
+.. autosummary::
+    :toctree: generated/
+
+    entry_jobs
+"""
 
 import argparse
 

@@ -1,4 +1,14 @@
-"""CLI handlers for experiment commands."""
+"""
+wrfrun.cli.experiment
+######################
+
+CLI handlers for experiment commands.
+
+.. autosummary::
+    :toctree: generated/
+
+    entry_create
+"""
 
 import argparse
 from pathlib import Path

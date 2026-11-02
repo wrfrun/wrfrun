@@ -1,4 +1,15 @@
-"""CLI handlers for project and model commands."""
+"""
+wrfrun.cli.project
+###################
+
+CLI handlers for project and model commands.
+
+.. autosummary::
+    :toctree: generated/
+
+    entry_init
+    entry_model
+"""
 
 import argparse
 from os import listdir

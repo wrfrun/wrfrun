@@ -1,4 +1,14 @@
-"""Argument parser and entry point for the wrfrun command."""
+"""
+wrfrun.cli.main
+################
+
+Argument parser and entry point for the ``wrfrun`` command.
+
+.. autosummary::
+    :toctree: generated/
+
+    main_entry
+"""
 
 import argparse
 import sys

@@ -1,4 +1,15 @@
-"""CLI handlers for reusable profile commands."""
+"""
+wrfrun.cli.profile
+###################
+
+CLI handlers for reusable profile commands.
+
+.. autosummary::
+    :toctree: generated/
+
+    entry_save
+    entry_load
+"""
 
 import argparse
 from pathlib import Path
