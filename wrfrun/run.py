@@ -11,7 +11,7 @@ wrfrun.run
 This module defines class and function used by ``wrfrun`` to run simulations.
 
 Use ``WRFRunContext`` to control simulations better
-********************************************
+***************************************************
 
 :class:`WRFRunContext` provides many useful features:
 
