@@ -7,7 +7,7 @@ wrfrun.core.states._debug
 
     DebugMixIn
 
-``DebugMixIn`` provides the debug switches used by session state.
+:class:`DebugMixIn` provides the debug switches used by session state.
 """
 
 import logging

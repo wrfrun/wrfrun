@@ -7,7 +7,7 @@ wrfrun.core.states.config
 
     ConfigService
 
-``ConfigService`` loads the project configuration, applies experiment overrides,
+:class:`ConfigService` loads the project configuration, applies experiment overrides,
 and provides access to the resulting session configuration.
 """
 
