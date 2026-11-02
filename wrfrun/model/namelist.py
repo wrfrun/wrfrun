@@ -12,12 +12,12 @@ Shared paths for project namelist files.
 
 from pathlib import Path
 
-from ..core import WRFRUN_NEW
+from ..core import WRFRUN
 
 
 def get_project_namelist_files(model: str, component: str, filename: str) -> tuple[Path, tuple[Path, ...]]:
     """Return the template and optional update files for one namelist."""
-    resource = WRFRUN_NEW.resource
+    resource = WRFRUN.resource
     template = resource.get_custom_resource(resource.NAMELIST_TEMPLATE_DIR / model / component / filename)
     updates = [resource.get_custom_resource(resource.NAMELIST_USER_DIR / model / component / filename)]
 

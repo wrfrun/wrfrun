@@ -15,7 +15,7 @@ from os import listdir
 from pathlib import Path
 from typing import Literal
 
-from wrfrun.core import WRFRUN_NEW, ResourceRef
+from wrfrun.core import WRFRUN, ResourceRef
 from wrfrun.log import logger
 
 
@@ -28,7 +28,7 @@ def get_palm_workspace_path(node: Literal["root", "job", "input", "output"] = "r
     :return: Workspace path.
     :rtype: str
     """
-    job_name = WRFRUN_NEW.config.get_model_config("palm")["job_name"]
+    job_name = WRFRUN.config.get_model_config("palm")["job_name"]
 
     match node:
         case "root":
@@ -55,7 +55,7 @@ def prepare_palm_workspace():
     """
     logger.info("Initialize workspace for PALM.")
 
-    palm_path = WRFRUN_NEW.config.get_model_config("palm")["palm_path"]
+    palm_path = WRFRUN.config.get_model_config("palm")["palm_path"]
 
     palm_path = Path(palm_path).resolve()
 
@@ -66,18 +66,18 @@ def prepare_palm_workspace():
     palm_work_path = get_palm_workspace_path()
     workspace_job_path = get_palm_workspace_path("job")
     workspace_input_path = get_palm_workspace_path("input")
-    WRFRUN_NEW.resource.mkdir(palm_work_path)
-    WRFRUN_NEW.resource.mkdir(workspace_job_path)
-    WRFRUN_NEW.resource.mkdir(workspace_input_path)
+    WRFRUN.resource.mkdir(palm_work_path)
+    WRFRUN.resource.mkdir(workspace_job_path)
+    WRFRUN.resource.mkdir(workspace_input_path)
 
     if not (palm_path / "bin/palmrun").is_file():
         logger.error("Script 'palmrun' not found in your PALM dir.")
         raise FileNotFoundError("Script 'palmrun' not found in your PALM dir.")
 
-    WRFRUN_NEW.io.symlink(file_path=palm_path / "bin/palmrun", save_path=palm_work_path / "palmrun")
+    WRFRUN.io.symlink(file_path=palm_path / "bin/palmrun", save_path=palm_work_path / "palmrun")
 
     file_list = [x for x in listdir(palm_path) if not (x.startswith(".palm.config") or x == "JOBS")]
-    _ = [WRFRUN_NEW.io.symlink(file_path=f"{palm_path}/{x}", save_path=palm_work_path / x) for x in file_list]
+    _ = [WRFRUN.io.symlink(file_path=f"{palm_path}/{x}", save_path=palm_work_path / x) for x in file_list]
 
 
 def check_palm_workspace() -> bool:
@@ -90,7 +90,7 @@ def check_palm_workspace() -> bool:
     flag = True
 
     palm_work_path = get_palm_workspace_path()
-    flag = flag & WRFRUN_NEW.resource.get_custom_resource(palm_work_path).exists()
+    flag = flag & WRFRUN.resource.get_custom_resource(palm_work_path).exists()
 
     return flag
 

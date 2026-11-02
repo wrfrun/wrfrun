@@ -14,7 +14,7 @@ Core implementation of ROMS model.
 from os.path import abspath, basename
 from typing import Optional
 
-from wrfrun.core import WRFRUN_NEW, ExecutableBase
+from wrfrun.core import WRFRUN, ExecutableBase
 from wrfrun.log import logger
 
 from ...core.type import ResourceRef
@@ -48,7 +48,7 @@ class ROMS(ExecutableBase):
             mpi_cmd = "mpirun"
             mpi_core_num = core_num
 
-        model_config = WRFRUN_NEW.config.get_model_config("roms")
+        model_config = WRFRUN.config.get_model_config("roms")
         in_file_path = model_config["roms_in_path"]
 
         super().__init__(
@@ -88,10 +88,10 @@ class ROMS(ExecutableBase):
         self.varinfo_file_path = self.custom_config["varinfo_file_path"]
 
     def before_exec(self):
-        WRFRUN_NEW.states.check_wrfrun_context(True)
-        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "roms"
+        WRFRUN.states.check_wrfrun_context(True)
+        WRFRUN.states.WRFRUN_WORK_STATUS = "roms"
 
-        if not WRFRUN_NEW.states.IS_IN_REPLAY:
+        if not WRFRUN.states.IS_IN_REPLAY:
             self.add_input_files(self.in_file_path)
             self.add_input_files(self.roms_exe_path)
             self.add_input_files(self.varinfo_file_path)
@@ -99,7 +99,7 @@ class ROMS(ExecutableBase):
         super().before_exec()
 
     def after_exec(self):
-        if not WRFRUN_NEW.states.IS_IN_REPLAY:
+        if not WRFRUN.states.IS_IN_REPLAY:
             self.add_output_files(save_path=self._output_save_path, endswith=".nc")
 
             logger.warning(
@@ -115,8 +115,8 @@ def roms():
 
     Parameters needed to initialize :class:`ROMS` is read from global variable :doc:`WRFRUN </api/core.core>`.
     """
-    roms_exe_path = WRFRUN_NEW.config.get_model_config("roms")["roms_compiled_executable_path"]
-    return ROMS(roms_exe_path, WRFRUN_NEW.config.get_core_num())()
+    roms_exe_path = WRFRUN.config.get_model_config("roms")["roms_compiled_executable_path"]
+    return ROMS(roms_exe_path, WRFRUN.config.get_core_num())()
 
 
 __all__ = ["ROMS", "roms"]

@@ -15,7 +15,7 @@ Function wrapper of ARPS :doc:`Executables </api/model.arps.core>`.
     radremap
 """
 
-from wrfrun.core import WRFRUN_NEW, ResultSource
+from wrfrun.core import WRFRUN, ResultSource
 
 from .core import ARPS, ARPSSFC, EXT2ARPS, ARPS3DVar, ARPSIntrp, ARPSTrn, RadRemap
 
@@ -53,7 +53,7 @@ def arps(
                            omitted, use ``data/inputs/.../arps``.
     """
     ARPS(
-        core_num=WRFRUN_NEW.config.get_core_num(),
+        core_num=WRFRUN.config.get_core_num(),
         arpssfc_source=arpssfc_source,
         arpsintrp_source=arpsintrp_source,
         history_source=history_source,
@@ -79,7 +79,7 @@ def arpsintrp(history_source: ResultSource | None = None):
     """
     ARPSIntrp(
         history_source=history_source,
-        core_num=WRFRUN_NEW.config.get_core_num(),
+        core_num=WRFRUN.config.get_core_num(),
     )()
 
 

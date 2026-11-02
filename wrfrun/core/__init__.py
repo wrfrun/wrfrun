@@ -14,7 +14,7 @@ Submodules
 
 ========================================= ========================================================
 :doc:`base </api/core.base>`              Definition of ``Executable`` base class.
-:doc:`core </api/core.core>`              Definition of proxy class ``WRFRUNProxy``.
+:doc:`core </api/core.core>`              Active-session access through ``WRFRUN``.
 :doc:`error </api/core.error>`            Definition of ``wrfrun`` error exceptions.
 :doc:`operations </api/core.operations>`  Project and run management operations.
 :doc:`plugin </api/core.plugin>`          Definition of plugin protocol.

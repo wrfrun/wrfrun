@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime
 
-from wrfrun.core import WRFRUN_NEW
+from wrfrun.core import WRFRUN
 
 from ...namelist import get_project_namelist_files
 
@@ -21,11 +21,11 @@ PROJECTION_MAP = {
 
 def load_component_namelist(component: str, filename: str) -> None:
     """Load one executable's namelist template into its own namelist ID."""
-    if not WRFRUN_NEW.namelist.check_namelist_id(component):
-        WRFRUN_NEW.namelist.register_namelist_id(component)
+    if not WRFRUN.namelist.check_namelist_id(component):
+        WRFRUN.namelist.register_namelist_id(component)
 
     template_file, _ = get_project_namelist_files("arps", component, filename)
-    WRFRUN_NEW.namelist.read_namelist(template_file.as_posix(), component)
+    WRFRUN.namelist.read_namelist(template_file.as_posix(), component)
 
 
 def apply_component_namelist_updates(component: str, filename: str) -> None:
@@ -33,7 +33,7 @@ def apply_component_namelist_updates(component: str, filename: str) -> None:
     _, update_files = get_project_namelist_files("arps", component, filename)
     for update_file in update_files:
         if update_file.is_file():
-            WRFRUN_NEW.namelist.update_namelist(update_file.as_posix(), component)
+            WRFRUN.namelist.update_namelist(update_file.as_posix(), component)
 
 
 def prepare_component_namelist(component: str, filename: str | None = None) -> None:
@@ -45,7 +45,7 @@ def prepare_component_namelist(component: str, filename: str | None = None) -> N
 
 def prepare_arps_namelist(component: str) -> None:
     """Prepare the ARPS-format namelist used by one executable component."""
-    model_config = WRFRUN_NEW.config.get_model_config("arps")
+    model_config = WRFRUN.config.get_model_config("arps")
     load_component_namelist(component, f"{component}.nml")
 
     grid_projection = model_config["global"]["grid_projection"]
@@ -53,9 +53,9 @@ def prepare_arps_namelist(component: str) -> None:
     if grid_projection in ("polar", "lambert"):
         grid_projection = f"{grid_projection}_north" if grid_center_latitude >= 0 else f"{grid_projection}_south"
 
-    start_date: datetime = WRFRUN_NEW.config["simulation"]["time"]["start_time"]
-    end_date: datetime = WRFRUN_NEW.config["simulation"]["time"]["end_time"]
-    WRFRUN_NEW.namelist.update_namelist(
+    start_date: datetime = WRFRUN.config["simulation"]["time"]["start_time"]
+    end_date: datetime = WRFRUN.config["simulation"]["time"]["end_time"]
+    WRFRUN.namelist.update_namelist(
         {
             "grid_dims": {
                 "nx": model_config["global"]["grid_nx"],
@@ -96,7 +96,7 @@ def prepare_arps_namelist(component: str) -> None:
     )
     apply_component_namelist_updates(component, f"{component}.nml")
 
-    if WRFRUN_NEW.namelist.get_namelist(component)["initialization"].get("inisplited", -1) != 0:
+    if WRFRUN.namelist.get_namelist(component)["initialization"].get("inisplited", -1) != 0:
         message = (
             "It is recommended to let arps core read input data and split it on-the-fly. "
             "Set inisplited=0 in 'initialization' block to fix this error."

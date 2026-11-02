@@ -14,6 +14,7 @@ Define custom types.
     FileConfigDict
     ExecutableClassConfig
     ExecutableConfig
+    ExecutableBaseProtocol
 """
 
 import logging

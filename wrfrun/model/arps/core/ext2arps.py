@@ -13,7 +13,7 @@ from dataclasses import asdict
 from datetime import datetime, timedelta
 from os.path import exists
 
-from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef, ResultSource
+from wrfrun.core import WRFRUN, ExecutableBase, ResourceRef, ResultSource
 
 from ._common import prepare_arps_namelist
 
@@ -22,8 +22,8 @@ LOGGER = logging.getLogger("wrfrun")
 
 def _check_ext2arps_input_data() -> list[str]:
     """Return external-data filenames required by the current ARPS namelist."""
-    data_input_dir = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.INPUT_DIR / "ext2arps")
-    namelist = WRFRUN_NEW.namelist.get_namelist("ext2arps")
+    data_input_dir = WRFRUN.resource.get_custom_resource(WRFRUN.resource.INPUT_DIR / "ext2arps")
+    namelist = WRFRUN.namelist.get_namelist("ext2arps")
     extdname = namelist["extdfile"]["extdname"]
     nextdfil = namelist["extdfile"]["nextdfil"]
     extdtime = namelist["extdfile"]["extdtime"]
@@ -89,7 +89,7 @@ class EXT2ARPS(ExecutableBase):
         self.custom_config.update(
             {
                 "arpstrn_source": asdict(self.arpstrn_source) if self.arpstrn_source is not None else None,
-                "namelist": WRFRUN_NEW.namelist.get_namelist("ext2arps"),
+                "namelist": WRFRUN.namelist.get_namelist("ext2arps"),
             }
         )
 
@@ -97,19 +97,19 @@ class EXT2ARPS(ExecutableBase):
         """Restore the selected terrain source and ARPS namelist for replay."""
         arpstrn_source = self.custom_config["arpstrn_source"]
         self.arpstrn_source = ResultSource(**arpstrn_source) if arpstrn_source is not None else None
-        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "ext2arps")
+        WRFRUN.namelist.update_namelist(self.custom_config["namelist"], "ext2arps")
 
     def before_exec(self):
         """Stage external and terrain data, then write the namelist."""
-        WRFRUN_NEW.states.check_wrfrun_context(True)
-        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "ext2arps"
-        WRFRUN_NEW.resource.mkdir(self.work_path / "outputs")
+        WRFRUN.states.check_wrfrun_context(True)
+        WRFRUN.states.WRFRUN_WORK_STATUS = "ext2arps"
+        WRFRUN.resource.mkdir(self.work_path / "outputs")
 
         input_files = _check_ext2arps_input_data()
-        self.add_input_files([WRFRUN_NEW.resource.INPUT_DIR / "ext2arps" / name for name in input_files])
+        self.add_input_files([WRFRUN.resource.INPUT_DIR / "ext2arps" / name for name in input_files])
 
-        terrain_ref = WRFRUN_NEW.resource.get_result_ref("arpstrn", source=self.arpstrn_source)
-        terrain_dir = WRFRUN_NEW.resource.get_custom_resource(terrain_ref)
+        terrain_ref = WRFRUN.resource.get_result_ref("arpstrn", source=self.arpstrn_source)
+        terrain_dir = WRFRUN.resource.get_custom_resource(terrain_ref)
         terrain_files = glob.glob("arpstrn.trndata*", root_dir=terrain_dir)
         if not terrain_files:
             message = "Can't find arpstrn outputs in ext2arps outputs directory, which is essential to run ext2arps."
@@ -118,7 +118,7 @@ class EXT2ARPS(ExecutableBase):
 
         terrain_file = terrain_ref / terrain_files[0]
         self.add_input_files(terrain_file, is_output=False)
-        WRFRUN_NEW.namelist.update_namelist(
+        WRFRUN.namelist.update_namelist(
             {
                 "jobname": {"runname": self.name},
                 "terrain": {"terndta": f"./{terrain_file.name}"},
@@ -126,13 +126,13 @@ class EXT2ARPS(ExecutableBase):
             },
             "ext2arps",
         )
-        WRFRUN_NEW.namelist.write_namelist(self.namelist_path, "ext2arps")
+        WRFRUN.namelist.write_namelist(self.namelist_path, "ext2arps")
 
         super().before_exec()
 
     def after_exec(self):
         """Archive converted ARPS fields and its runtime namelist."""
-        if not WRFRUN_NEW.states.IS_IN_REPLAY:
+        if not WRFRUN.states.IS_IN_REPLAY:
             self.add_output_files(
                 startswith=f"{self.name}.",
                 output_dir=self.work_path / "outputs",

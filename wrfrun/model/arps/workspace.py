@@ -14,7 +14,7 @@ Functions to prepare workspace for ARPS model and its submodels.
 import logging
 from pathlib import Path
 
-from wrfrun.core import WRFRUN_NEW
+from wrfrun.core import WRFRUN
 from wrfrun.core.type import ResourceRef
 
 LOGGER = logging.getLogger("wrfrun")
@@ -32,7 +32,7 @@ def prepare_arps_workspace():
     """
     LOGGER.info("Initialize workspace for ARPS.")
 
-    model_config = WRFRUN_NEW.config.get_model_config("arps")
+    model_config = WRFRUN.config.get_model_config("arps")
 
     arps_bin_dir = Path(model_config["global"]["arps_bin_directory"]).resolve()
     submodel_name_list: list[str] = [x for x in model_config if x not in ("use", "global")]
@@ -41,7 +41,7 @@ def prepare_arps_workspace():
         LOGGER.error("Your ARPS binary path ([magenta]arps_bin_directory[/magenta]) is wrong, check your TOML config.")
         raise FileNotFoundError("Your ARPS binary path (arps_bin_directory) is wrong, check your TOML config.")
 
-    arps_work_path = WRFRUN_NEW.resource.get_custom_resource(ResourceRef("workspace_arps", ""))
+    arps_work_path = WRFRUN.resource.get_custom_resource(ResourceRef("workspace_arps", ""))
 
     for _submodel in submodel_name_list:
         if not (arps_bin_dir / _submodel).is_file():
@@ -51,7 +51,7 @@ def prepare_arps_workspace():
             model_config.setdefault(_submodel, {})["is_valid"] = False
 
         else:
-            WRFRUN_NEW.io.symlink(
+            WRFRUN.io.symlink(
                 file_path=arps_bin_dir / _submodel,
                 save_path=arps_work_path / _submodel / _submodel,
             )
@@ -64,7 +64,7 @@ def prepare_arps_workspace():
             model_config.setdefault(f"{_submodel}_mpi", {})["is_valid"] = False
 
         else:
-            WRFRUN_NEW.io.symlink(
+            WRFRUN.io.symlink(
                 file_path=arps_bin_dir / f"{_submodel}_mpi",
                 save_path=arps_work_path / f"{_submodel}_mpi" / f"{_submodel}_mpi",
             )
@@ -78,9 +78,9 @@ def check_arps_workspace() -> bool:
     :return: ``True`` when every enabled ARPS executable is available.
     :rtype: bool
     """
-    model_config = WRFRUN_NEW.config.get_model_config("arps")
+    model_config = WRFRUN.config.get_model_config("arps")
 
-    arps_work_path = WRFRUN_NEW.resource.get_custom_resource(ResourceRef("workspace_arps", ""))
+    arps_work_path = WRFRUN.resource.get_custom_resource(ResourceRef("workspace_arps", ""))
     executable_names: list[str] = [name for name in model_config if name not in ("use", "global")]
     executable_names.append("arps_mpi")
 

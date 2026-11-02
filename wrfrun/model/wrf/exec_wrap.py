@@ -18,7 +18,7 @@ Function wrapper of WPS/WRF :doc:`Executables </api/model.wrf.core>`.
 
 from typing import Optional, Union
 
-from wrfrun.core import WRFRUN_NEW
+from wrfrun.core import WRFRUN
 
 from .core import DFI, WRF, GeoGrid, MetGrid, NDown, Real, UnGrib
 
@@ -29,7 +29,7 @@ def geogrid(geogrid_tbl_file: Union[str, None] = None):
 
     :param geogrid_tbl_file: Custom GEOGRID.TBL file path. Defaults to None.
     """
-    GeoGrid(geogrid_tbl_file, WRFRUN_NEW.config.get_core_num())()
+    GeoGrid(geogrid_tbl_file, WRFRUN.config.get_core_num())()
 
 
 def ungrib(vtable_file: Union[str, None] = None, input_data_path: Optional[str] = None, prefix="FILE"):
@@ -74,7 +74,7 @@ def metgrid(
     MetGrid(
         geogrid_data_path,
         ungrib_data_path,
-        WRFRUN_NEW.config.get_core_num(),
+        WRFRUN.config.get_core_num(),
         geogrid_run_id,
         ungrib_run_id,
     ).set_metgrid_fg_names(fg_names)()
@@ -89,7 +89,7 @@ def real(metgrid_data_path: Union[str, None] = None, metgrid_run_id: str | None 
     :param metgrid_run_id: Run ID containing ``metgrid`` outputs when
                            ``metgrid_data_path`` is omitted.
     """
-    Real(metgrid_data_path, WRFRUN_NEW.config.get_core_num(), metgrid_run_id)()
+    Real(metgrid_data_path, WRFRUN.config.get_core_num(), metgrid_run_id)()
 
 
 def wrf(
@@ -107,7 +107,7 @@ def wrf(
     :param input_run_id: Run ID containing the default ``real`` or ``ndown``
                          inputs when ``input_file_dir_path`` is omitted.
     """
-    WRF(input_file_dir_path, restart_file_dir_path, save_restarts, WRFRUN_NEW.config.get_core_num(), input_run_id)()
+    WRF(input_file_dir_path, restart_file_dir_path, save_restarts, WRFRUN.config.get_core_num(), input_run_id)()
 
 
 def dfi(input_file_dir_path: Optional[str] = None, update_real_output=True):
@@ -119,7 +119,7 @@ def dfi(input_file_dir_path: Optional[str] = None, update_real_output=True):
     :param update_real_output: If update corresponding files in :class:`Real <wrfrun.model.wrf.core.Real>` outputs.
     :type update_real_output: bool
     """
-    DFI(input_file_dir_path, update_real_output, WRFRUN_NEW.config.get_core_num())()
+    DFI(input_file_dir_path, update_real_output, WRFRUN.config.get_core_num())()
 
 
 def ndown(
@@ -140,7 +140,7 @@ def ndown(
     :param real_run_id: Run ID containing ``real`` outputs when
                         ``real_output_dir_path`` is omitted.
     """
-    NDown(wrfout_file_path, real_output_dir_path, update_namelist, WRFRUN_NEW.config.get_core_num(), real_run_id)()
+    NDown(wrfout_file_path, real_output_dir_path, update_namelist, WRFRUN.config.get_core_num(), real_run_id)()
 
 
 __all__ = ["geogrid", "ungrib", "metgrid", "real", "wrf", "dfi", "ndown"]

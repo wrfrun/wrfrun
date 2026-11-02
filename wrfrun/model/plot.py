@@ -26,7 +26,7 @@ from cartopy.mpl.gridliner import LATITUDE_FORMATTER, LONGITUDE_FORMATTER
 from haversine.haversine import Direction, Unit, inverse_haversine
 from matplotlib.figure import Figure
 
-from ..core import WRFRUN_NEW
+from ..core import WRFRUN
 from ..log import logger
 from .type import DomainSetting
 
@@ -228,8 +228,8 @@ def generate_domain_area():
     :return: True if domain area is ploted, else False.
     :rtype: bool
     """
-    WRFRUNConfig = WRFRUN_NEW.config
-    save_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.OUTPUT_DIR).resolve()
+    WRFRUNConfig = WRFRUN.config
+    save_path = WRFRUN.resource.get_custom_resource(WRFRUN.resource.OUTPUT_DIR).resolve()
 
     fig = plt.figure(figsize=(10.24, 10.24))
 

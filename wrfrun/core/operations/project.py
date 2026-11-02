@@ -25,7 +25,7 @@ from ...res import (
     CONFIG_WRF_TOML_TEMPLATE,
     GITIGNORE_RULES,
 )
-from ..core import WRFRUN_NEW
+from ..core import WRFRUN
 from ..runtime.resource import PROJECT_TREE
 
 MODEL_MAP = {
@@ -42,12 +42,12 @@ def initialize_project(project_path: str | Path, models: list[str] | None = None
     for directory in PROJECT_TREE:
         (project_path / directory).mkdir(exist_ok=True, parents=True)
 
-    WRFRUN_NEW.io.copy(file_path=CONFIG_MAIN_TOML_TEMPLATE, save_path=project_path / "config.toml")
-    WRFRUN_NEW.io.copy(file_path=GITIGNORE_RULES, save_path=project_path / ".gitignore")
+    WRFRUN.io.copy(file_path=CONFIG_MAIN_TOML_TEMPLATE, save_path=project_path / "config.toml")
+    WRFRUN.io.copy(file_path=GITIGNORE_RULES, save_path=project_path / ".gitignore")
 
     model_list = []
     for model_name in models or []:
-        WRFRUN_NEW.io.copy(file_path=MODEL_MAP[model_name], save_path=project_path / f"configs/{model_name}.toml")
+        WRFRUN.io.copy(file_path=MODEL_MAP[model_name], save_path=project_path / f"configs/{model_name}.toml")
         load_model_plugin(model_name).initialize_project_files(project_path)
         (project_path / "data/inputs/common" / model_name).mkdir(exist_ok=True)
         model_list.append(model_name)
@@ -86,7 +86,7 @@ def add_models(config_path: str | Path, models: list[str]):
     config_dir_path = project_path / "configs"
     config_dir_path.mkdir(exist_ok=True, parents=True)
     for model_name in models:
-        WRFRUN_NEW.io.copy(file_path=MODEL_MAP[model_name], save_path=config_dir_path / f"{model_name}.toml")
+        WRFRUN.io.copy(file_path=MODEL_MAP[model_name], save_path=config_dir_path / f"{model_name}.toml")
         load_model_plugin(model_name).initialize_project_files(project_path)
         (project_path / "data/inputs/common" / model_name).mkdir(exist_ok=True)
 

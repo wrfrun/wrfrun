@@ -12,7 +12,7 @@ Implementation of ``arpstrn`` submodel.
 
 import logging
 
-from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef
+from wrfrun.core import WRFRUN, ExecutableBase, ResourceRef
 
 from ._common import apply_component_namelist_updates, load_component_namelist
 
@@ -20,7 +20,7 @@ LOGGER = logging.getLogger("wrfrun")
 
 
 def _prepare_namelist():
-    global_config = WRFRUN_NEW.config.get_model_config("arps")
+    global_config = WRFRUN.config.get_model_config("arps")
     model_config: dict = global_config.get("arpstrn", {})
 
     if len(model_config) == 0:
@@ -35,7 +35,7 @@ def _prepare_namelist():
         "dem_trn": {"dir_trndata": dir_terrain_data},
         "trn_output": {"dirname": "./outputs"},
     }
-    WRFRUN_NEW.namelist.update_namelist(update_value, "arpstrn")
+    WRFRUN.namelist.update_namelist(update_value, "arpstrn")
 
     apply_component_namelist_updates("arpstrn", "arpstrn.nml")
 
@@ -74,7 +74,7 @@ class ARPSTrn(ExecutableBase):
 
         * Namelist settings.
         """
-        self.custom_config.update({"namelist": WRFRUN_NEW.namelist.get_namelist("arpstrn")})
+        self.custom_config.update({"namelist": WRFRUN.namelist.get_namelist("arpstrn")})
 
     def load_custom_config(self):
         """
@@ -82,19 +82,19 @@ class ARPSTrn(ExecutableBase):
 
         * Namelist settings.
         """
-        if not WRFRUN_NEW.namelist.check_namelist_id("arpstrn"):
-            WRFRUN_NEW.namelist.register_namelist_id("arpstrn")
+        if not WRFRUN.namelist.check_namelist_id("arpstrn"):
+            WRFRUN.namelist.register_namelist_id("arpstrn")
 
-        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arpstrn")
+        WRFRUN.namelist.update_namelist(self.custom_config["namelist"], "arpstrn")
 
     def before_exec(self):
         """Write the prepared namelist before running ``arpstrn``."""
-        WRFRUN_NEW.states.check_wrfrun_context(True)
-        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "arpstrn"
+        WRFRUN.states.check_wrfrun_context(True)
+        WRFRUN.states.WRFRUN_WORK_STATUS = "arpstrn"
 
-        WRFRUN_NEW.resource.mkdir(self.work_path / "outputs")
+        WRFRUN.resource.mkdir(self.work_path / "outputs")
 
-        WRFRUN_NEW.namelist.update_namelist(
+        WRFRUN.namelist.update_namelist(
             {
                 "jobname": {"runname": self.name},
                 "trn_output": {"dirname": "./outputs"},
@@ -102,7 +102,7 @@ class ARPSTrn(ExecutableBase):
             "arpstrn",
         )
 
-        WRFRUN_NEW.namelist.write_namelist(
+        WRFRUN.namelist.write_namelist(
             self.namelist_path,
             "arpstrn",
         )
@@ -111,7 +111,7 @@ class ARPSTrn(ExecutableBase):
 
     def after_exec(self):
         """Archive ``arpstrn`` outputs and its runtime namelist."""
-        if not WRFRUN_NEW.states.IS_IN_REPLAY:
+        if not WRFRUN.states.IS_IN_REPLAY:
             self.add_output_files(
                 startswith=f"{self.name}.trndata",
                 output_dir=self.work_path / "outputs",

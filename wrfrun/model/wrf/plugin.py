@@ -8,7 +8,7 @@ Define plugin class which will be provided to ``wrfrun`` to register ``Executabl
 import logging
 from pathlib import Path
 
-from wrfrun.core import WRFRUN_NEW, ExecRegisterError
+from wrfrun.core import WRFRUN, ExecRegisterError
 
 from .core import DFI, WRF, GeoGrid, MetGrid, NDown, Real, UnGrib
 from .workspace import check_wrf_workspace, prepare_wrf_workspace
@@ -20,11 +20,11 @@ def register_exec(name: str, cls: type):
     """
     Check and register the ``Executable``.
     """
-    if WRFRUN_NEW.registry.is_registered(name):
+    if WRFRUN.registry.is_registered(name):
         LOGGER.error(f"'{name}' is already registered. DO NOT register [magenta]Executable[/magenta] repeatedly.")
         raise ExecRegisterError(f"'{name}' is already registered. DO NOT register Executable repeatedly.")
 
-    WRFRUN_NEW.registry.register_exec(name, cls)
+    WRFRUN.registry.register_exec(name, cls)
 
 
 class WRFPlugin:
@@ -59,10 +59,10 @@ class WRFPlugin:
         register_exec("dfi", DFI)
         register_exec("ndown", NDown)
 
-        WRFRUN_NEW.workspace.register_init_func("wrf", prepare_wrf_workspace)
-        WRFRUN_NEW.workspace.register_check_func("wrf", check_wrf_workspace)
+        WRFRUN.workspace.register_init_func("wrf", prepare_wrf_workspace)
+        WRFRUN.workspace.register_check_func("wrf", check_wrf_workspace)
 
-        WRFRUN_NEW.resource.register_provider("workspace_wrf", WRFRUN_NEW.resource.WORKSPACE_DIR / "wrf")
+        WRFRUN.resource.register_provider("workspace_wrf", WRFRUN.resource.WORKSPACE_DIR / "wrf")
 
 
 __all__ = ["WRFPlugin"]

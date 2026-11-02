@@ -11,7 +11,7 @@ import logging
 import re
 from dataclasses import asdict
 
-from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef, ResultSource
+from wrfrun.core import WRFRUN, ExecutableBase, ResourceRef, ResultSource
 
 from ._common import prepare_component_namelist
 
@@ -62,32 +62,32 @@ class ARPSIntrp(ExecutableBase):
         self.custom_config.update(
             {
                 "history_source": asdict(self.history_source) if self.history_source is not None else None,
-                "namelist": WRFRUN_NEW.namelist.get_namelist("arpsintrp"),
+                "namelist": WRFRUN.namelist.get_namelist("arpsintrp"),
             }
         )
 
     def load_custom_config(self):
         """Restore the selected history source and namelist for replay."""
-        if not WRFRUN_NEW.namelist.check_namelist_id("arpsintrp"):
-            WRFRUN_NEW.namelist.register_namelist_id("arpsintrp")
+        if not WRFRUN.namelist.check_namelist_id("arpsintrp"):
+            WRFRUN.namelist.register_namelist_id("arpsintrp")
         history_source = self.custom_config["history_source"]
         self.history_source = ResultSource(**history_source) if history_source is not None else None
-        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arpsintrp")
+        WRFRUN.namelist.update_namelist(self.custom_config["namelist"], "arpsintrp")
 
     def _stage_history_data(self):
         """Stage history inputs and write their runtime namelist paths."""
         if self.history_source is not None:
-            input_ref = WRFRUN_NEW.resource.get_result_ref(source=self.history_source)
+            input_ref = WRFRUN.resource.get_result_ref(source=self.history_source)
 
         else:
-            input_ref = WRFRUN_NEW.resource.INPUT_DIR / "arpsintrp"
+            input_ref = WRFRUN.resource.INPUT_DIR / "arpsintrp"
 
-        input_files = list(WRFRUN_NEW.resource.get_custom_resource(input_ref).iterdir())
+        input_files = list(WRFRUN.resource.get_custom_resource(input_ref).iterdir())
         grid_base_file = next(file for file in input_files if re.fullmatch(r".+\.(?:hdf|h5f)grdbas", file.name))
         history_files = sorted(file for file in input_files if re.fullmatch(r".+\.(?:hdf|h5f)\d{6}", file.name))
 
         self.add_input_files([input_ref / file.name for file in [grid_base_file, *history_files]])
-        WRFRUN_NEW.namelist.update_namelist(
+        WRFRUN.namelist.update_namelist(
             {
                 "history_data": {
                     "hdmpinopt": 2,
@@ -101,17 +101,17 @@ class ARPSIntrp(ExecutableBase):
 
     def before_exec(self):
         """Stage history data and write the ARPSIntrp namelist."""
-        WRFRUN_NEW.states.check_wrfrun_context(True)
-        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "arpsintrp"
-        WRFRUN_NEW.resource.mkdir(self.work_path / "outputs")
+        WRFRUN.states.check_wrfrun_context(True)
+        WRFRUN.states.WRFRUN_WORK_STATUS = "arpsintrp"
+        WRFRUN.resource.mkdir(self.work_path / "outputs")
         self._stage_history_data()
-        WRFRUN_NEW.namelist.update_namelist({"jobname": {"runname": self.name}, "output": {"dirname": "./outputs/"}}, "arpsintrp")
-        WRFRUN_NEW.namelist.write_namelist(self.namelist_path, "arpsintrp")
+        WRFRUN.namelist.update_namelist({"jobname": {"runname": self.name}, "output": {"dirname": "./outputs/"}}, "arpsintrp")
+        WRFRUN.namelist.write_namelist(self.namelist_path, "arpsintrp")
         super().before_exec()
 
     def after_exec(self):
         """Archive generated boundary data and the runtime namelist."""
-        if not WRFRUN_NEW.states.IS_IN_REPLAY:
+        if not WRFRUN.states.IS_IN_REPLAY:
             self.add_output_files(
                 startswith=f"{self.name}.",
                 output_dir=self.work_path / "outputs",

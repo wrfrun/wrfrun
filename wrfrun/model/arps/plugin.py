@@ -8,7 +8,7 @@ Define plugin class which will be provided to ``wrfrun`` to register ``Executabl
 import logging
 from pathlib import Path
 
-from wrfrun.core import WRFRUN_NEW, ExecRegisterError
+from wrfrun.core import WRFRUN, ExecRegisterError
 
 from .core import ARPS, ARPSSFC, EXT2ARPS, ARPSIntrp, RadRemap
 from .core.arpstrn import ARPSTrn
@@ -21,11 +21,11 @@ def register_exec(name: str, cls: type):
     """
     Check and register the ``Executable``.
     """
-    if WRFRUN_NEW.registry.is_registered(name):
+    if WRFRUN.registry.is_registered(name):
         LOGGER.error(f"'{name}' is already registered. DO NOT register [magenta]Executable[/magenta] repeatedly.")
         raise ExecRegisterError(f"'{name}' is already registered. DO NOT register Executable repeatedly.")
 
-    WRFRUN_NEW.registry.register_exec(name, cls)
+    WRFRUN.registry.register_exec(name, cls)
 
 
 class ARPSPlugin:
@@ -59,10 +59,10 @@ class ARPSPlugin:
         register_exec("arpsintrp", ARPSIntrp)
         register_exec("radremap", RadRemap)
 
-        WRFRUN_NEW.workspace.register_init_func("arps", prepare_arps_workspace)
-        WRFRUN_NEW.workspace.register_check_func("arps", check_arps_workspace)
+        WRFRUN.workspace.register_init_func("arps", prepare_arps_workspace)
+        WRFRUN.workspace.register_check_func("arps", check_arps_workspace)
 
-        WRFRUN_NEW.resource.register_provider("workspace_arps", WRFRUN_NEW.resource.WORKSPACE_DIR / "arps")
+        WRFRUN.resource.register_provider("workspace_arps", WRFRUN.resource.WORKSPACE_DIR / "arps")
 
 
 __all__ = ["ARPSPlugin"]

@@ -18,7 +18,7 @@ import tomli
 
 from ...model.plugins import load_model_plugin
 from ...res import CONFIG_EXPERIMENT_TOML_TEMPLATE
-from ..core import WRFRUN_NEW
+from ..core import WRFRUN
 from .project import MODEL_MAP
 
 
@@ -43,7 +43,7 @@ def create_experiment(config_path: str | Path, name: str, copy: bool = False):
     project_path = config_path.parent
     experiment_config_dir = project_path / "configs/experiments" / name
 
-    WRFRUN_NEW.io.copy(
+    WRFRUN.io.copy(
         file_path=CONFIG_EXPERIMENT_TOML_TEMPLATE,
         save_path=experiment_config_dir / "experiment.toml",
     )

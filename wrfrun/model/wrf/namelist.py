@@ -24,7 +24,7 @@ from typing import Union
 
 from wrfrun.log import logger
 
-from ...core.core import WRFRUN_NEW
+from ...core.core import WRFRUN
 from ...core.type import ResourceRef
 from ..namelist import get_project_namelist_files
 from .scheme import SchemeCumulus, SchemeLandSurfaceModel, SchemeLongWave, SchemePBL, SchemeShortWave, SchemeSurfaceLayer
@@ -35,7 +35,7 @@ UNGRIB_OUTPUT_DIR = "./outputs"
 def _load_project_namelist(component: str, filename: str, namelist_id: str):
     """Load one WRF-family template and return its update files."""
     template_file, update_files = get_project_namelist_files("wrf", component, filename)
-    WRFRUN_NEW.namelist.read_namelist(template_file.as_posix(), namelist_id)
+    WRFRUN.namelist.read_namelist(template_file.as_posix(), namelist_id)
     return update_files
 
 
@@ -46,7 +46,7 @@ def get_ungrib_out_dir_path() -> ResourceRef:
     :return: URI path.
     :rtype: ResourceRef
     """
-    wif_prefix = WRFRUN_NEW.namelist.get_namelist("wps")["ungrib"]["prefix"]
+    wif_prefix = WRFRUN.namelist.get_namelist("wps")["ungrib"]["prefix"]
     wif_path: ResourceRef = ResourceRef("workspace_wrf", "wps") / dirname(wif_prefix)
 
     return wif_path
@@ -59,7 +59,7 @@ def get_ungrib_out_prefix() -> str:
     :return: Prefix string of ungrib output (WRF intermediate file).
     :rtype: str
     """
-    wif_prefix = WRFRUN_NEW.namelist.get_namelist("wps")["ungrib"]["prefix"]
+    wif_prefix = WRFRUN.namelist.get_namelist("wps")["ungrib"]["prefix"]
     wif_prefix = basename(wif_prefix)
     return wif_prefix
 
@@ -71,7 +71,7 @@ def set_ungrib_out_prefix(prefix: str):
     :param prefix: Prefix string of ungrib output (WRF intermediate file).
     :type prefix: str
     """
-    WRFRUN_NEW.namelist.update_namelist({"ungrib": {"prefix": f"{UNGRIB_OUTPUT_DIR}/{prefix}"}}, "wps")
+    WRFRUN.namelist.update_namelist({"ungrib": {"prefix": f"{UNGRIB_OUTPUT_DIR}/{prefix}"}}, "wps")
 
 
 def get_metgrid_fg_names() -> list[str]:
@@ -81,7 +81,7 @@ def get_metgrid_fg_names() -> list[str]:
     :return: Prefix strings list.
     :rtype: list
     """
-    fg_names = WRFRUN_NEW.namelist.get_namelist("wps")["metgrid"]["fg_name"]
+    fg_names = WRFRUN.namelist.get_namelist("wps")["metgrid"]["fg_name"]
     fg_names = [basename(x) for x in fg_names]
     return fg_names
 
@@ -98,7 +98,7 @@ def set_metgrid_fg_names(prefix: Union[str, list[str]]):
             prefix,
         ]
     fg_names = [f"{UNGRIB_OUTPUT_DIR}/{x}" for x in prefix]
-    WRFRUN_NEW.namelist.update_namelist({"metgrid": {"fg_name": fg_names}}, "wps")
+    WRFRUN.namelist.update_namelist({"metgrid": {"fg_name": fg_names}}, "wps")
 
 
 def _check_start_end_date(
@@ -138,7 +138,7 @@ def prepare_wps_namelist():
     This function read WPS template namelist and update its value based on the config file and user custom namelist.
     """
     # prepare namelist
-    wrf_config = WRFRUN_NEW.config.get_model_config("wrf")
+    wrf_config = WRFRUN.config.get_model_config("wrf")
 
     update_files = _load_project_namelist("wps", "namelist.wps", "wps")
 
@@ -180,11 +180,11 @@ def prepare_wps_namelist():
     }
 
     # # update namelist
-    WRFRUN_NEW.namelist.update_namelist(update_value, "wps")
+    WRFRUN.namelist.update_namelist(update_value, "wps")
 
     for update_file in update_files:
         if update_file.is_file():
-            WRFRUN_NEW.namelist.update_namelist(update_file.as_posix(), "wps")
+            WRFRUN.namelist.update_namelist(update_file.as_posix(), "wps")
 
 
 def prepare_wrf_namelist():
@@ -193,7 +193,7 @@ def prepare_wrf_namelist():
 
     """
     # wrf config from config
-    wrf_config = WRFRUN_NEW.config.get_model_config("wrf")
+    wrf_config = WRFRUN.config.get_model_config("wrf")
 
     update_files = _load_project_namelist("wrf", "namelist.input", "wrf")
 
@@ -326,18 +326,18 @@ def prepare_wrf_namelist():
     update_values["physics"].update(surface_layer_scheme)
 
     # update namelist
-    WRFRUN_NEW.namelist.update_namelist(update_values, "wrf")
+    WRFRUN.namelist.update_namelist(update_values, "wrf")
 
     for update_file in update_files:
         if update_file.is_file():
-            WRFRUN_NEW.namelist.update_namelist(update_file.as_posix(), "wrf")
+            WRFRUN.namelist.update_namelist(update_file.as_posix(), "wrf")
 
 
 def prepare_dfi_namelist():
     """Generate namelist data for DFI running"""
     update_files = _load_project_namelist("dfi", "namelist.input", "dfi")
 
-    wrf_config = WRFRUN_NEW.config.get_model_config("wrf")
+    wrf_config = WRFRUN.config.get_model_config("wrf")
 
     # Read start date and end date
     start_date = wrf_config["time"]["start_date"]
@@ -414,16 +414,16 @@ def prepare_dfi_namelist():
     }
 
     # update namelist data
-    WRFRUN_NEW.namelist.update_namelist(update_value, "dfi")
+    WRFRUN.namelist.update_namelist(update_value, "dfi")
 
     for update_file in update_files:
         if update_file.is_file():
-            WRFRUN_NEW.namelist.update_namelist(update_file.as_posix(), "dfi")
+            WRFRUN.namelist.update_namelist(update_file.as_posix(), "dfi")
 
 
 def prepare_wrfda_namelist():
     """Generate namelist for da_wrfvar.exe"""
-    wrf_config = WRFRUN_NEW.config.get_model_config("wrf")
+    wrf_config = WRFRUN.config.get_model_config("wrf")
 
     update_files = _load_project_namelist("wrfda", "namelist.input", "wrfda")
 
@@ -445,11 +445,11 @@ def prepare_wrfda_namelist():
     }
 
     # update namelist
-    WRFRUN_NEW.namelist.update_namelist(update_value, "wrfda")
+    WRFRUN.namelist.update_namelist(update_value, "wrfda")
 
     for update_file in update_files:
         if update_file.is_file():
-            WRFRUN_NEW.namelist.update_namelist(update_file.as_posix(), "wrfda")
+            WRFRUN.namelist.update_namelist(update_file.as_posix(), "wrfda")
 
 
 __all__ = [

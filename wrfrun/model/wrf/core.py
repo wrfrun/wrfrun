@@ -25,7 +25,7 @@ from os.path import abspath, basename, exists
 from shutil import copyfile, move, rmtree
 from typing import Optional, Union
 
-from wrfrun.core import WRFRUN_NEW, ExecutableBase, FileConfigDict, InputFileError, NamelistIDError, ResourceRef
+from wrfrun.core import WRFRUN, ExecutableBase, FileConfigDict, InputFileError, NamelistIDError, ResourceRef
 from wrfrun.log import logger
 
 from ..constants import NamelistName
@@ -48,13 +48,13 @@ def _check_and_prepare_namelist():
     This function check if namelists needed by WPS/WRF have been loaded.
     If not, call :doc:`preparation function </api/model.wrf.namelist>` to load them.
     """
-    if not WRFRUN_NEW.namelist.check_namelist("wps"):
+    if not WRFRUN.namelist.check_namelist("wps"):
         prepare_wps_namelist()
 
-    if not WRFRUN_NEW.namelist.check_namelist("wrf"):
+    if not WRFRUN.namelist.check_namelist("wrf"):
         prepare_wrf_namelist()
 
-    if not WRFRUN_NEW.namelist.check_namelist("wrfda"):
+    if not WRFRUN.namelist.check_namelist("wrfda"):
         prepare_wrfda_namelist()
 
 
@@ -108,7 +108,7 @@ class GeoGrid(ExecutableBase):
         """
         self.custom_config.update(
             {
-                "namelist": WRFRUN_NEW.namelist.get_namelist("wps"),
+                "namelist": WRFRUN.namelist.get_namelist("wps"),
                 "geogrid_tbl_file": self.geogrid_tbl_file,
             }
         )
@@ -117,14 +117,14 @@ class GeoGrid(ExecutableBase):
         """
         Load custom configs.
         """
-        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "wps")
+        WRFRUN.namelist.update_namelist(self.custom_config["namelist"], "wps")
         self.geogrid_tbl_file = self.custom_config["geogrid_tbl_file"]
 
     def before_exec(self):
-        WRFRUN_NEW.states.check_wrfrun_context(True)
-        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "geogrid"
+        WRFRUN.states.check_wrfrun_context(True)
+        WRFRUN.states.WRFRUN_WORK_STATUS = "geogrid"
 
-        if not WRFRUN_NEW.states.IS_IN_REPLAY:
+        if not WRFRUN.states.IS_IN_REPLAY:
             if self.geogrid_tbl_file is not None:
                 tbl_file: FileConfigDict = {
                     "file_path": self.geogrid_tbl_file,
@@ -136,14 +136,14 @@ class GeoGrid(ExecutableBase):
 
         super().before_exec()
 
-        WRFRUN_NEW.namelist.write_namelist(self.work_path / NamelistName.WPS, "wps")
+        WRFRUN.namelist.write_namelist(self.work_path / NamelistName.WPS, "wps")
 
         # print debug logs
         logger.debug("Namelist settings of 'geogrid':")
-        logger.debug(WRFRUN_NEW.namelist.get_namelist("wps"))
+        logger.debug(WRFRUN.namelist.get_namelist("wps"))
 
     def after_exec(self):
-        if not WRFRUN_NEW.states.IS_IN_REPLAY:
+        if not WRFRUN.states.IS_IN_REPLAY:
             self.add_output_files(save_path=self._log_save_path, startswith="geogrid.log", filenames=NamelistName.WPS)
             self.add_output_files(save_path=self._output_save_path, startswith="geo_em")
 
@@ -181,7 +181,7 @@ class LinkGrib(ExecutableBase):
         self.class_config["class_args"] = (self.grib_dir_path,)
 
     def before_exec(self):
-        if not WRFRUN_NEW.states.IS_IN_REPLAY:
+        if not WRFRUN.states.IS_IN_REPLAY:
             logger.debug(f"Input data are: {self.grib_dir_path}")
             _grib_dir_path = abspath(self.grib_dir_path)
 
@@ -190,7 +190,7 @@ class LinkGrib(ExecutableBase):
                 raise FileNotFoundError(f"GRIB file directory not found: {_grib_dir_path}")
 
             save_path = self.work_path / self._link_grib_input_path
-            save_path = WRFRUN_NEW.resource.get_custom_resource(save_path)
+            save_path = WRFRUN.resource.get_custom_resource(save_path)
             if exists(save_path):
                 rmtree(save_path)
 
@@ -238,7 +238,7 @@ class UnGrib(ExecutableBase):
         Call :class:`LinkGrib` if needed.
         """
         if self.input_data_path is None:
-            self.input_data_path = WRFRUN_NEW.config.get_input_data_path()
+            self.input_data_path = WRFRUN.config.get_input_data_path()
 
         LinkGrib(self.input_data_path)()
 
@@ -265,7 +265,7 @@ class UnGrib(ExecutableBase):
         """
         self.custom_config.update(
             {
-                "namelist": WRFRUN_NEW.namelist.get_namelist("wps"),
+                "namelist": WRFRUN.namelist.get_namelist("wps"),
                 "vtable_file": self.vtable_file,
             }
         )
@@ -275,13 +275,13 @@ class UnGrib(ExecutableBase):
         Load custom configs.
         """
         self.vtable_file = self.custom_config["vtable_file"]
-        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "wps")
+        WRFRUN.namelist.update_namelist(self.custom_config["namelist"], "wps")
 
     def before_exec(self):
-        WRFRUN_NEW.states.check_wrfrun_context(True)
-        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "ungrib"
+        WRFRUN.states.check_wrfrun_context(True)
+        WRFRUN.states.WRFRUN_WORK_STATUS = "ungrib"
 
-        if not WRFRUN_NEW.states.IS_IN_REPLAY:
+        if not WRFRUN.states.IS_IN_REPLAY:
             if self.vtable_file is None:
                 self.vtable_file = VtableFiles.ERA_PL
 
@@ -295,14 +295,14 @@ class UnGrib(ExecutableBase):
 
         super().before_exec()
 
-        WRFRUN_NEW.namelist.write_namelist(self.work_path / NamelistName.WPS, "wps")
+        WRFRUN.namelist.write_namelist(self.work_path / NamelistName.WPS, "wps")
 
         # print debug logs
         logger.debug("Namelist settings of 'ungrib':")
-        logger.debug(WRFRUN_NEW.namelist.get_namelist("wps"))
+        logger.debug(WRFRUN.namelist.get_namelist("wps"))
 
     def after_exec(self):
-        if not WRFRUN_NEW.states.IS_IN_REPLAY:
+        if not WRFRUN.states.IS_IN_REPLAY:
             self.add_output_files(
                 output_dir=get_ungrib_out_dir_path(), save_path=self._output_save_path, startswith=get_ungrib_out_prefix()
             )
@@ -401,7 +401,7 @@ class MetGrid(ExecutableBase):
                 "ungrib_data_path": self.ungrib_data_path,
                 "geogrid_run_id": self.geogrid_run_id,
                 "ungrib_run_id": self.ungrib_run_id,
-                "namelist": WRFRUN_NEW.namelist.get_namelist("wps"),
+                "namelist": WRFRUN.namelist.get_namelist("wps"),
             }
         )
 
@@ -413,21 +413,21 @@ class MetGrid(ExecutableBase):
         self.ungrib_data_path = self.custom_config["ungrib_data_path"]
         self.geogrid_run_id = self.custom_config["geogrid_run_id"]
         self.ungrib_run_id = self.custom_config["ungrib_run_id"]
-        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "wps")
+        WRFRUN.namelist.update_namelist(self.custom_config["namelist"], "wps")
 
     def before_exec(self):
-        WRFRUN_NEW.states.check_wrfrun_context(True)
-        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "metgrid"
+        WRFRUN.states.check_wrfrun_context(True)
+        WRFRUN.states.WRFRUN_WORK_STATUS = "metgrid"
 
-        if not WRFRUN_NEW.states.IS_IN_REPLAY and not WRFRUN_NEW.states.FAKE_SIMULATION_MODE:
+        if not WRFRUN.states.IS_IN_REPLAY and not WRFRUN.states.FAKE_SIMULATION_MODE:
             # check input of metgrid.exe
             # try to search input files in the output path if workspace is clear.
-            file_list = listdir(WRFRUN_NEW.resource.get_custom_resource(self.work_path))
+            file_list = listdir(WRFRUN.resource.get_custom_resource(self.work_path))
 
             if "geo_em.d01.nc" not in file_list:
                 if self.geogrid_data_path is None:
-                    self.geogrid_data_path = WRFRUN_NEW.resource.get_result_ref("geogrid", self.geogrid_run_id)
-                geogrid_data_path = WRFRUN_NEW.resource.get_custom_resource(self.geogrid_data_path)
+                    self.geogrid_data_path = WRFRUN.resource.get_result_ref("geogrid", self.geogrid_run_id)
+                geogrid_data_path = WRFRUN.resource.get_custom_resource(self.geogrid_data_path)
 
                 if not exists(geogrid_data_path) or "geo_em.d01.nc" not in listdir(geogrid_data_path):
                     logger.error(
@@ -452,12 +452,12 @@ class MetGrid(ExecutableBase):
                         }
                         self.add_input_files(_file_config)
 
-            ungrib_output_dir = WRFRUN_NEW.resource.get_custom_resource(get_ungrib_out_dir_path())
+            ungrib_output_dir = WRFRUN.resource.get_custom_resource(get_ungrib_out_dir_path())
             if basename(ungrib_output_dir) not in file_list or len(listdir(ungrib_output_dir)) == 0:
                 if self.ungrib_data_path is None:
-                    self.ungrib_data_path = WRFRUN_NEW.resource.get_result_ref("ungrib", self.ungrib_run_id)
+                    self.ungrib_data_path = WRFRUN.resource.get_result_ref("ungrib", self.ungrib_run_id)
 
-                ungrib_data_path = WRFRUN_NEW.resource.get_custom_resource(self.ungrib_data_path)
+                ungrib_data_path = WRFRUN.resource.get_custom_resource(self.ungrib_data_path)
 
                 if not exists(ungrib_data_path) or len(listdir(ungrib_data_path)) == 0:
                     logger.error(
@@ -482,22 +482,20 @@ class MetGrid(ExecutableBase):
 
         super().before_exec()
 
-        WRFRUN_NEW.namelist.write_namelist(self.work_path / NamelistName.WPS, "wps")
+        WRFRUN.namelist.write_namelist(self.work_path / NamelistName.WPS, "wps")
 
         # print debug logs
         logger.debug("Namelist settings of 'metgrid':")
-        logger.debug(WRFRUN_NEW.namelist.get_namelist("wps"))
+        logger.debug(WRFRUN.namelist.get_namelist("wps"))
 
     def after_exec(self):
-        if not WRFRUN_NEW.states.IS_IN_REPLAY:
+        if not WRFRUN.states.IS_IN_REPLAY:
             self.add_output_files(save_path=self._log_save_path, startswith="metgrid.log", filenames="namelist.wps")
             self.add_output_files(save_path=self._output_save_path, startswith="met_em")
 
         super().after_exec()
 
-        logger.info(
-            f"All metgrid output files have been copied to {WRFRUN_NEW.resource.get_custom_resource(self._output_save_path)}"
-        )
+        logger.info(f"All metgrid output files have been copied to {WRFRUN.resource.get_custom_resource(self._output_save_path)}")
 
 
 class Real(ExecutableBase):
@@ -558,7 +556,7 @@ class Real(ExecutableBase):
         self.custom_config["metgrid_data_path"] = self.metgrid_data_path
         self.custom_config.update(
             {
-                "namelist": WRFRUN_NEW.namelist.get_namelist("wrf"),
+                "namelist": WRFRUN.namelist.get_namelist("wrf"),
                 "metgrid_data_path": self.metgrid_data_path,
                 "metgrid_run_id": self.metgrid_run_id,
             }
@@ -570,17 +568,17 @@ class Real(ExecutableBase):
         """
         self.metgrid_data_path = self.custom_config["metgrid_data_path"]
         self.metgrid_run_id = self.custom_config["metgrid_run_id"]
-        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "wrf")
+        WRFRUN.namelist.update_namelist(self.custom_config["namelist"], "wrf")
 
     def before_exec(self):
-        WRFRUN_NEW.states.check_wrfrun_context(True)
-        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "real"
+        WRFRUN.states.check_wrfrun_context(True)
+        WRFRUN.states.WRFRUN_WORK_STATUS = "real"
 
-        if not WRFRUN_NEW.states.IS_IN_REPLAY and not WRFRUN_NEW.states.FAKE_SIMULATION_MODE:
+        if not WRFRUN.states.IS_IN_REPLAY and not WRFRUN.states.FAKE_SIMULATION_MODE:
             if self.metgrid_data_path is None:
-                self.metgrid_data_path = WRFRUN_NEW.resource.get_result_ref("metgrid", self.metgrid_run_id)
+                self.metgrid_data_path = WRFRUN.resource.get_result_ref("metgrid", self.metgrid_run_id)
 
-            metgrid_data_path = WRFRUN_NEW.resource.get_custom_resource(self.metgrid_data_path)
+            metgrid_data_path = WRFRUN.resource.get_custom_resource(self.metgrid_data_path)
             reconcile_namelist_metgrid(metgrid_data_path)
 
             file_list = [x for x in listdir(metgrid_data_path) if x.startswith("met_em")]
@@ -597,14 +595,14 @@ class Real(ExecutableBase):
 
         super().before_exec()
 
-        WRFRUN_NEW.namelist.write_namelist(self.work_path / NamelistName.WRF, "wrf")
+        WRFRUN.namelist.write_namelist(self.work_path / NamelistName.WRF, "wrf")
 
         # print debug logs
         logger.debug("Namelist settings of 'real':")
-        logger.debug(WRFRUN_NEW.namelist.get_namelist("wrf"))
+        logger.debug(WRFRUN.namelist.get_namelist("wrf"))
 
     def after_exec(self):
-        if not WRFRUN_NEW.states.IS_IN_REPLAY:
+        if not WRFRUN.states.IS_IN_REPLAY:
             self.add_output_files(save_path=self._output_save_path, startswith=("wrfbdy", "wrfinput", "wrflow"))
             self.add_output_files(save_path=self._log_save_path, startswith="rsl.", filenames="namelist.input")
 
@@ -679,7 +677,7 @@ class WRF(ExecutableBase):
                 "input_file_dir_path": self.input_file_dir_path,
                 "restart_file_dir_path": self.restart_file_dir_path,
                 "input_run_id": self.input_run_id,
-                "namelist": WRFRUN_NEW.namelist.get_namelist("wrf"),
+                "namelist": WRFRUN.namelist.get_namelist("wrf"),
             }
         )
 
@@ -690,30 +688,30 @@ class WRF(ExecutableBase):
         self.input_file_dir_path = self.custom_config["input_file_dir_path"]
         self.restart_file_dir_path = self.custom_config["restart_file_dir_path"]
         self.input_run_id = self.custom_config["input_run_id"]
-        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "wrf")
+        WRFRUN.namelist.update_namelist(self.custom_config["namelist"], "wrf")
 
     def before_exec(self):
-        WRFRUN_NEW.states.check_wrfrun_context(True)
+        WRFRUN.states.check_wrfrun_context(True)
         # help wrfrun to make sure the input file is from real or ndown.
-        last_work_status = WRFRUN_NEW.states.WRFRUN_WORK_STATUS
+        last_work_status = WRFRUN.states.WRFRUN_WORK_STATUS
         if last_work_status not in ["real", "ndown"]:
             last_work_status = ""
-        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "wrf"
+        WRFRUN.states.WRFRUN_WORK_STATUS = "wrf"
 
-        if not WRFRUN_NEW.states.IS_IN_REPLAY and not WRFRUN_NEW.states.FAKE_SIMULATION_MODE:
+        if not WRFRUN.states.IS_IN_REPLAY and not WRFRUN.states.FAKE_SIMULATION_MODE:
             if self.input_file_dir_path is None:
                 if last_work_status == "":
                     # assume we already have outputs from real.exe.
-                    self.input_file_dir_path = WRFRUN_NEW.resource.get_result_ref("real", self.input_run_id)
+                    self.input_file_dir_path = WRFRUN.resource.get_result_ref("real", self.input_run_id)
                     is_output = False
                 else:
-                    self.input_file_dir_path = WRFRUN_NEW.resource.get_result_ref(last_work_status, self.input_run_id)
+                    self.input_file_dir_path = WRFRUN.resource.get_result_ref(last_work_status, self.input_run_id)
                     is_output = True
 
             else:
                 is_output = False
 
-            input_file_dir_path = WRFRUN_NEW.resource.get_custom_resource(self.input_file_dir_path)
+            input_file_dir_path = WRFRUN.resource.get_custom_resource(self.input_file_dir_path)
 
             if exists(input_file_dir_path):
                 file_list = [x for x in listdir(input_file_dir_path) if x != "logs"]
@@ -729,12 +727,12 @@ class WRF(ExecutableBase):
                     }
                     self.add_input_files(_file_config)
 
-            if WRFRUN_NEW.config.get_model_config("wrf")["restart_mode"]:
+            if WRFRUN.config.get_model_config("wrf")["restart_mode"]:
                 if self.restart_file_dir_path is None:
                     logger.error("You need to specify the restart file if you want to restart WRF.")
                     raise InputFileError("You need to specify the restart file if you want to restart WRF.")
 
-                restart_file_dir_path = WRFRUN_NEW.resource.get_custom_resource(self.restart_file_dir_path)
+                restart_file_dir_path = WRFRUN.resource.get_custom_resource(self.restart_file_dir_path)
 
                 if not exists(restart_file_dir_path):
                     logger.error(f"Restart files not found: {restart_file_dir_path}")
@@ -752,14 +750,14 @@ class WRF(ExecutableBase):
 
         super().before_exec()
 
-        WRFRUN_NEW.namelist.write_namelist(self.work_path / NamelistName.WRF, "wrf")
+        WRFRUN.namelist.write_namelist(self.work_path / NamelistName.WRF, "wrf")
 
         # print debug logs
         logger.debug("Namelist settings of 'wrf':")
-        logger.debug(WRFRUN_NEW.namelist.get_namelist("wrf"))
+        logger.debug(WRFRUN.namelist.get_namelist("wrf"))
 
     def after_exec(self):
-        if not WRFRUN_NEW.states.IS_IN_REPLAY:
+        if not WRFRUN.states.IS_IN_REPLAY:
             self.add_output_files(save_path=self._log_save_path, startswith="rsl.", filenames="namelist.input")
             self.add_output_files(save_path=self._output_save_path, startswith="wrfout")
             if self.save_restarts:
@@ -823,7 +821,7 @@ class DFI(ExecutableBase):
             {
                 "input_file_dir_path": self.input_file_dir_path,
                 "update_real_output": self.update_real_output,
-                "namelist": WRFRUN_NEW.namelist.get_namelist("dfi"),
+                "namelist": WRFRUN.namelist.get_namelist("dfi"),
             }
         )
 
@@ -834,25 +832,25 @@ class DFI(ExecutableBase):
         self.input_file_dir_path = self.custom_config["input_file_dir_path"]
         self.update_real_output = self.custom_config["update_real_output"]
 
-        if not WRFRUN_NEW.namelist.register_namelist_id("dfi"):
+        if not WRFRUN.namelist.register_namelist_id("dfi"):
             logger.error("Can't register namelist for DFI.")
             raise NamelistIDError("Can't register namelist for DFI.")
-        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "dfi")
+        WRFRUN.namelist.update_namelist(self.custom_config["namelist"], "dfi")
 
     def before_exec(self):
-        WRFRUN_NEW.states.check_wrfrun_context(True)
-        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "dfi"
+        WRFRUN.states.check_wrfrun_context(True)
+        WRFRUN.states.WRFRUN_WORK_STATUS = "dfi"
 
-        if not WRFRUN_NEW.states.IS_IN_REPLAY and not WRFRUN_NEW.states.FAKE_SIMULATION_MODE:
+        if not WRFRUN.states.IS_IN_REPLAY and not WRFRUN.states.FAKE_SIMULATION_MODE:
             # prepare config
             if self.input_file_dir_path is None:
-                self.input_file_dir_path = WRFRUN_NEW.resource.OUTPUT_DIR / "real"
+                self.input_file_dir_path = WRFRUN.resource.OUTPUT_DIR / "real"
                 is_output = True
 
             else:
                 is_output = False
 
-            input_file_dir_path = WRFRUN_NEW.resource.get_custom_resource(self.input_file_dir_path)
+            input_file_dir_path = WRFRUN.resource.get_custom_resource(self.input_file_dir_path)
 
             if exists(input_file_dir_path):
                 file_list = [x for x in listdir(input_file_dir_path) if x != "logs"]
@@ -866,25 +864,25 @@ class DFI(ExecutableBase):
                     }
                     self.add_input_files(_file_config)
 
-            if not WRFRUN_NEW.namelist.register_namelist_id("dfi"):
+            if not WRFRUN.namelist.register_namelist_id("dfi"):
                 logger.error("Can't register namelist for DFI.")
                 raise NamelistIDError("Can't register namelist for DFI.")
 
             prepare_dfi_namelist()
 
         super().before_exec()
-        WRFRUN_NEW.namelist.write_namelist(self.work_path / NamelistName.WRF, "dfi")
+        WRFRUN.namelist.write_namelist(self.work_path / NamelistName.WRF, "dfi")
 
     def after_exec(self):
-        if not WRFRUN_NEW.states.IS_IN_REPLAY:
+        if not WRFRUN.states.IS_IN_REPLAY:
             self.add_output_files(save_path=self._log_save_path, startswith="rsl.", filenames="namelist.input")
             self.add_output_files(save_path=self._output_save_path, startswith="wrfinput_initialized_")
 
         super().after_exec()
 
-        parsed_output_save_path = WRFRUN_NEW.resource.get_custom_resource(self._output_save_path)
-        if self.update_real_output and not WRFRUN_NEW.states.FAKE_SIMULATION_MODE:
-            real_dir_path = WRFRUN_NEW.resource.get_custom_resource(self.input_file_dir_path)
+        parsed_output_save_path = WRFRUN.resource.get_custom_resource(self._output_save_path)
+        if self.update_real_output and not WRFRUN.states.FAKE_SIMULATION_MODE:
+            real_dir_path = WRFRUN.resource.get_custom_resource(self.input_file_dir_path)
 
             move(f"{real_dir_path}/wrfinput_d01", f"{real_dir_path}/wrfinput_d01_before_dfi")
             copyfile(f"{parsed_output_save_path}/wrfinput_initialized_d01", f"{real_dir_path}/wrfinput_d01")
@@ -965,7 +963,7 @@ class NDown(ExecutableBase):
                 "real_output_dir_path": self.real_output_dir_path,
                 "real_run_id": self.real_run_id,
                 "update_namelist": self.update_namelist,
-                "namelist": WRFRUN_NEW.namelist.get_namelist("wrf"),
+                "namelist": WRFRUN.namelist.get_namelist("wrf"),
             }
         )
 
@@ -976,18 +974,18 @@ class NDown(ExecutableBase):
         self.real_output_dir_path = self.custom_config["real_output_dir_path"]
         self.real_run_id = self.custom_config["real_run_id"]
         self.update_namelist = self.custom_config["update_namelist"]
-        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "wrf")
+        WRFRUN.namelist.update_namelist(self.custom_config["namelist"], "wrf")
 
     def before_exec(self):
-        WRFRUN_NEW.states.check_wrfrun_context(True)
-        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "ndown"
+        WRFRUN.states.check_wrfrun_context(True)
+        WRFRUN.states.WRFRUN_WORK_STATUS = "ndown"
 
         # we need to make sure time_control.io_form_auxinput2 is 2.
         # which means the format of input stream 2 is NetCDF.
-        WRFRUN_NEW.namelist.update_namelist({"time_control": {"io_form_auxinput2": 2}}, "wrf")
+        WRFRUN.namelist.update_namelist({"time_control": {"io_form_auxinput2": 2}}, "wrf")
 
         if self.real_output_dir_path is None:
-            self.real_output_dir_path = WRFRUN_NEW.resource.get_result_ref("real", self.real_run_id)
+            self.real_output_dir_path = WRFRUN.resource.get_result_ref("real", self.real_run_id)
             is_output = True
 
         else:
@@ -1012,7 +1010,7 @@ class NDown(ExecutableBase):
 
         super().before_exec()
 
-        WRFRUN_NEW.namelist.write_namelist(self.work_path / NamelistName.WRF, "wrf")
+        WRFRUN.namelist.write_namelist(self.work_path / NamelistName.WRF, "wrf")
 
     def after_exec(self):
         self.add_output_files(save_path=self._log_save_path, startswith="rsl.", filenames="namelist.input")
@@ -1027,7 +1025,7 @@ class NDown(ExecutableBase):
 
         super().after_exec()
 
-        parsed_output_save_path = WRFRUN_NEW.resource.get_custom_resource(self._output_save_path)
+        parsed_output_save_path = WRFRUN.resource.get_custom_resource(self._output_save_path)
 
         move(f"{parsed_output_save_path}/wrfinput_d02", f"{parsed_output_save_path}/wrfinput_d01")
         move(f"{parsed_output_save_path}/wrfbdy_d02", f"{parsed_output_save_path}/wrfbdy_d01")

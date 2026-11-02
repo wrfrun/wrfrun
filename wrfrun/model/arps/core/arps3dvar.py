@@ -12,7 +12,7 @@ from dataclasses import asdict
 from os import listdir
 from os.path import exists
 
-from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef, ResultSource
+from wrfrun.core import WRFRUN, ExecutableBase, ResourceRef, ResultSource
 
 from ._common import prepare_arps_namelist
 
@@ -41,7 +41,7 @@ class ARPS3DVar(ExecutableBase):
         self.custom_config.update(
             {
                 "arps_source": asdict(self.arps_source) if self.arps_source is not None else None,
-                "namelist": WRFRUN_NEW.namelist.get_namelist("arps3dvar"),
+                "namelist": WRFRUN.namelist.get_namelist("arps3dvar"),
             }
         )
 
@@ -49,20 +49,20 @@ class ARPS3DVar(ExecutableBase):
         """Restore the selected ARPS source and namelist for replay."""
         arps_source = self.custom_config["arps_source"]
         self.arps_source = ResultSource(**arps_source) if arps_source is not None else None
-        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arps3dvar")
+        WRFRUN.namelist.update_namelist(self.custom_config["namelist"], "arps3dvar")
 
     def before_exec(self):
         """Stage ARPS background data and write the 3DVAR namelist."""
         background_files = ["arps.hdf000000", "arps.hdfgrdbas"]
-        WRFRUN_NEW.states.check_wrfrun_context(True)
-        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "arps3dvar"
-        WRFRUN_NEW.resource.mkdir(self.work_path / "outputs")
+        WRFRUN.states.check_wrfrun_context(True)
+        WRFRUN.states.WRFRUN_WORK_STATUS = "arps3dvar"
+        WRFRUN.resource.mkdir(self.work_path / "outputs")
 
-        work_dir = WRFRUN_NEW.resource.get_custom_resource(self.work_path)
+        work_dir = WRFRUN.resource.get_custom_resource(self.work_path)
         missing_files = [name for name in background_files if name not in listdir(work_dir)]
         if missing_files:
-            arps_ref = WRFRUN_NEW.resource.get_result_ref("arps", source=self.arps_source)
-            arps_dir = WRFRUN_NEW.resource.get_custom_resource(arps_ref)
+            arps_ref = WRFRUN.resource.get_result_ref("arps", source=self.arps_source)
+            arps_dir = WRFRUN.resource.get_custom_resource(arps_ref)
             missing_sources = [name for name in missing_files if not exists(f"{arps_dir}/{name}")]
             if missing_sources:
                 message = (
@@ -78,16 +78,16 @@ class ARPS3DVar(ExecutableBase):
             "initialization": {"inifile": "./arps.hdf000000", "inigbf": "./arps.hdfgrdbas"},
             "output": {"dirname": "./outputs/"},
         }
-        if WRFRUN_NEW.namelist.get_namelist("arps3dvar")["incr_out"]["incrdmp"] > 0:
+        if WRFRUN.namelist.get_namelist("arps3dvar")["incr_out"]["incrdmp"] > 0:
             updates["incr_out"] = {"incdmpf": f"./outputs/{self.name}.incr"}
 
-        WRFRUN_NEW.namelist.update_namelist(updates, "arps3dvar")
-        WRFRUN_NEW.namelist.write_namelist(self.namelist_path, "arps3dvar")
+        WRFRUN.namelist.update_namelist(updates, "arps3dvar")
+        WRFRUN.namelist.write_namelist(self.namelist_path, "arps3dvar")
         super().before_exec()
 
     def after_exec(self):
         """Archive 3DVAR outputs and its runtime namelist."""
-        if not WRFRUN_NEW.states.IS_IN_REPLAY:
+        if not WRFRUN.states.IS_IN_REPLAY:
             self.add_output_files(
                 startswith=f"{self.name}.",
                 output_dir=self.work_path / "outputs",

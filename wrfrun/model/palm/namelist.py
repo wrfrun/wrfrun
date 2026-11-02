@@ -12,7 +12,7 @@ Functions to process namelist for ``PALM``.
 
 import math
 
-from wrfrun.core import WRFRUN_NEW
+from wrfrun.core import WRFRUN
 from wrfrun.log import logger
 
 from ..namelist import get_project_namelist_files
@@ -22,11 +22,11 @@ from .utils import find_optimal_grid_number, is_valid_palm_dimension
 def prepare_palm_namelist():
     """Load the PALM template and optional project updates."""
     template_file, update_files = get_project_namelist_files("palm", "palm", "palm.nml")
-    WRFRUN_NEW.namelist.read_namelist(template_file.as_posix(), "palm")
+    WRFRUN.namelist.read_namelist(template_file.as_posix(), "palm")
 
     for update_file in update_files:
         if update_file.is_file():
-            WRFRUN_NEW.namelist.update_namelist(update_file.as_posix(), "palm")
+            WRFRUN.namelist.update_namelist(update_file.as_posix(), "palm")
 
 
 def get_namelist_save_name() -> str:
@@ -39,7 +39,7 @@ def get_namelist_save_name() -> str:
     """
     map_dict = {"d3#": "_p3d", "d3r": "_p3dr", "pcr": "_pcr"}
 
-    config = WRFRUN_NEW.config.get_model_config("palm")
+    config = WRFRUN.config.get_model_config("palm")
     simulation_type: str = config["simulation_type"]
     job_name = config["job_name"]
 
@@ -67,7 +67,7 @@ def check_palm_namelist_settings():
 
 
 def _find_optimal_npex_npey_with_core_num() -> tuple[int, int]:
-    core_num = WRFRUN_NEW.config.get_core_num()
+    core_num = WRFRUN.config.get_core_num()
     sqrt_num = math.floor(math.sqrt(core_num))
 
     for _num in range(sqrt_num, 1, -1):
@@ -98,7 +98,7 @@ def check_palm_grid_params():
     :raises NameError: 'nx', 'ny', 'npex' or 'npey' isn't integer.
     :raises ValueError: 'nx' and 'ny' 's value isn't right to work with other settings.
     """
-    namelist_dict = WRFRUN_NEW.namelist.get_namelist("palm")
+    namelist_dict = WRFRUN.namelist.get_namelist("palm")
     initialization_parameters: dict = namelist_dict["initialization_parameters"]
     runtime_parameters: dict = namelist_dict["runtime_parameters"]
 

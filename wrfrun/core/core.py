@@ -5,17 +5,15 @@ wrfrun.core.core
 .. autosummary::
     :toctree: generated/
 
-    WRFRUNProxy
-    WRFRUN
+    WRFRunSession
+    WRFRunVarAPI
+    create_wrfrun_session
 
-Global variable "WRFRUN"
-************************
+``WRFRUN``
+**********
 
-``WRFRUN`` is an instance of :class:`WRFRUNProxy`.
-It holds the instance of :class:`WRFRunConfig <wrfrun.core._config.WRFRunConfig>`,
-:class:`ExecutableDB <wrfrun.core._exec_db.ExecutableDB>`,
-and :class:`ExecutableRecorder <wrfrun.core._record.ExecutableRecorder>`.
-Through this global variable, other submodules of wrfrun and users can access attributes and methods of these classes.
+``WRFRUN`` provides access to the active session's runtime and state
+services. It is available only while a ``WRFRunContext`` is active.
 """
 
 from contextvars import ContextVar, Token
@@ -190,7 +188,7 @@ class WRFRunVarAPI:
         return RUNTIME_SESSION.reset(token)
 
 
-WRFRUN_NEW = WRFRunVarAPI()
+WRFRUN = WRFRunVarAPI()
 
 
 def create_wrfrun_session() -> Token[WRFRunSession | None]:
@@ -229,7 +227,7 @@ def create_wrfrun_session() -> Token[WRFRunSession | None]:
         ),
     )
 
-    return WRFRUN_NEW.set_session(wrfrun_session)
+    return WRFRUN.set_session(wrfrun_session)
 
 
-__all__ = ["WRFRunVarAPI", "WRFRUN_NEW", "create_wrfrun_session"]
+__all__ = ["WRFRunVarAPI", "WRFRUN", "create_wrfrun_session"]

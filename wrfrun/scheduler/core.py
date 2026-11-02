@@ -19,7 +19,7 @@ from os.path import abspath, dirname, exists
 from pathlib import Path
 from shlex import join, quote
 
-from wrfrun.core import WRFRUN_NEW
+from wrfrun.core import WRFRUN
 from wrfrun.res import RUN_SH_TEMPLATE
 
 from .backend import get_scheduler_backend
@@ -45,7 +45,7 @@ def submit_scheduler_task(main_file_path: str) -> str | None:
     """
     script_path = prepare_scheduler_script(main_file_path)
 
-    scheduler_name = WRFRUN_NEW.config.get_job_scheduler_config()["job_scheduler"]
+    scheduler_name = WRFRUN.config.get_job_scheduler_config()["job_scheduler"]
 
     LOGGER.info(f"Submit scheduler task with backend '{scheduler_name}'.")
     return get_scheduler_backend(scheduler_name).submit(Path(script_path))
@@ -53,7 +53,7 @@ def submit_scheduler_task(main_file_path: str) -> str | None:
 
 def detect_scheduler_job() -> dict[str, str] | None:
     """Return the current scheduler identity from the execution environment."""
-    scheduler_name = WRFRUN_NEW.config.get_job_scheduler_config()["job_scheduler"]
+    scheduler_name = WRFRUN.config.get_job_scheduler_config()["job_scheduler"]
     backend = get_scheduler_backend(scheduler_name)
     job_id = backend.detect_job_id()
     if job_id is None:
@@ -79,12 +79,12 @@ def prepare_scheduler_script(main_file_path: str) -> str:
     # get absolute path of main entry file's parent directory
     dir_path = abspath(dirname(main_file_path))
 
-    scheduler_configs = WRFRUN_NEW.config.get_job_scheduler_config()
+    scheduler_configs = WRFRUN.config.get_job_scheduler_config()
 
     # generate environment settings
     env_settings = "export WRFRUN_ENV_JOB_SCHEDULER=1\n"
-    env_settings += f"export WRFRUN_EXPERIMENT={quote(WRFRUN_NEW.layout.experiment)}\n"
-    env_settings += f"export WRFRUN_RUN_ID={quote(WRFRUN_NEW.layout.run_id)}\n"
+    env_settings += f"export WRFRUN_EXPERIMENT={quote(WRFRUN.layout.experiment)}\n"
+    env_settings += f"export WRFRUN_RUN_ID={quote(WRFRUN.layout.run_id)}\n"
     if len(scheduler_configs["env_settings"]) > 0:
         for key in scheduler_configs["env_settings"]:
             if not ENV_KEY_PATTERN.fullmatch(key):
@@ -100,12 +100,12 @@ def prepare_scheduler_script(main_file_path: str) -> str:
 
     LOGGER.debug(f"Start command in scheduler: {exec_cmd}")
 
-    experiment_template_path = WRFRUN_NEW.resource.get_custom_resource(
-        WRFRUN_NEW.resource.CONFIG_DIR / f"experiments/{WRFRUN_NEW.layout.experiment}/scheduler/submit.sh"
+    experiment_template_path = WRFRUN.resource.get_custom_resource(
+        WRFRUN.resource.CONFIG_DIR / f"experiments/{WRFRUN.layout.experiment}/scheduler/submit.sh"
     )
     template_path = experiment_template_path
     if not template_path.is_file():
-        template_path = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.CONFIG_DIR / "scheduler/submit.sh")
+        template_path = WRFRUN.resource.get_custom_resource(WRFRUN.resource.CONFIG_DIR / "scheduler/submit.sh")
 
     if template_path.is_file():
         template = template_path.read_text()
@@ -129,7 +129,7 @@ def prepare_scheduler_script(main_file_path: str) -> str:
                 LOGGER.error(f"Unknown scheduler name: {scheduler_configs['job_scheduler']}")
                 raise ValueError(f"Unknown scheduler name: {scheduler_configs['job_scheduler']}")
 
-        shell_template_path = WRFRUN_NEW.resource.get_package_resource(RUN_SH_TEMPLATE)
+        shell_template_path = WRFRUN.resource.get_package_resource(RUN_SH_TEMPLATE)
         template = shell_template_path.read_text().format(
             SCHEDULER_SETTINGS=scheduler_settings,
             ENV_SETTINGS=env_settings,
@@ -137,7 +137,7 @@ def prepare_scheduler_script(main_file_path: str) -> str:
             WORK_PATH=quote(dir_path),
         )
 
-    script_path = WRFRUN_NEW.layout.workspace_dir.parent / "submit.sh"
+    script_path = WRFRUN.layout.workspace_dir.parent / "submit.sh"
     script_path.parent.mkdir(parents=True, exist_ok=True)
     script_path.write_text(template)
 

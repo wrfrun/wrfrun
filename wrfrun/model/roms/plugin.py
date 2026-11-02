@@ -8,7 +8,7 @@ Define plugin class which will be provided to ``wrfrun`` to register ``Executabl
 import logging
 from pathlib import Path
 
-from wrfrun.core import WRFRUN_NEW
+from wrfrun.core import WRFRUN
 
 from .core import ROMS
 
@@ -34,9 +34,9 @@ class ROMSPlugin:
         """
         Register ROMS ``Executable``.
         """
-        WRFRUN_NEW.registry.register_exec("roms", ROMS)
+        WRFRUN.registry.register_exec("roms", ROMS)
 
-        WRFRUN_NEW.resource.register_provider("workspace_roms", WRFRUN_NEW.resource.WORKSPACE_DIR / "roms")
+        WRFRUN.resource.register_provider("workspace_roms", WRFRUN.resource.WORKSPACE_DIR / "roms")
 
 
 __all__ = ["ROMSPlugin"]

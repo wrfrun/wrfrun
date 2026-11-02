@@ -47,7 +47,7 @@ from pathlib import Path
 from typing import Optional, Tuple, Union
 
 from .core import WRFRunBasicError, WRFRunServer, WRFRunServerHandler, stop_server
-from .core.core import WRFRUN_NEW, create_wrfrun_session
+from .core.core import WRFRUN, create_wrfrun_session
 from .core.type import ExecutableBaseProtocol
 from .data import prepare_wps_input_data
 from .log import logger, logger_add_file_handler
@@ -142,12 +142,12 @@ class WRFRunContext:
         """Enter the experiment run context."""
         # Use new wrfrun global api
         self._token = create_wrfrun_session()
-        WRFRUN_NEW.config.load_wrfrun_config(self.config_file_path, self.experiment, self.run_id)
-        self.run_id = WRFRUN_NEW.layout.run_id
-        WRFRUN_NEW.status.start()
+        WRFRUN.config.load_wrfrun_config(self.config_file_path, self.experiment, self.run_id)
+        self.run_id = WRFRUN.layout.run_id
+        WRFRUN.status.start()
 
         # check workspace
-        if not WRFRUN_NEW.workspace.check_workspace():
+        if not WRFRUN.workspace.check_workspace():
             logger.info("Reinitialize workspace because it is broken.")
             self._init_workspace = True
 
@@ -157,18 +157,18 @@ class WRFRunContext:
         # 2. submit_job = False and init_workspace = True, do prepare_workspace.
         if self._submit_job and not in_job_scheduler():
             if self._init_workspace:
-                WRFRUN_NEW.workspace.init_workspace()
+                WRFRUN.workspace.init_workspace()
 
             # ask user before commit the task
             if not self._skip_domain_confirm:
                 confirm_model_area()
 
             job_id = submit_scheduler_task(self._entry_file_path)
-            WRFRUN_NEW.status.update("submitted")
+            WRFRUN.status.update("submitted")
             if job_id is not None:
-                WRFRUN_NEW.status.update(
+                WRFRUN.status.update(
                     scheduler={
-                        "backend": WRFRUN_NEW.config.get_job_scheduler_config()["job_scheduler"],
+                        "backend": WRFRUN.config.get_job_scheduler_config()["job_scheduler"],
                         "job_id": job_id,
                     },
                 )
@@ -177,13 +177,13 @@ class WRFRunContext:
 
         elif not self._submit_job:
             if self._init_workspace:
-                WRFRUN_NEW.workspace.init_workspace()
+                WRFRUN.workspace.init_workspace()
 
             if not self._skip_domain_confirm:
                 confirm_model_area()
 
         # save a copy of config to the output path
-        WRFRUN_NEW.config.save_wrfrun_config(WRFRUN_NEW.resource.OUTPUT_DIR / "config.toml")
+        WRFRUN.config.save_wrfrun_config(WRFRUN.resource.OUTPUT_DIR / "config.toml")
 
         # check if we need to start a server
         if self._start_server:
@@ -191,9 +191,9 @@ class WRFRunContext:
             self._start_wrfrun_server()
 
         # change status
-        WRFRUN_NEW.states.set_wrfrun_context(True)
+        WRFRUN.states.set_wrfrun_context(True)
 
-        logger_add_file_handler(WRFRUN_NEW.config.get_log_path())
+        logger_add_file_handler(WRFRUN.config.get_log_path())
 
         if self._prepare_wps_data:
             if self._wps_data_area is None:
@@ -202,10 +202,10 @@ class WRFRunContext:
             else:
                 prepare_wps_input_data(self._wps_data_area)
 
-        WRFRUN_NEW.status.update("running")
+        WRFRUN.status.update("running")
         scheduler_job = detect_scheduler_job()
         if scheduler_job is not None:
-            WRFRUN_NEW.status.update(scheduler=scheduler_job)
+            WRFRUN.status.update(scheduler=scheduler_job)
 
         logger.debug(r"Enter wrfrun context")
 
@@ -217,24 +217,24 @@ class WRFRunContext:
         if self._start_server:
             stop_server(self._ip, self._port)  # type: ignore
 
-        if WRFRUN_NEW.states.IS_RECORDING:
+        if WRFRUN.states.IS_RECORDING:
             if exc_type is None:
-                WRFRUN_NEW.replay.export_replay_file()
+                WRFRUN.replay.export_replay_file()
 
-        WRFRUN_NEW.states.IS_RECORDING = False
+        WRFRUN.states.IS_RECORDING = False
 
         # change status
-        WRFRUN_NEW.states.set_wrfrun_context(False)
+        WRFRUN.states.set_wrfrun_context(False)
 
         clear_model_logs()
 
         if exc_type is None:
-            WRFRUN_NEW.status.finish()
-        elif WRFRUN_NEW.status.state != "failed":
-            WRFRUN_NEW.status.fail(str(exc_val or exc_type.__name__))
+            WRFRUN.status.finish()
+        elif WRFRUN.status.state != "failed":
+            WRFRUN.status.fail(str(exc_val or exc_type.__name__))
 
         # clean session
-        WRFRUN_NEW.reset_session(self._token)
+        WRFRUN.reset_session(self._token)
 
         logger.debug(r"Exit wrfrun context")
 
@@ -243,11 +243,11 @@ class WRFRunContext:
         Start a WRFRunServer to report simulation progress.
         """
         # read ip and port settings from config
-        socket_ip, socket_port = WRFRUN_NEW.config.get_socket_server_config()
+        socket_ip, socket_port = WRFRUN.config.get_socket_server_config()
 
         # get simulate settings
-        start_date = WRFRUN_NEW.config.get_model_config("wrf")["time"]["start_date"]
-        end_date = WRFRUN_NEW.config.get_model_config("wrf")["time"]["end_date"]
+        start_date = WRFRUN.config.get_model_config("wrf")["time"]["start_date"]
+        end_date = WRFRUN.config.get_model_config("wrf")["time"]["end_date"]
 
         start_date = start_date[0] if isinstance(start_date, list) else start_date
         end_date = end_date[0] if isinstance(end_date, list) else end_date
@@ -278,9 +278,9 @@ class WRFRunContext:
         :param include_data: If includes data.
         :type include_data: bool
         """
-        WRFRUN_NEW.replay.set_save_path(output_path)
-        WRFRUN_NEW.replay.set_include_data(include_data)
-        WRFRUN_NEW.states.IS_RECORDING = True
+        WRFRUN.replay.set_save_path(output_path)
+        WRFRUN.replay.set_include_data(include_data)
+        WRFRUN.states.IS_RECORDING = True
 
     def replay_simulation(self, replay_file: str):
         """
@@ -289,18 +289,18 @@ class WRFRunContext:
         :param replay_file: ``.replay`` file path.
         :type replay_file: str
         """
-        WRFRUN_NEW.states.check_wrfrun_context(True)
+        WRFRUN.states.check_wrfrun_context(True)
 
-        WRFRUN_NEW.states.IS_IN_REPLAY = True
+        WRFRUN.states.IS_IN_REPLAY = True
 
         try:
-            WRFRUN_NEW.replay.replay_simulation(replay_file)
+            WRFRUN.replay.replay_simulation(replay_file)
 
         except WRFRunBasicError:
             logger.error("Failed to replay the simulation")
 
         finally:
-            WRFRUN_NEW.states.IS_IN_REPLAY = False
+            WRFRUN.states.IS_IN_REPLAY = False
 
     def replay_executables(self, replay_file: str) -> Generator[tuple[str, ExecutableBaseProtocol], None, None]:
         """
@@ -315,15 +315,15 @@ class WRFRunContext:
         :return: Generator that yields ``Executable`` name and instance.
         :rtype: Generator[tuple[str, ExecutableBaseProtocol]]
         """
-        WRFRUN_NEW.states.check_wrfrun_context(True)
+        WRFRUN.states.check_wrfrun_context(True)
 
-        WRFRUN_NEW.states.IS_IN_REPLAY = True
+        WRFRUN.states.IS_IN_REPLAY = True
 
         try:
-            yield from WRFRUN_NEW.replay.replay_generator(replay_file)
+            yield from WRFRUN.replay.replay_generator(replay_file)
 
         finally:
-            WRFRUN_NEW.states.IS_IN_REPLAY = False
+            WRFRUN.states.IS_IN_REPLAY = False
 
 
 __all__ = ["WRFRunContext"]

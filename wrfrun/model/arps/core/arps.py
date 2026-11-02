@@ -13,7 +13,7 @@ from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
-from wrfrun.core import WRFRUN_NEW, ExecutableBase, ResourceRef, ResultSource
+from wrfrun.core import WRFRUN, ExecutableBase, ResourceRef, ResultSource
 
 from ..io import IORequirement, stage_io_requirements
 from ._common import prepare_arps_namelist
@@ -26,21 +26,21 @@ class ARPSInputsRules:
 
     @classmethod
     def _stage_sfcdata(cls, executable: "ARPS", _: dict) -> None:
-        source = WRFRUN_NEW.resource.get_result_ref("arpssfc", source=executable.arpssfc_source) / "arpssfc.sfcdata"
+        source = WRFRUN.resource.get_result_ref("arpssfc", source=executable.arpssfc_source) / "arpssfc.sfcdata"
         executable.add_input_files(source)
-        WRFRUN_NEW.namelist.update_namelist({"soil_ebm": {"sfcdtfl": "./arpssfc.sfcdata"}}, "arps")
+        WRFRUN.namelist.update_namelist({"soil_ebm": {"sfcdtfl": "./arpssfc.sfcdata"}}, "arps")
 
     @classmethod
     def _stage_histories(cls, executable: "ARPS", namelist: dict) -> None:
         if executable.history_source is not None:
-            input_ref = WRFRUN_NEW.resource.get_result_ref(source=executable.history_source)
+            input_ref = WRFRUN.resource.get_result_ref(source=executable.history_source)
 
         else:
-            input_ref = WRFRUN_NEW.resource.INPUT_DIR / "arps"
+            input_ref = WRFRUN.resource.INPUT_DIR / "arps"
 
         grid_base = Path(namelist.get("initialization", {}).get("inigbf")).name
         input_history = Path(namelist.get("initialization", {}).get("inifile")).name
-        input_dir = WRFRUN_NEW.resource.get_custom_resource(input_ref)
+        input_dir = WRFRUN.resource.get_custom_resource(input_ref)
 
         if not (input_dir / grid_base).is_file():
             message = f"Can't find your grid base file '{grid_base}' in {input_dir}."
@@ -54,7 +54,7 @@ class ARPSInputsRules:
 
         executable.add_input_files([input_ref / grid_base, input_ref / input_history])
 
-        WRFRUN_NEW.namelist.update_namelist(
+        WRFRUN.namelist.update_namelist(
             {"initialization": {"inigbf": f"./{grid_base}", "inifile": f"./{input_history}"}},
             "arps",
         )
@@ -62,18 +62,18 @@ class ARPSInputsRules:
     @classmethod
     def _stage_sounding(cls, executable: "ARPS", namelist: dict) -> None:
         sounding_file = Path(namelist["initialization"]["sndfile"]).name
-        executable.add_input_files(WRFRUN_NEW.resource.INPUT_DIR / sounding_file)
+        executable.add_input_files(WRFRUN.resource.INPUT_DIR / sounding_file)
 
     @classmethod
     def _stage_arpsintrp_exbc(cls, executable: "ARPS", _: dict) -> None:
-        source = WRFRUN_NEW.resource.get_result_ref("arpsintrp", source=executable.arpsintrp_source)
-        filenames = sorted(glob.glob("arpsintrp.[0-9]*", root_dir=WRFRUN_NEW.resource.get_custom_resource(source)))
+        source = WRFRUN.resource.get_result_ref("arpsintrp", source=executable.arpsintrp_source)
+        filenames = sorted(glob.glob("arpsintrp.[0-9]*", root_dir=WRFRUN.resource.get_custom_resource(source)))
         if len(filenames) < 2:
             raise FileNotFoundError("Can't find enough arpsintrp EXBC outputs to run ARPS.")
 
         boundary_times = [datetime.strptime(name.removeprefix("arpsintrp."), "%Y%m%d.%H%M%S") for name in filenames]
         executable.add_input_files([source / name for name in filenames])
-        WRFRUN_NEW.namelist.update_namelist(
+        WRFRUN.namelist.update_namelist(
             {
                 "exbcpara": {
                     "exbcname": "./arpsintrp",
@@ -90,19 +90,19 @@ class ARPSInputsRules:
         restart_file = Path(namelist.get("initialization", {}).get("rstinf")).name
 
         # check public results first
-        source = WRFRUN_NEW.resource.get_result_ref("arps") / restart_file
+        source = WRFRUN.resource.get_result_ref("arps") / restart_file
 
         # then check input dir
-        if not WRFRUN_NEW.resource.get_custom_resource(source).is_file():
-            source = WRFRUN_NEW.resource.INPUT_DIR / "arps" / restart_file
+        if not WRFRUN.resource.get_custom_resource(source).is_file():
+            source = WRFRUN.resource.INPUT_DIR / "arps" / restart_file
 
-        if not WRFRUN_NEW.resource.get_custom_resource(source).is_file():
+        if not WRFRUN.resource.get_custom_resource(source).is_file():
             message = f"Can't find your restart file '{restart_file}' both in input and output directory."
             LOGGER.error(message)
             raise FileNotFoundError(message)
 
         executable.add_input_files(source)
-        WRFRUN_NEW.namelist.update_namelist(
+        WRFRUN.namelist.update_namelist(
             {"initialization": {"rstinf": f"./{restart_file}"}},
             "arps",
         )
@@ -234,7 +234,7 @@ class ARPS(ExecutableBase):
                 "arpssfc_source": asdict(self.arpssfc_source) if self.arpssfc_source is not None else None,
                 "arpsintrp_source": asdict(self.arpsintrp_source) if self.arpsintrp_source is not None else None,
                 "history_source": asdict(self.history_source) if self.history_source is not None else None,
-                "namelist": WRFRUN_NEW.namelist.get_namelist("arps"),
+                "namelist": WRFRUN.namelist.get_namelist("arps"),
             }
         )
 
@@ -246,25 +246,25 @@ class ARPS(ExecutableBase):
         self.arpssfc_source = ResultSource(**arpssfc_source) if arpssfc_source is not None else None
         self.arpsintrp_source = ResultSource(**arpsintrp_source) if arpsintrp_source is not None else None
         self.history_source = ResultSource(**history_source) if history_source is not None else None
-        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "arps")
+        WRFRUN.namelist.update_namelist(self.custom_config["namelist"], "arps")
 
     def before_exec(self):
         """Stage inputs and write the ARPS namelist."""
-        WRFRUN_NEW.states.check_wrfrun_context(True)
-        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "arps"
-        WRFRUN_NEW.resource.mkdir(self.work_path / "outputs")
-        namelist = WRFRUN_NEW.namelist.get_namelist("arps")
+        WRFRUN.states.check_wrfrun_context(True)
+        WRFRUN.states.WRFRUN_WORK_STATUS = "arps"
+        WRFRUN.resource.mkdir(self.work_path / "outputs")
+        namelist = WRFRUN.namelist.get_namelist("arps")
 
         stage_io_requirements(self, namelist, ARPS_INPUT_REQUIREMENTS)
-        WRFRUN_NEW.namelist.update_namelist({"jobname": {"runname": self.name}}, "arps")
-        WRFRUN_NEW.namelist.write_namelist(self.namelist_path, "arps")
+        WRFRUN.namelist.update_namelist({"jobname": {"runname": self.name}}, "arps")
+        WRFRUN.namelist.write_namelist(self.namelist_path, "arps")
         super().before_exec()
 
     def after_exec(self):
         """Archive ARPS outputs selected by the namelist."""
-        namelist = WRFRUN_NEW.namelist.get_namelist("arps")
+        namelist = WRFRUN.namelist.get_namelist("arps")
 
-        if not WRFRUN_NEW.states.IS_IN_REPLAY:
+        if not WRFRUN.states.IS_IN_REPLAY:
             stage_io_requirements(self, namelist, ARPS_OUTPUT_REUQIREMENTS)
 
         super().after_exec()

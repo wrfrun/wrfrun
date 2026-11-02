@@ -17,7 +17,7 @@ from os.path import abspath, exists
 from pathlib import Path
 from typing import Literal, Optional
 
-from wrfrun.core import WRFRUN_NEW, ExecutableBase
+from wrfrun.core import WRFRUN, ExecutableBase
 from wrfrun.log import logger
 
 from ...core.type import ResourceRef
@@ -31,14 +31,14 @@ def _check_and_prepare_namelist(workspace_root: ResourceRef):
     Check if namelist of ``PALM`` has been loaded.
     If not, call :func:`prepare_palm_namelist <wrfrun.model.palm.namelist.prepare_palm_namelist>` to load it.
     """
-    if not WRFRUN_NEW.namelist.check_namelist("palm"):
+    if not WRFRUN.namelist.check_namelist("palm"):
         prepare_palm_namelist()
         check_palm_namelist_settings()
 
-    if not WRFRUN_NEW.namelist.check_namelist("palm_config"):
+    if not WRFRUN.namelist.check_namelist("palm_config"):
         prepare_palm_config(workspace_root)
 
-    if not WRFRUN_NEW.namelist.check_namelist("palm_config"):
+    if not WRFRUN.namelist.check_namelist("palm_config"):
         prepare_palm_config(workspace_root)
 
 
@@ -64,7 +64,7 @@ class PALMRun(ExecutableBase):
         mpi_cmd = None
         mpi_core_num = None
 
-        config = WRFRUN_NEW.config.get_model_config("palm")
+        config = WRFRUN.config.get_model_config("palm")
         job_name = config["job_name"]
         simulation_type = config["simulation_type"]
         cmd = ["./palmrun", "-r", job_name, "-c", config_id, "-a", simulation_type, "-X", str(core_num), "-v"]
@@ -91,7 +91,7 @@ class PALMRun(ExecutableBase):
         :return: Workspace path.
         :rtype: str
         """
-        job_name = WRFRUN_NEW.config.get_model_config("palm")["job_name"]
+        job_name = WRFRUN.config.get_model_config("palm")["job_name"]
 
         match node:
             case "root":
@@ -118,7 +118,7 @@ class PALMRun(ExecutableBase):
 
         * Namelist settings.
         """
-        self.custom_config.update({"namelist": WRFRUN_NEW.namelist.get_namelist("palm")})
+        self.custom_config.update({"namelist": WRFRUN.namelist.get_namelist("palm")})
 
     def load_custom_config(self):
         """
@@ -126,17 +126,17 @@ class PALMRun(ExecutableBase):
 
         * Namelist settings.
         """
-        WRFRUN_NEW.namelist.update_namelist(self.custom_config["namelist"], "palm")
+        WRFRUN.namelist.update_namelist(self.custom_config["namelist"], "palm")
 
     def before_exec(self):
-        WRFRUN_NEW.states.check_wrfrun_context(True)
-        WRFRUN_NEW.states.WRFRUN_WORK_STATUS = "palm"
+        WRFRUN.states.check_wrfrun_context(True)
+        WRFRUN.states.WRFRUN_WORK_STATUS = "palm"
 
-        config = WRFRUN_NEW.config.get_model_config("palm")
+        config = WRFRUN.config.get_model_config("palm")
         job_name = config["job_name"]
         config_id = config["config_identifier"]
 
-        if not WRFRUN_NEW.states.IS_IN_REPLAY:
+        if not WRFRUN.states.IS_IN_REPLAY:
             palm_workspace_input_path = self._get_workspace_path("input")
 
             # check if user provides topography files
@@ -154,8 +154,8 @@ class PALMRun(ExecutableBase):
                 )
 
             # Check if we have restar data
-            restart_data_dir = WRFRUN_NEW.resource.INPUT_DIR / "palm/restart"
-            restart_data_dir_path = WRFRUN_NEW.resource.get_custom_resource(restart_data_dir)
+            restart_data_dir = WRFRUN.resource.INPUT_DIR / "palm/restart"
+            restart_data_dir_path = WRFRUN.resource.get_custom_resource(restart_data_dir)
             if restart_data_dir_path.is_dir():
                 file_list = listdir(restart_data_dir_path)
                 for _file in file_list:
@@ -170,7 +170,7 @@ class PALMRun(ExecutableBase):
                         }
                     )
 
-            palm_data_dir = WRFRUN_NEW.resource.get_custom_resource(WRFRUN_NEW.resource.INPUT_DIR / "palm")
+            palm_data_dir = WRFRUN.resource.get_custom_resource(WRFRUN.resource.INPUT_DIR / "palm")
             if palm_data_dir.is_dir():
                 logger.info(f"Read datas in '{palm_data_dir}'.")
                 for data in listdir(palm_data_dir):
@@ -192,7 +192,7 @@ class PALMRun(ExecutableBase):
                             logger.error(f"Your data have unknown postfix string: '{data}'.")
                             raise ValueError(f"Your data have unknown postfix string: '{data}'.")
 
-        WRFRUN_NEW.namelist.write_namelist(
+        WRFRUN.namelist.write_namelist(
             self._get_workspace_path("input") / get_namelist_save_name(),
             "palm",
         )
@@ -202,8 +202,8 @@ class PALMRun(ExecutableBase):
         super().before_exec()
 
     def after_exec(self):
-        if not WRFRUN_NEW.states.IS_IN_REPLAY:
-            job_name = WRFRUN_NEW.config.get_model_config("palm")["job_name"]
+        if not WRFRUN.states.IS_IN_REPLAY:
+            job_name = WRFRUN.config.get_model_config("palm")["job_name"]
 
             self.add_output_files(
                 output_dir=self._get_workspace_path("output"),
@@ -241,8 +241,8 @@ def palmrun():
 
     Parameters needed to initialize :class:`PALMRun` is read from global variable :doc:`WRFRUN </api/core.core>`.
     """
-    config = WRFRUN_NEW.config.get_model_config("palm")
-    PALMRun(config["config_identifier"], WRFRUN_NEW.config.get_core_num())()
+    config = WRFRUN.config.get_model_config("palm")
+    PALMRun(config["config_identifier"], WRFRUN.config.get_core_num())()
 
 
 __all__ = ["PALMRun", "palmrun"]

@@ -19,7 +19,9 @@ This module defines all exceptions used in ``wrfrun``.
     ExecRegisterError
     GetExecClassError
     ModelNameError
+    RecordError
     CommandExecutionError
+    WorkspaceResetError
 """
 
 

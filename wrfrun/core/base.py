@@ -52,7 +52,7 @@ from shlex import join
 from typing import Optional, Union
 
 from ..log import get_wrfrun_rich_console
-from .core import WRFRUN_NEW
+from .core import WRFRUN
 from .error import CommandError, ConfigError, OutputFileError
 from .runtime.runner import Command, CommandResult, CommandStdStream, StreamMode
 from .type import ExecutableClassConfig, ExecutableConfig, FileConfigDict, ResourceRef
@@ -289,7 +289,7 @@ class ExecutableBase:
         self.output_file_config: list[FileConfigDict] = []
 
         # directory to save outputs
-        self._output_save_path = WRFRUN_NEW.resource.OUTPUT_DIR / self.name
+        self._output_save_path = WRFRUN.resource.OUTPUT_DIR / self.name
         self._log_save_path = self._output_save_path / "logs"
 
     def __new__(cls, *args, **kwargs):
@@ -536,20 +536,20 @@ class ExecutableBase:
                               Defaults to True.
         :type no_file_error: bool
         """
-        if WRFRUN_NEW.states.FAKE_SIMULATION_MODE:
+        if WRFRUN.states.FAKE_SIMULATION_MODE:
             return
 
         if output_dir is None:
-            _output_dir = WRFRUN_NEW.resource.get_custom_resource(self.work_path)
+            _output_dir = WRFRUN.resource.get_custom_resource(self.work_path)
         elif isinstance(output_dir, ResourceRef):
-            _output_dir = WRFRUN_NEW.resource.get_custom_resource(output_dir)
+            _output_dir = WRFRUN.resource.get_custom_resource(output_dir)
         else:
             _output_dir = Path(output_dir)
 
         if save_path is None:
-            _save_path = WRFRUN_NEW.resource.get_custom_resource(self._output_save_path)
+            _save_path = WRFRUN.resource.get_custom_resource(self._output_save_path)
         elif isinstance(save_path, ResourceRef):
-            _save_path = WRFRUN_NEW.resource.get_custom_resource(save_path)
+            _save_path = WRFRUN.resource.get_custom_resource(save_path)
         else:
             _save_path = Path(save_path)
 
@@ -625,14 +625,14 @@ class ExecutableBase:
         """
         Prepare input files before executing the external program.
         """
-        if WRFRUN_NEW.states.FAKE_SIMULATION_MODE:
+        if WRFRUN.states.FAKE_SIMULATION_MODE:
             LOGGER.info(f"We are in fake simulation mode, skip preparing input files for '{self.name}'")
             return
 
         for input_file in self.input_file_config:
-            WRFRUN_NEW.io.symlink(input_file, overwrite=True)
+            WRFRUN.io.symlink(input_file, overwrite=True)
 
-        if WRFRUN_NEW.states.DEBUG_MODE_EXECUTABLE:
+        if WRFRUN.states.DEBUG_MODE_EXECUTABLE:
             self.before_exec_debug()
 
     def before_exec_debug(self):
@@ -645,19 +645,19 @@ class ExecutableBase:
         """
         Save outputs and logs after executing the external program.
         """
-        if WRFRUN_NEW.states.FAKE_SIMULATION_MODE:
+        if WRFRUN.states.FAKE_SIMULATION_MODE:
             LOGGER.info(f"We are in fake simulation mode, skip saving outputs for '{self.name}'")
             return
 
         for output_file in self.output_file_config:
-            WRFRUN_NEW.io.copy(output_file, overwrite=True)
+            WRFRUN.io.copy(output_file, overwrite=True)
 
         LOGGER.info(
-            f"All {self.name} output files have been copied to {WRFRUN_NEW.resource.get_custom_resource(self._output_save_path)}"
+            f"All {self.name} output files have been copied to {WRFRUN.resource.get_custom_resource(self._output_save_path)}"
         )
-        WRFRUN_NEW.resource.publish_results(self.name)
+        WRFRUN.resource.publish_results(self.name)
 
-        if WRFRUN_NEW.states.DEBUG_MODE_EXECUTABLE:
+        if WRFRUN.states.DEBUG_MODE_EXECUTABLE:
             self.after_exec_debug()
 
     def after_exec_debug(self):
@@ -668,12 +668,12 @@ class ExecutableBase:
 
     def save_failure_artifacts(self, command: Command):
         """Save final namelists and command details after a failed run."""
-        log_path = WRFRUN_NEW.resource.get_custom_resource(self._log_save_path)
+        log_path = WRFRUN.resource.get_custom_resource(self._log_save_path)
         namelist_path = log_path / "namelists"
         namelist_path.mkdir(parents=True, exist_ok=True)
 
-        for namelist_id in WRFRUN_NEW.namelist.get_loaded_namelist_ids():
-            WRFRUN_NEW.namelist.write_namelist(namelist_path / f"{namelist_id}.nml", namelist_id)
+        for namelist_id in WRFRUN.namelist.get_loaded_namelist_ids():
+            WRFRUN.namelist.write_namelist(namelist_path / f"{namelist_id}.nml", namelist_id)
 
         command_path = log_path / "command.txt"
         command_path.write_text(
@@ -689,7 +689,7 @@ class ExecutableBase:
         console.print(f"[bold red]Command failed for {self.name}: {status}.[/]")
 
         for stream_name in ("stdout", "stderr"):
-            stream_path = WRFRUN_NEW.resource.get_custom_resource(self._log_save_path / f"{self.name}.{stream_name}")
+            stream_path = WRFRUN.resource.get_custom_resource(self._log_save_path / f"{self.name}.{stream_name}")
             console.print(f"[bold]--- {stream_name}: {stream_path} ---[/]")
             console.print(stream_path.read_text(errors="replace"), markup=False)
 
@@ -714,7 +714,7 @@ class ExecutableBase:
 
             LOGGER.info(f"Running [magenta]{' '.join(_cmd)}[/] ...")
 
-        if WRFRUN_NEW.states.FAKE_SIMULATION_MODE:
+        if WRFRUN.states.FAKE_SIMULATION_MODE:
             LOGGER.info(f"We are in fake simulation mode, skip calling numerical model for '{self.name}'")
             return
 
@@ -728,17 +728,17 @@ class ExecutableBase:
             stderr=stderr,
         )
 
-        stdout_path = WRFRUN_NEW.resource.get_custom_resource(stdout.path)
-        stderr_path = WRFRUN_NEW.resource.get_custom_resource(stderr.path)
-        WRFRUN_NEW.status.start_command(self.name, command.argv, stdout_path, stderr_path)
+        stdout_path = WRFRUN.resource.get_custom_resource(stdout.path)
+        stderr_path = WRFRUN.resource.get_custom_resource(stderr.path)
+        WRFRUN.status.start_command(self.name, command.argv, stdout_path, stderr_path)
         try:
-            result = WRFRUN_NEW.runner.run(command)
+            result = WRFRUN.runner.run(command)
         except Exception as error:
-            WRFRUN_NEW.status.fail(str(error))
+            WRFRUN.status.fail(str(error))
             raise
 
         if not result.succeeded:
-            WRFRUN_NEW.status.fail(
+            WRFRUN.status.fail(
                 "External command failed.",
                 returncode=result.returncode,
                 timed_out=result.timed_out,
@@ -747,9 +747,9 @@ class ExecutableBase:
             self.print_failure_logs(result)
             raise SystemExit(1)
 
-        WRFRUN_NEW.status.finish_command(result.returncode)
+        WRFRUN.status.finish_command(result.returncode)
 
-        if WRFRUN_NEW.states.DEBUG_MODE_EXECUTABLE:
+        if WRFRUN.states.DEBUG_MODE_EXECUTABLE:
             self.exec_debug()
 
     def exec_debug(self):
@@ -766,8 +766,8 @@ class ExecutableBase:
         self.exec()
         self.after_exec()
 
-        if not WRFRUN_NEW.states.IS_IN_REPLAY and WRFRUN_NEW.states.IS_RECORDING:
-            WRFRUN_NEW.replay.record(self.export_config())
+        if not WRFRUN.states.IS_IN_REPLAY and WRFRUN.states.IS_RECORDING:
+            WRFRUN.replay.record(self.export_config())
 
     # #################################### Properties ##########################################
 

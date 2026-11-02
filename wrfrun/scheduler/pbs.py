@@ -16,7 +16,7 @@ import re
 from os import getenv
 from pathlib import Path
 
-from wrfrun.core import WRFRUN_NEW, call_subprocess
+from wrfrun.core import WRFRUN, call_subprocess
 from wrfrun.res import SCHEDULER_PBS_TEMPLATE
 
 from .utils import get_core_num
@@ -54,7 +54,7 @@ def pbs_generate_settings(scheduler_config: dict) -> str:
     :rtype: str
     """
     # get log path and job scheduler config
-    log_path = WRFRUN_NEW.config.get_log_path()
+    log_path = WRFRUN.config.get_log_path()
 
     # get scheduler configs
     stdout_log_path = f"{log_path}/pbs.log"
@@ -63,7 +63,7 @@ def pbs_generate_settings(scheduler_config: dict) -> str:
     queue_name = scheduler_config["queue_name"]
     core_num = get_core_num()
 
-    template_path = WRFRUN_NEW.resource.get_package_resource(SCHEDULER_PBS_TEMPLATE)
+    template_path = WRFRUN.resource.get_package_resource(SCHEDULER_PBS_TEMPLATE)
     with open(template_path, "r") as f:
         template = f.read()
 
