@@ -1,4 +1,4 @@
 .. automodule:: wrfrun.core.operations
-    :members:
+    :no-members:
     :no-inherited-members:
     :no-special-members:

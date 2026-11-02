@@ -4,22 +4,24 @@ wrfrun.core.operations
 
 Project-level operations shared by command-line and agent interfaces.
 
-.. autosummary::
-    :toctree: generated/
+Submodules
+**********
 
-    initialize_project
-    add_models
-    create_experiment
-    ProfileInfo
-    get_global_profile_path
-    save_profile
-    load_profile
-    list_profiles
-    remove_global_profile
-    Job
-    list_jobs
-    get_job
-    follow_job_log
+================================================ ======================================================================
+:doc:`project </api/operations.project>`         Project initialization and model-management operations.
+:doc:`experiment </api/operations.experiment>`   Experiment creation and input staging operations.
+:doc:`profile </api/operations.profile>`         Reusable configuration-profile operations.
+:doc:`jobs </api/operations.jobs>`               Run-status inspection and log-following operations.
+================================================ ======================================================================
+
+.. toctree::
+    :maxdepth: 1
+    :hidden:
+
+    project <operations.project>
+    experiment <operations.experiment>
+    profile <operations.profile>
+    jobs <operations.jobs>
 """
 
 from .experiment import create_experiment

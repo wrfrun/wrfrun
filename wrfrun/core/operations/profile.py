@@ -8,6 +8,7 @@ Save and load reusable experiment configuration profiles.
     :toctree: generated/
 
     ProfileInfo
+    get_global_profile_path
     save_profile
     load_profile
     list_profiles
