@@ -7,8 +7,6 @@ Component which provides access to wrfrun and project resources.
 .. autosummary::
     :toctree: generated/
 
-    ResourceType
-    ResourceRef
     RunLayout
     ResourceCatalog
 """
@@ -455,4 +453,4 @@ class ResourceCatalog:
         return ResourceRef("log", "")
 
 
-__all__ = ["ResourceType", "ResourceRef", "ResourceCatalog", "RunLayout", "PROJECT_TREE"]
+__all__ = ["ResourceCatalog", "RunLayout", "PROJECT_TREE"]
