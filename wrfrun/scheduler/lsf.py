@@ -49,7 +49,7 @@ class LSFBackend:
 
 def lsf_generate_settings(scheduler_config: dict) -> str:
     """
-    This function generate bash settings for LSF job scheduler.
+    Generate LSF scheduler directives from ``scheduler_config``.
 
     :return: Generated settings.
     :rtype: str

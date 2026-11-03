@@ -2,7 +2,7 @@
 wrfrun.scheduler.utils
 ######################
 
-Utility functions used by ``wrfrun`` scheduler part.
+Shared scheduler utilities.
 
 .. autosummary::
     :toctree: generated/
@@ -15,7 +15,7 @@ from wrfrun.core import WRFRUN
 
 def get_core_num() -> int:
     """
-    Get core number.
+    Return the configured number of cores.
 
     :return: Core number.
     :rtype: int

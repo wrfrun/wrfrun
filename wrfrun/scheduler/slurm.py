@@ -48,7 +48,7 @@ class SlurmBackend:
 
 def slurm_generate_settings(scheduler_config: dict) -> str:
     """
-    This function generate bash settings for Slurm job scheduler.
+    Generate Slurm scheduler directives from ``scheduler_config``.
 
     :return: Generated settings.
     :rtype: str

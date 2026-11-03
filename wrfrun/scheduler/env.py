@@ -2,24 +2,20 @@
 wrfrun.scheduler.env
 ####################
 
-Functions to manage environment variables in job scheduler.
+Detect execution within a scheduler task.
 
 .. autosummary::
     :toctree: generated/
 
     in_job_scheduler
 
-How Does wrfrun Check If It Is In A Job Scheduler?
-**************************************************
+Scheduler Environment
+*********************
 
-If you submit your task through ``wrfrun``, that is,
-set ``submit_job = True`` in :class:`WRFRun <wrfrun.run.WRFRun>`,
-an environment variable called ``WRFRUN_ENV_JOB_SCHEDULER`` will be set.
-``wrfrun`` will determine if it is in a job scheduler by checking if ``WRFRUN_ENV_JOB_SCHEDULER`` appears in environment.
-
-If you submit your task by your own,
-it is recommended that add ``WRFRUN_ENV_JOB_SCHEDULER`` to the environment,
-which can ensure ``wrfrun`` works properly in the job scheduler.
+Scripts produced by :func:`~wrfrun.scheduler.core.prepare_scheduler_script`
+export ``WRFRUN_ENV_JOB_SCHEDULER=1``. :func:`in_job_scheduler` uses the
+presence of that variable to identify scheduler execution. A manually managed
+script can export the same variable when it needs the same behavior.
 """
 
 from os import environ

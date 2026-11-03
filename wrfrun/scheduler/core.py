@@ -2,7 +2,7 @@
 wrfrun.scheduler.core
 #####################
 
-Functions to interact with job scheduler.
+Submit scheduler tasks and generate their scripts.
 
 .. autosummary::
     :toctree: generated/
@@ -10,6 +10,16 @@ Functions to interact with job scheduler.
     detect_scheduler_job
     submit_scheduler_task
     prepare_scheduler_script
+
+Custom Scheduler Templates
+**************************
+
+:func:`prepare_scheduler_script` first looks for
+``configs/experiments/<experiment>/scheduler/submit.sh``, then for
+``configs/scheduler/submit.sh``. A custom template must contain each of
+``# wrfrun:environment`` and ``# wrfrun:command`` exactly once. ``wrfrun``
+replaces these markers with the scheduler environment and the command that
+starts the project entry script.
 """
 
 import logging

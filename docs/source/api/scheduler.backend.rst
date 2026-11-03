@@ -1,2 +1,4 @@
 .. automodule:: wrfrun.scheduler.backend
-   :members:
+    :no-members:
+    :no-inherited-members:
+    :no-special-members:
