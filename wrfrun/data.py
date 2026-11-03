@@ -2,12 +2,12 @@
 wrfrun.data
 ###########
 
+Download ERA5 data for model input.
+
 .. autosummary::
     :toctree: generated/
 
     ERA5CONFIG
-    _check_variables_and_datasets
-    _check_pressure_level
     find_era5_data
     prepare_wps_input_data
     download_data

@@ -2,28 +2,16 @@
 wrfrun.run
 ##########
 
+Run a project simulation in a session-scoped context.
+
 .. autosummary::
     :toctree: generated/
 
-    confirm_model_area
     WRFRunContext
 
-This module defines class and function used by ``wrfrun`` to run simulations.
-
-Use ``WRFRunContext`` to control simulations better
-***************************************************
-
-:class:`WRFRunContext` provides many useful features:
-
-* Set log files.
-* Load config and namelist from files.
-* Clear and prepare ``wrfrun`` workspace.
-* Download background data from ERA5.
-* Commit simulation to job schedulers.
-* Record and replay simulations.
-* Start socket server.
-
-Though you can do same things manually, why bother yourself while :class:`WRFRunContext` is easy to use:
+``WRFRunContext`` loads a project configuration, creates an isolated run
+session, and manages workspace preparation, run status, and optional scheduler
+submission. It can also prepare WPS input data or start the progress server.
 
 .. code-block:: python
     :caption: main.py
@@ -32,8 +20,8 @@ Though you can do same things manually, why bother yourself while :class:`WRFRun
 
     config_file = "./config.toml"
 
-    with WRFRunContext(config_file) as wrf_run:
-        # do something
+    with WRFRunContext(config_file) as run:
+        # Run model executables here.
         ...
 """
 
@@ -75,9 +63,7 @@ def confirm_model_area():
 
 
 class WRFRunContext:
-    """
-    ``WRFRun`` is a context class to use all functions in ``wrfrun`` package.
-    """
+    """Manage one project run and its session-scoped services."""
 
     def __init__(
         self,
@@ -92,21 +78,19 @@ class WRFRunContext:
         run_id: Optional[str] = None,
     ):
         """
-        Context class to achieve some goals before and after running WRF,
-        like saving a copy of config file, starting and closing WRFRunServer.
+        Create a context for one project run.
 
         :param config_file: ``wrfrun`` config file's path.
         :type config_file: str
-        :param init_workspace: If True, clean old files in workspace and re-create it.
+        :param init_workspace: Whether to initialize the workspace before running.
         :type init_workspace: bool
-        :param start_server: Whether to start WRFRunServer, defaults to True.
+        :param start_server: Whether to start the progress server. Defaults to ``False``.
         :type start_server: bool
-        :param submit_job: If commit this task to the PBS system, defaults to True.
+        :param submit_job: Whether to submit this task to the configured scheduler.
         :type submit_job: bool
-        :param prepare_wps_data: If True, download input datas for WPS first.
+        :param prepare_wps_data: Whether to download WPS input data before running.
         :type prepare_wps_data: bool
-        :param wps_data_area: If ``prepare_wps_data==True``, you need to give the area range of input data,
-                              so download function can download data from ERA5.
+        :param wps_data_area: Input-data area required when ``prepare_wps_data`` is ``True``.
         :type wps_data_area: tuple
         :param skip_domain_confirm: If ``True``, skip domain confirm.
         :type skip_domain_confirm: bool
@@ -114,7 +98,6 @@ class WRFRunContext:
         :type experiment: str | None
         :param run_id: Existing run ID to reuse. A new ID is generated when omitted.
         :type run_id: str | None
-        :return:
         """
         # variables for running WRFRunServer
         self._start_server = start_server
@@ -306,7 +289,7 @@ class WRFRunContext:
         """
         Read settings from the ``replay_file``, and yield ``Executable`` name and instance in order.
 
-        >>> with WRFRun("config.toml") as wrf_run:
+        >>> with WRFRunContext("config.toml") as wrf_run:
         >>>     for name, _exec in wrf_run.replay_executables("example.replay"):
         >>>         _exec()
 

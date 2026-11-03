@@ -2,17 +2,15 @@
 wrfrun.utils
 ############
 
+General filesystem and model-domain utilities.
+
 .. autosummary::
     :toctree: generated/
 
     check_path
     rectify_domain_size
-    _calculate_domain_shape
     calculate_domain_shape
-    _check_domain_shape
     check_domain_shape
-
-Utility submodule.
 """
 
 from os import makedirs

@@ -2,6 +2,9 @@
 wrfrun.log
 ##########
 
+Configure logging for ``wrfrun`` itself. Model-specific log handling belongs
+to the corresponding :doc:`model integration </api/model>`.
+
 .. autosummary::
     :toctree: generated/
 
@@ -10,9 +13,6 @@ wrfrun.log
     set_logger
     unify_logger_format
 
-``wrfrun`` submodule to manage logs. This submodule only take care of ``wrfrun``'s log.
-
-For functions and classes which parse numerical models' log, please check :doc:`model </api/model>`.
 """
 
 import logging
