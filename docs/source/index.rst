@@ -13,6 +13,102 @@ repeated with small configuration changes. A supported model is invoked from a
 short Python script inside :class:`WRFRunContext <wrfrun.run.WRFRunContext>`; ``wrfrun`` then
 prepares that run's workspace and records its files and outputs in the project.
 
+How a run flows
+***************
+
+The project files remain unchanged while each executable runs in an isolated
+workspace. The model implementation translates project settings and inputs
+into the files expected by the external model binary, then archives the files
+produced by that binary for later stages or inspection.
+
+.. graphviz::
+   :align: center
+   :caption: Main data and configuration flow of one ``wrfrun`` executable run.
+   :alt: Project configuration, namelists, and input data are assembled in an isolated workspace by a model executable, passed to an external model binary, then archived as outputs and published as the latest result.
+
+   digraph wrfrun_run {
+       graph [
+           rankdir=TB,
+           splines=ortho,
+           nodesep=0.35,
+           ranksep=0.55,
+           pad=0.15,
+           bgcolor="transparent",
+           fontname="sans-serif",
+       ];
+       node [
+           shape=box,
+           style="rounded,filled",
+           color="#5b7083",
+           fontname="sans-serif",
+           fontsize=10,
+           margin="0.16,0.10",
+       ];
+       edge [
+           color="#5b7083",
+           fontname="sans-serif",
+           fontsize=9,
+           arrowsize=0.7,
+       ];
+
+       subgraph cluster_project {
+           label="Project files (persistent)";
+           color="#9ab7cf";
+           fontname="sans-serif";
+           fontsize=11;
+           style="rounded";
+
+           config [label="config.toml\nmodel and experiment settings", fillcolor="#e9f2fb"];
+           namelist [label="namelist templates and updates", fillcolor="#e9f2fb"];
+           inputs [label="data/inputs\nand upstream results", fillcolor="#e9f2fb"];
+
+           { rank=same; config; namelist; inputs; }
+       }
+
+       subgraph cluster_runtime {
+           label="One isolated run";
+           color="#a9c6a7";
+           fontname="sans-serif";
+           fontsize=11;
+           style="rounded";
+
+           context [label="WRFRunContext\nselect experiment and run", fillcolor="#edf7eb"];
+           executable [label="Model executable\nresolve inputs and merge settings", fillcolor="#edf7eb"];
+           workspace [label=".wrfrun/.../workspace\nlinked inputs and final namelist", fillcolor="#edf7eb"];
+       }
+
+       subgraph cluster_model {
+           label="External numerical model";
+           color="#d9b587";
+           fontname="sans-serif";
+           fontsize=11;
+           style="rounded";
+
+           binary [label="model binary", fillcolor="#fff3e3"];
+       }
+
+       subgraph cluster_results {
+           label="Project results (persistent)";
+           color="#c2abc8";
+           fontname="sans-serif";
+           fontsize=11;
+           style="rounded";
+
+           archive [label="data/outputs/<experiment>/<run>\noutputs, logs, and final namelist", fillcolor="#f7eef8"];
+           latest [label="results/<executable>\nlatest published result", fillcolor="#f7eef8"];
+       }
+
+       config -> context;
+       context -> executable;
+       namelist -> executable;
+       inputs -> executable;
+       executable -> workspace;
+       workspace -> binary;
+       binary -> workspace;
+       workspace -> archive;
+       archive -> latest;
+   }
+
 What wrfrun provides
 *********************
 
