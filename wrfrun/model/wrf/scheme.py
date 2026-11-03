@@ -2,7 +2,7 @@
 wrfrun.model.wrf.scheme
 #######################
 
-This file contains dataclasses to determine schemes for WRF.
+Physics-scheme identifiers used in WRF namelists.
 
 .. autosummary::
     :toctree: generated/

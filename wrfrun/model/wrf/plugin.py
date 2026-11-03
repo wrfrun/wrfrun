@@ -2,7 +2,12 @@
 wrfrun.model.wrf.plugin
 #######################
 
-Define plugin class which will be provided to ``wrfrun`` to register ``Executable``.
+Register WRF executables, resources, and workspace handlers with ``wrfrun``.
+
+.. autosummary::
+    :toctree: generated/
+
+    WRFPlugin
 """
 
 import logging

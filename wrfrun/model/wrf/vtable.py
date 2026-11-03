@@ -2,27 +2,15 @@
 wrfrun.model.wrf.vtable
 #######################
 
-Dataclasses to represents VTable files in WRF.
+Resource references for bundled WPS Vtable files.
 
 .. autosummary::
     :toctree: generated/
 
     VtableFiles
 
-How to use
-**********
-
-Attributes of :class:`VtableFiles` is a ``wrfrun`` URI, parse it will get the real path of VTable files.
-
-**For example**
-
-.. code-block:: python
-    :caption: main.py
-
-    from wrfrun.core import WRFRUN
-    from wrfrun.model.wrf import VtableFiles
-
-    vtable_real_file_path = WRFRUN.config.parse_resource_uri(VtableFiles.ERA_PL)
+Each :class:`VtableFiles` attribute is a ``ResourceRef`` for one bundled
+Vtable file.
 """
 
 from dataclasses import dataclass

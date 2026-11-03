@@ -244,7 +244,7 @@ class UnGrib(ExecutableBase):
 
     def set_ungrib_output_prefix(self, prefix="FILE") -> "UnGrib":
         """
-        This method is the same as :func:`set_ungrib_output_prefix <wrfrun.model.wrf.namelist.set_ungrib_output_prefix>`.
+        This method is the same as :func:`set_ungrib_out_prefix <wrfrun.model.wrf.namelist.set_ungrib_out_prefix>`.
         ``wrfrun`` provide this method to avoid changing namelist before loading it.
 
         :param prefix: Prefix of outputs.

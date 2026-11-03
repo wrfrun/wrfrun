@@ -24,7 +24,7 @@ from ..type import DomainSetting
 
 def domain_settings_from_config_wrf() -> DomainSetting:
     """
-    Generate domain settings based on the config from :doc:`WRFRUN </api/core.core>`.
+    Generate domain settings from the active ``wrfrun`` session configuration.
 
     :return: :class:`DomainSetting <wrfrun.model.type.DomainSetting>` object.
     :rtype: DomainSetting

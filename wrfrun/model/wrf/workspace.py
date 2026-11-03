@@ -1,13 +1,12 @@
 """
-wrfrun.workspace.wrf
-####################
+wrfrun.model.wrf.workspace
+##########################
 
-Functions to prepare workspace for WPS/WRF model.
+Prepare and validate WPS and WRF workspaces.
 
 .. autosummary::
     :toctree: generated/
 
-    get_wrf_workspace_path
     prepare_wrf_workspace
     check_wrf_workspace
 """
@@ -21,16 +20,7 @@ from wrfrun.log import logger
 
 
 def prepare_wrf_workspace():
-    """
-    Initialize workspace for WPS/WRF model.
-
-    This function will check following paths,
-    and create them or delete old files inside:
-
-    1. ``$HOME/.config/wrfrun/model/WPS``
-    2. ``$HOME/.config/wrfrun/model/WRF``
-    3. ``$HOME/.config/wrfrun/model/WRFDA``
-    """
+    """Stage available WPS, WRF, and WRFDA files in model workspaces."""
     logger.info("Initialize workspace for WPS/WRF.")
 
     model_config = WRFRUN.config.get_model_config(model_name="wrf")

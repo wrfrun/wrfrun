@@ -7,8 +7,6 @@ Functions to read and write WPS geographical static data.
 .. autosummary::
     :toctree: generated/
 
-    _get_data_type
-    _get_clip_area
     parse_geographical_data_index
     parse_geographical_data_file
     read_geographical_static_data
@@ -93,9 +91,8 @@ def parse_geographical_data_index(index_path: str) -> OrderedDict:
     # since the index file is very similar to fortran namelist file,
     # we can manually add "&index" and "/" and parse it as a namelist
     # temp file store path
-    WRFRUNConfig = WRFRUN.config
-    temp_file = f"{WRFRUN.uri.WRFRUN_TEMP_PATH}/geogrid_data.index"
-    temp_file = WRFRUNConfig.parse_resource_uri(temp_file)
+    temp_file = WRFRUN.resource.TEMP_DIR / "geogrid_data.index"
+    temp_file = WRFRUN.resource.get_custom_resource(temp_file)
 
     # open file and add header and tail
     with open(index_path, "r") as _index_file:
@@ -105,9 +102,9 @@ def parse_geographical_data_index(index_path: str) -> OrderedDict:
             _temp_file.write("/")
 
     # read index
-    WRFRUNConfig.read_namelist(temp_file, "geog_static_data")
+    WRFRUN.namelist.read_namelist(temp_file, "geog_static_data")
 
-    return WRFRUNConfig.get_namelist("geog_static_data")["index"]
+    return WRFRUN.namelist.get_namelist("geog_static_data")["index"]
 
 
 def parse_geographical_data_file(
