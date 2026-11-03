@@ -212,6 +212,11 @@ class ExecutableBase:
     """
     Base class for all executables.
 
+    .. py:attribute:: name
+        :type: str
+
+        Unique identifier for the Executable.
+
     .. py:attribute:: class_config
         :type: ExecutableClassConfig
         :value: {"class_args": (), "class_kwargs": {}}
