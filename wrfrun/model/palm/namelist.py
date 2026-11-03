@@ -8,6 +8,9 @@ Functions to process namelist for ``PALM``.
     :toctree: generated/
 
     prepare_palm_namelist
+    get_namelist_save_name
+    check_palm_namelist_settings
+    check_palm_grid_params
 """
 
 import math

@@ -3,6 +3,11 @@ wrfrun.model.palm.plugin
 ########################
 
 Define plugin class which will be provided to ``wrfrun`` to register ``Executable``.
+
+.. autosummary::
+    :toctree: generated/
+
+    PALMPlugin
 """
 
 import logging

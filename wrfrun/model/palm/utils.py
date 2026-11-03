@@ -6,6 +6,8 @@ wrfrun.model.palm.utils
     :toctree: generated/
 
     get_input_postfix
+    is_valid_palm_dimension
+    find_optimal_grid_number
 
 Utility functions used by ``wrfrun.model.palm``.
 """

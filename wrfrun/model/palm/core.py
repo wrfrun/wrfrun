@@ -2,12 +2,11 @@
 wrfrun.model.palm.core
 ######################
 
-Core implementation of PALM model. All ``Executable`` and function interface of PALM model are defined here.
+PALM executable and function wrapper.
 
 .. autosummary::
     :toctree: generated/
 
-    _check_and_prepare_namelist
     PALMRun
     palmrun
 """
@@ -129,6 +128,7 @@ class PALMRun(ExecutableBase):
         WRFRUN.namelist.update_namelist(self.custom_config["namelist"], "palm")
 
     def before_exec(self):
+        """Stage PALM inputs and write the runtime configuration files."""
         WRFRUN.states.check_wrfrun_context(True)
         WRFRUN.states.WRFRUN_WORK_STATUS = "palm"
 
@@ -202,6 +202,7 @@ class PALMRun(ExecutableBase):
         super().before_exec()
 
     def after_exec(self):
+        """Archive PALM outputs and generated configuration files."""
         if not WRFRUN.states.IS_IN_REPLAY:
             job_name = WRFRUN.config.get_model_config("palm")["job_name"]
 
@@ -237,9 +238,9 @@ class PALMRun(ExecutableBase):
 
 def palmrun():
     """
-    Function interface for :class:`PALMRun`.
+    Function interface for :class:`PALMRun <wrfrun.model.palm.core.PALMRun>`.
 
-    Parameters needed to initialize :class:`PALMRun` is read from global variable :doc:`WRFRUN </api/core.core>`.
+    Parameters are read from the active ``wrfrun`` session configuration.
     """
     config = WRFRUN.config.get_model_config("palm")
     PALMRun(config["config_identifier"], WRFRUN.config.get_core_num())()

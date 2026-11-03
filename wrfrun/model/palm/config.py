@@ -2,10 +2,10 @@
 wrfrun.model.palm.config
 ########################
 
-Process config file of PALM.
+Process PALM configuration files.
 
 .. autosummary::
-    toctree: generated/
+    :toctree: generated/
 
     parse_palm_config
     read_palm_config

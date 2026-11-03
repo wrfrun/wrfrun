@@ -1,14 +1,15 @@
 """
-wrfrun.workspace.palm
-#####################
+wrfrun.model.palm.workspace
+###########################
 
-Functions to prepare workspace for PALM model.
+Prepare and validate PALM workspaces.
 
 .. autosummary::
     :toctree: generated/
 
     get_palm_workspace_path
     prepare_palm_workspace
+    check_palm_workspace
 """
 
 from os import listdir
@@ -26,7 +27,7 @@ def get_palm_workspace_path(node: Literal["root", "job", "input", "output"] = "r
     :param node: Which dir.
     :type node: str
     :return: Workspace path.
-    :rtype: str
+    :rtype: ResourceRef
     """
     job_name = WRFRUN.config.get_model_config("palm")["job_name"]
 
@@ -45,14 +46,7 @@ def get_palm_workspace_path(node: Literal["root", "job", "input", "output"] = "r
 
 
 def prepare_palm_workspace():
-    """
-    Initialize workspace for PALM model.
-
-    This function will check following paths,
-    and create them or delete old files inside:
-
-    1. ``$HOME/.config/wrfrun/model/PALM``
-    """
+    """Stage PALM runtime files in the model-owned workspace."""
     logger.info("Initialize workspace for PALM.")
 
     palm_path = WRFRUN.config.get_model_config("palm")["palm_path"]
