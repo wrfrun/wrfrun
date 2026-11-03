@@ -88,6 +88,7 @@ class ROMS(ExecutableBase):
         self.varinfo_file_path = self.custom_config["varinfo_file_path"]
 
     def before_exec(self):
+        """Stage ROMS inputs in the workspace before execution."""
         WRFRUN.states.check_wrfrun_context(True)
         WRFRUN.states.WRFRUN_WORK_STATUS = "roms"
 
@@ -99,6 +100,7 @@ class ROMS(ExecutableBase):
         super().before_exec()
 
     def after_exec(self):
+        """Archive NetCDF outputs produced in the ROMS workspace."""
         if not WRFRUN.states.IS_IN_REPLAY:
             self.add_output_files(save_path=self._output_save_path, endswith=".nc")
 
@@ -111,9 +113,9 @@ class ROMS(ExecutableBase):
 
 def roms():
     """
-    Function interface for :class:`ROMS`.
+    Function interface for :class:`ROMS <wrfrun.model.roms.core.ROMS>`.
 
-    Parameters needed to initialize :class:`ROMS` is read from global variable :doc:`WRFRUN </api/core.core>`.
+    Parameters are read from the active ``wrfrun`` session configuration.
     """
     roms_exe_path = WRFRUN.config.get_model_config("roms")["roms_compiled_executable_path"]
     return ROMS(roms_exe_path, WRFRUN.config.get_core_num())()
