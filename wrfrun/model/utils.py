@@ -2,7 +2,7 @@
 wrfrun.model.utils
 ##################
 
-Utility functions used by models.
+Utilities shared by enabled model integrations.
 
 .. autosummary::
     :toctree: generated/
@@ -11,21 +11,16 @@ Utility functions used by models.
 """
 
 from ..core import WRFRUN
-from .wrf.log import clear_wrf_logs
 
 
 def clear_model_logs():
-    """
-    This function can automatically collect unsaved log files,
-    and save them to the corresponding output directory of the ``Executable``.
-    """
-    WRFRUNConfig = WRFRUN.config
+    """Collect unsaved WRF logs when WRF is enabled."""
+    config = WRFRUN.config
 
-    func_map = {"wrf": clear_wrf_logs}
+    if "wrf" in config["model"] and config["model"]["wrf"]["use"]:
+        from .wrf.log import clear_wrf_logs
 
-    for _model in func_map:
-        if _model in WRFRUNConfig["model"] and WRFRUNConfig["model"][_model]["use"]:
-            func_map[_model]()
+        clear_wrf_logs()
 
 
 __all__ = ["clear_model_logs"]

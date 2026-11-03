@@ -2,12 +2,11 @@
 wrfrun.model.plot
 #################
 
-This module is used to plot domain area so users can check their domain settings before running simulation.
+Create domain plots from model configuration or namelist settings.
 
 .. autosummary::
     :toctree: generated/
 
-    _calculate_x_y_offset
     create_projection
     parse_domain_setting
     plot_domain_area
@@ -36,7 +35,7 @@ def _calculate_x_y_offset(domain_settings: DomainSetting) -> tuple[float, float]
     Calculate X and Y offset from planar origin in metres.
 
     :param domain_settings: Dictionary contains domain settings.
-    :type domain_settings: DomainSetting | None
+    :type domain_settings: DomainSetting
     :return: (X offset, Y offset)
     :rtype: tuple
     """
@@ -52,7 +51,7 @@ def create_projection(
     Create a projection from domain settings which can be used to draw images.
 
     You can give your custom domain settings to create the projection.
-    Please see ``wrfrun.mode.plot.DomainSetting`` for more information about ``domain_settings``.
+    See :class:`~wrfrun.model.type.DomainSetting` for the required settings.
 
     :param domain_settings: Dictionary contains domain settings.
     :type domain_settings: DomainSetting
@@ -169,7 +168,7 @@ def plot_domain_area(fig: Figure, domain_settings: DomainSetting):
 
     :param fig: Figure to plot domain.
     :type fig: Figure
-    :param domain_settings: Dictionary contains domain settings. If None, read domain settings from ``WRFRUNConfig``.
+    :param domain_settings: Domain settings to plot.
     :type domain_settings: DomainSetting | None
     """
     proj = create_projection(domain_settings)
@@ -222,10 +221,11 @@ def plot_domain_area(fig: Figure, domain_settings: DomainSetting):
 
 def generate_domain_area():
     """
-    Generate domain area for each model based on user's config.
-    Images are saved to the output directory with name: "${model_name}_domain.png".
+    Generate a WRF domain-area image when WRF is enabled.
 
-    :return: True if domain area is ploted, else False.
+    Images are saved to the output directory as ``<model_name>_domain.png``.
+
+    :return: ``True`` when at least one image is generated.
     :rtype: bool
     """
     WRFRUNConfig = WRFRUN.config
@@ -252,4 +252,4 @@ def generate_domain_area():
     return flag
 
 
-__all__ = ["plot_domain_area", "create_projection", "generate_domain_area"]
+__all__ = ["create_projection", "generate_domain_area", "parse_domain_setting", "plot_domain_area"]

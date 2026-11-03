@@ -2,24 +2,27 @@
 wrfrun.model
 ############
 
-To be able to handle different numerical models,
-``wrfrun`` implements various ``Executable`` for model's binary executable
-based on :class:`ExecutableBase <wrfrun.core.base.ExecutableBase>`,
-which are all placed in this module.
+Model integrations and shared utilities.
 
-``wrfrun.model`` currently supports following numerical models:
+Model packages are loaded through their plugins when a project enables the
+corresponding model; importing this package does not import ARPS, PALM, ROMS,
+or WRF implementations.
 
-========================================= ==========================================
-:doc:`arps </api/model.arps>`             Support for ARPS
-:doc:`constants </api/model.constants>`   Definition of contants used by models.
-:doc:`palm </api/model.palm>`             Support for PALM
-:doc:`plot </api/model.plot>`             Plot submodule.
-:doc:`plugins </api/model.plugins>`       Model plugin load functions.
-:doc:`roms </api/model.roms>`             Support for ROMS
-:doc:`type </api/model.type>`             Definition of types used by models.
-:doc:`utils </api/model.utils>`           Utility functions.
-:doc:`wrf </api/model.wrf>`               Support for WRF
-========================================= ==========================================
+Submodules
+**********
+
+========================================= ========================================================
+:doc:`arps </api/model.arps>`             ARPS model integration.
+:doc:`constants </api/model.constants>`   Shared model constants.
+:doc:`namelist </api/model.namelist>`     Project namelist-file discovery.
+:doc:`palm </api/model.palm>`             PALM model integration.
+:doc:`plot </api/model.plot>`             Domain plotting utilities.
+:doc:`plugins </api/model.plugins>`       Model-plugin loading.
+:doc:`roms </api/model.roms>`             ROMS model integration.
+:doc:`type </api/model.type>`             Shared model types.
+:doc:`utils </api/model.utils>`           Shared model utilities.
+:doc:`wrf </api/model.wrf>`               WRF and WPS model integration.
+========================================= ========================================================
 
 .. toctree::
     :maxdepth: 1
@@ -27,6 +30,7 @@ which are all placed in this module.
 
     arps <model.arps>
     constants <model.constants>
+    namelist <model.namelist>
     palm <model.palm>
     plot <model.plot>
     plugins <model.plugins>
@@ -36,8 +40,18 @@ which are all placed in this module.
     wrf <model.wrf>
 """
 
-from .constants import *
-from .plot import *
-from .plugins import *
-from .type import *
-from .utils import *
+from .constants import NamelistName
+from .plot import create_projection, generate_domain_area, plot_domain_area
+from .plugins import load_model_plugin
+from .type import DomainSetting
+from .utils import clear_model_logs
+
+__all__ = [
+    "DomainSetting",
+    "NamelistName",
+    "clear_model_logs",
+    "create_projection",
+    "generate_domain_area",
+    "load_model_plugin",
+    "plot_domain_area",
+]

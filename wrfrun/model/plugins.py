@@ -2,7 +2,12 @@
 wrfrun.model.plugins
 ####################
 
-Define model plugin information here.
+Load model plugins declared by project configuration.
+
+.. autosummary::
+    :toctree: generated/
+
+    load_model_plugin
 """
 
 from importlib import import_module
