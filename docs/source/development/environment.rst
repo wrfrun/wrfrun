@@ -1,237 +1,129 @@
-Development Environment Setup
-#############################
+Development Environment
+#######################
 
-This guide will help you set up a complete development environment for contributing to ``wrfrun``. 
-A proper development environment ensures you can run tests, build documentation, and use all the development tools configured for the project.
+This page sets up a local environment for changing ``wrfrun`` itself. It is
+separate from the numerical-model installations and large input data required
+to run ARPS, WRF, PALM, or another supported model. Most unit tests and the
+documentation build do not require those external installations.
 
 Prerequisites
 *************
 
-Before setting up the development environment, make sure you have:
+- Python 3.10 or newer, matching the minimum version in ``pyproject.toml``.
+- Git, to obtain and manage the source checkout.
+- `uv <https://docs.astral.sh/uv/>`_, the supported environment and dependency
+  manager for this repository.
+- Graphviz's ``dot`` command when building documentation that contains
+  diagrams.
 
-- **Python 3.10 or newer**: ``wrfrun`` requires Python 3.10+
-- **Git**: For cloning the repository and version control
-- **Linux operating system**: While ``wrfrun`` may work on other platforms, it is primarily developed and tested on Linux
-- **A C compiler (optional)**: For building any optional C extensions
+Linux is the primary development platform. The project may run elsewhere, but
+the configured Pyright platform and model-execution workflows are maintained
+on Linux.
 
-Getting the Source Code
+Get the source
+**************
+
+Clone the repository, then enter its root directory:
+
+.. code-block:: console
+
+   $ git clone https://github.com/Syize/wrfrun.git
+   $ cd wrfrun
+
+For a contribution from a fork, clone that fork instead and add the upstream
+repository as a separate remote if needed. Keep project-specific changes on a
+dedicated branch rather than editing the default branch directly.
+
+Create the environment
+**********************
+
+``uv sync`` creates or updates the local virtual environment from
+``pyproject.toml`` and ``uv.lock``. It includes the development dependency
+group, which supplies Ruff, Pyright, pytest, and the Sphinx extensions used by
+the documentation.
+
+.. code-block:: console
+
+   $ uv sync
+
+Run project tools through ``uv run`` so they use that environment:
+
+.. code-block:: console
+
+   $ uv run wrfrun --version
+   wrfrun 0.5.2
+
+The displayed version depends on the installed project metadata, so it may be
+different in another checkout. The command proves that the CLI entry point is
+available; it does not prove that an external numerical model is installed.
+
+Routine checks
+**************
+
+Use the narrowest relevant test while developing, then run the shared checks
+before handing off a change:
+
+.. code-block:: console
+
+   $ uv run ruff format --check wrfrun tests
+   $ uv run ruff check wrfrun tests
+   $ uv run pyright
+   $ uv run pytest
+
+Ruff can apply mechanical fixes when appropriate:
+
+.. code-block:: console
+
+   $ uv run ruff format wrfrun tests
+   $ uv run ruff check --fix wrfrun tests
+
+The project's style and scope conventions are described in
+:doc:`Coding style <coding_style>`.
+
+Build the documentation
 ***********************
 
-First, clone the ``wrfrun`` repository from GitHub:
+Build the site from the repository root. The output is intentionally outside
+``docs/source`` and must not be edited by hand:
 
-.. code-block:: bash
+.. code-block:: console
 
-    git clone https://github.com/wrfun/wrfrun.git
-    cd wrfrun
+   $ uv run sphinx-build -b html docs/source docs/build/html
 
-If you plan to contribute changes, you should first fork the repository and then clone your fork:
+For a quick syntax, toctree, and cross-reference check without producing an
+HTML site, use Sphinx's dummy builder:
 
-.. code-block:: bash
+.. code-block:: console
 
-    git clone https://github.com/YOUR_USERNAME/wrfrun.git
-    cd wrfrun
+   $ uv run sphinx-build -b dummy docs/source /tmp/wrfrun-docs
 
-Setting Up the Development Environment
-**************************************
+If a page contains a Graphviz diagram, ensure ``dot`` is on ``PATH`` before
+building. See :doc:`Coding style <coding_style>` for module docstring and API
+reference conventions.
 
-``wrfrun`` uses modern Python packaging tools. 
-We recommend using `uv <https://docs.astral.sh/uv/>`_ for dependency management, but you can also use ``pip``.
-
-Using uv (Recommended)
-======================
-
-`uv <https://docs.astral.sh/uv/>`_ is a fast Python package installer and resolver. 
-If you don't have it installed, you can refer to `uv's website <https://docs.astral.sh/uv/>`_ and install it.
-
-Once you have `uv <https://docs.astral.sh/uv/>`_ installed, create a virtual environment and install the development dependencies:
-
-.. code-block:: bash
-
-    # This will install all dependencies
-    uv sync
-
-Using pip
-=========
-
-If you prefer using ``pip``, you can set up the environment with:
-
-.. code-block:: bash
-
-    # Create a virtual environment
-    python -m venv .venv
-    
-    # Activate the virtual environment
-    source .venv/bin/activate  # On Linux/macOS
-    # Or on Windows: .venv\Scripts\activate
-    
-    # Install the package in editable mode with development dependencies
-    pip install -e ".[dev]"
-
-Verifying the Installation
-**************************
-
-To verify your development environment is set up correctly, you can:
-
-1. Check that you can import ``wrfrun``:
-
-.. code-block:: bash
-
-    python -c "import wrfrun; print(f'wrfrun version: {wrfrun.__version__}')"
-
-2. Run the code quality tools:
-
-.. code-block:: bash
-
-    # Run Ruff for linting and formatting checks
-    ruff check wrfrun
-
-Development Tools
-*****************
-
-``wrfrun`` uses several development tools to ensure code quality. Here's what's included:
-
-Code Linting and Formatting
-============================
-
-- **Ruff**: A fast Python linter and formatter
-  - Lints code for common errors and style issues
-  - Formats code according to the project's style guidelines
-  - Configuration in ``pyproject.toml`` under ``[tool.ruff]``
-
-.. code-block:: bash
-
-    # Check for linting issues
-    ruff check wrfrun
-    
-    # Automatically fix fixable issues
-    ruff check --fix wrfrun
-    
-    # Format code
-    ruff format wrfrun
-
-Type Checking
-=============
-
-- **Pyright**: A static type checker for Python
-  - Ensures type annotations are correct
-  - Catches type-related bugs early
-  - Configuration in ``pyproject.toml`` under ``[tool.pyright]``
-
-.. code-block:: bash
-
-    # Run type checking
-    pyright
-
-Documentation Building
-======================
-
-- **Sphinx**: The documentation generator
-- **pydata-sphinx-theme**: The documentation theme
-- **sphinx-copybutton**: Adds copy buttons to code blocks
-- **sphinx-design**: For designing beautiful documentation components
-- **sphinx-autobuild**: For live-reloading documentation during development
-
-.. code-block:: bash
-
-    # Build the documentation
-    cd docs
-    make html
-    
-    # Or build with live reloading (for development)
-    sphinx-autobuild source build
-
-Building the Package
+Build a distribution
 ********************
 
-To build the package for distribution:
+``wrfrun`` uses Meson through ``meson-python`` as its build backend. Build a
+wheel and source distribution with:
 
-.. code-block:: bash
+.. code-block:: console
 
-    # Build the package
-    uv build
-    
-    # The built packages will be in the dist/ directory
-    ls dist/
+   $ uv build
 
-IDE Configuration
-*****************
+The generated artifacts are placed in ``dist/``. Building a distribution is
+especially useful after changing ``meson.build`` files or bundled resources;
+a source checkout can find files that an installed package is missing.
 
-While you can use any text editor or IDE for development, here are some recommendations:
+External model prerequisites
+****************************
 
-Visual Studio Code
-==================
+Unit tests use temporary files and controlled command doubles. A real
+simulation additionally needs the selected model's compiled binaries,
+installation-specific tables, input data, and—when applicable—a configured
+scheduler. Those requirements belong to the model integration and project
+configuration, not to the base Python development environment.
 
-If you use VS Code, you can install the following extensions for the best development experience:
-
-- **Python**: For Python language support
-- **Ruff**: For Ruff integration
-- **Pylance**: For Pyright integration (optional, since Pyright is already configured)
-
-Create a ``.vscode/settings.json`` file with these settings:
-
-.. code-block:: json
-
-    {
-        "python.linting.enabled": false,
-        "python.formatting.provider": "none",
-        "editor.formatOnSave": true,
-        "editor.codeActionsOnSave": {
-            "source.fixAll.ruff": true,
-            "source.organizeImports.ruff": true
-        },
-        "[python]": {
-            "editor.defaultFormatter": "charliermarsh.ruff"
-        }
-    }
-
-Other Editors
-=============
-
-For other editors, refer to their documentation on how to integrate Ruff and Pyright.
-
-Development Workflow
-********************
-
-Here's a typical development workflow for contributing to ``wrfrun``:
-
-1. **Create a feature branch**:
-
-.. code-block:: bash
-
-    git checkout -b feature/my-awesome-feature
-
-2. **Make your changes**: Write code, tests, and documentation.
-
-3. **Run quality checks**:
-
-.. code-block:: bash
-
-    ruff check wrfrun
-    ruff format wrfrun
-
-4. **Commit your changes**:
-
-.. code-block:: bash
-
-    git add .
-    git commit -m "Add my awesome feature"
-
-5. **Push and create a Pull Request**:
-
-.. code-block:: bash
-
-    git push origin feature/my-awesome-feature
-
-Then go to GitHub and create a Pull Request from your branch.
-
-Troubleshooting
-***************
-
-If you encounter issues setting up your development environment:
-
-- Make sure you're using Python 3.10 or newer
-- Try deleting the ``.venv`` directory and recreating the virtual environment
-- Check that you're in the correct directory when running commands
-- For documentation building issues, check that you have all the documentation dependencies installed
-
-If you're still having problems, feel free to open an issue on the `GitHub repository <https://github.com/wrfrun/wrfrun/issues>`_.
+See :doc:`Model development <develop_guide_model>` when changing model
+integration, or the user-facing :doc:`installation guide </usage/installation>`
+when preparing a simulation project.
